@@ -1,0 +1,21 @@
+version: "2.0" # mistral version
+name: auctornotitia.pre_process_wp1_data
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        tasks:
+            ### Notify about found runfolder ###
+            notify_about_found_runfolder:
+                action: core.sendmail
+                input:
+                    to: paer3961@gmail.com
+                    from: <% $.host %>
+                    subject: Found runfolder <% $.runfolder %>/tmp/
+                    body: <% $.runfolder %> found at <% $.host %>

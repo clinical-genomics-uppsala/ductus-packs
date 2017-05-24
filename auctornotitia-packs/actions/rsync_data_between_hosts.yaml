@@ -1,0 +1,44 @@
+---
+
+name: 'rsync_data_between_hosts'
+runner_type: 'python-script'
+description: "Move data between servers using rsync"
+enabled: true
+entry_point: "rsync_data_between_hosts.py"
+parameters:
+    from_path:
+        type: "string"
+        description: "Path to the folder that will be moved."
+        required: true
+    to_path:
+        type: 'string'
+        description: "Path to where the data will be moved."
+        required: true
+    remote_address:
+        type: 'string'
+        description: "The ip address to the remote host from where data will be pulled from or sent to."
+        required: true
+    user:
+        type: 'string'
+        description: "The user name that will be used to move data, not required if the executing user is the one that will move the data."
+        required: true
+    push_or_pull:
+        type: 'integer'
+        default: 1
+        description: "Default is to pull data, this can be changed by push_or_pull to 2."
+    repeat:
+        type: 'integer'
+        default: 10
+        description: "Number of times rsync command should be repeated, when it fails."
+    identity_file:
+        type: 'string'
+        description: "Path to the location of the identity_file that will be used to authenticate the user."
+        required: true
+    checksum_validate:
+        type: 'boolean'
+        default: false
+        description: "Rsync command will use checksum to validate transfered files when this parameters is set to true."
+    preserve_permissions:
+        type: 'boolean'
+        default: true
+        description: "Rsync command will preserve permissions and ownership when this parameter is set to true."

@@ -1,0 +1,13 @@
+---
+name: "auctornotitia.when_wp1_data_is_ready_process_it"
+description: "..."
+enabled: true
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+action:
+    ref: "auctornotitia.pre_process_wp1_data"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"

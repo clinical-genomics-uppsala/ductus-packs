@@ -1,0 +1,1 @@
+git+git@bitbucket.org:clinsequu/auctornotitia-core.git#egg=auctornotitia-core

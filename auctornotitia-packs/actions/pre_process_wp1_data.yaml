@@ -1,0 +1,23 @@
+---
+name: pre_process_wp1_data
+description: >
+  Pre-process data for wp1......
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/pre_process_wp1_data.yml
+pack: auctornotitia
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: auctornotitia.pre_process_wp1_data
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string

@@ -1,0 +1,11 @@
+---
+name: Auctornotitia Packs
+ref: auctornotitia
+description: Pack for moving clinical data
+keywords:
+  - sequencing
+  - life science
+version: 0.1.0
+author: Patrik Smed
+email: patrik.smeds@scilifelab.uu.se
+
