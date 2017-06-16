@@ -1,0 +1,16 @@
+---
+  wp1_runfolder_service_port:
+    description: Port that will be used to send requests to the runfolder service, for wp1
+    type: string
+    required: true
+    default: "10800"
+  wp1_runfolder_service_address:
+    description: Address that will be used to send requests to the runfolder service, for wp1
+    type: string
+    required: true
+    default: "wp1runfolder"
+  wp1_transfer_address:
+    description: Address that will be used make ssh request the tranfer host, for wp1
+    type: string
+    required: true
+    default: "wp1transfer"

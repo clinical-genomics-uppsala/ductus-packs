@@ -1,0 +1,7 @@
+---
+  runfolder_api_version: "1.0"
+  wp1_runfolder_service_port: "10800"
+  wp1_runfolder_service_address: "wp1runfolder"
+  wp1_transfer_address: "wp1transfer"
+  wp1_transfer_to_host: "130.238.54.142"
+  wp1_transfer_to_path:

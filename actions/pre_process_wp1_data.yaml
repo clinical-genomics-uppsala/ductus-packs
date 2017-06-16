@@ -4,7 +4,7 @@ description: >
   Pre-process data for wp1......
 enabled: true
 runner_type: mistral-v2
-entry_point: workflows/pre_process_wp1_data.yml
+entry_point: workflows/pre_process_wp1_data.yaml
 pack: auctornotitia
 parameters:
   context:

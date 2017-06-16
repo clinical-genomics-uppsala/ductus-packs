@@ -11,11 +11,139 @@ workflows:
         output:
             output_the_whole_workflow_context: <% $ %>
         tasks:
-            ### Notify about found runfolder ###
-            notify_about_found_runfolder:
-                action: core.sendmail
+            get_experiment_name:
+                action: core.local
                 input:
-                    to: paer3961@gmail.com
-                    from: <% $.host %>
-                    subject: Found runfolder <% $.runfolder %>/tmp/
-                    body: <% $.runfolder %> found at <% $.host %>
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_runfolder_name
+
+            get_runfolder_name:
+                action: core.remote
+                input:
+                    cmd: ls -d */ | sed 's/\///'
+                    cwd: <% $.runfolder %>
+                    hosts: wp1transfer
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - get_machine_type
+
+            get_machine_type:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                publish:
+                    machine_type: "<% task(get_machine_type).result.get(wp1transfer).stdout %>"
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_runfolder_on_moriarty
+
+            create_runfolder_on_moriarty:
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /projects/wp1/nobackup/INBOX
+                    cmd: mkdir <% $.experiment_name %>
+                    timeout: 10
+                    hosts: 130.238.54.142
+                on-success:
+                    - create_raw_folder_on_moriarty
+                    - transfer_csv_file
+
+            create_raw_folder_on_moriarty:
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
+                    cmd: mkdir raw
+                    timeout: 10
+                    hosts: 130.238.54.142
+                on-success:
+                    - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
+                    - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
+                    - transfer_runinfo_files
+                    - transfer_interop_files
+
+            transfer_csv_file:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -f "<% $.runfolder %>/*.csv" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/stanley_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            transfer_miseq_fastq_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/stanley_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            transfer_miniseq_fastq_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/stanley_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            transfer_runinfo_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/stanley_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            transfer_interop_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/stanley_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            create_transfer_complete_file:
+                join: 3
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
+                    cmd: echo "`date`" > .TransferComplete.txt
+                    timeout: 10
+                    hosts: 130.238.54.142
