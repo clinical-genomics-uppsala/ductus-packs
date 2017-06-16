@@ -27,7 +27,7 @@ workflows:
                     cwd: <% $.runfolder %>
                     hosts: wp1transfer
                 publish:
-                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                    runfolder_name: "<% task(get_runfolder_name).result.get(wp1transfer).stdout %>"
                 on-success:
                     - get_machine_type
 
@@ -36,7 +36,7 @@ workflows:
                 input:
                     cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
                 publish:
-                    machine_type: "<% task(get_machine_type).result.get(wp1transfer).stdout %>"
+                    machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
                     - mark_as_started
 
