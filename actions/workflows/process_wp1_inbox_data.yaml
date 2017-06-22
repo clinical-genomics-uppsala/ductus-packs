@@ -1,0 +1,94 @@
+version: "2.0" # mistral version
+name: auctornotitia.process_wp1_inbox_data
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_run_year
+
+            get_run_year:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                    - get_csv_file_name
+
+            get_csv_file_name:
+                action: core.local
+                input:
+                    cmd: ls *.csv
+                    cwd: <% $.runfolder %>
+                publish:
+                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_rawdata_folder
+                    - copy_csv_file
+
+            create_rawdata_folder:
+                action: core.local
+                input:
+                    cwd: /data/fastq_filer
+                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>_raw"
+                publish:
+                    raw_data_folder: "/data/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_raw"
+                on-success:
+                    - copy_rawdata
+
+            copy_rawdata:
+                action: core.local
+                input:
+                  cwd: <% $.runfolder %>
+                  cmd: cp raw/*.fastq.gz <% $.raw_data_folder %>/
+                on-success:
+                  - run_sera
+
+            copy_csv_file:
+                action: core.local
+                input:
+                  cwd: <% $.runfolder %>
+                  cmd: cp <% $.csv_file_name %> /data/sample_files/
+                on-success:
+                   - run_sera
+
+            run_sera:
+              join: all
+              action: auctornotitia.start_sera_analys
+              input:
+                  username: patsm159
+                  private_key: /home/stanley/.ssh/moriarty_rsa
+                  hosts: 130.238.54.142
+                  expirement_name: <% $.experiment_name %>
+                  year: <% $.run_year %>
+                  sera_version: "17.0.4"
+                  slurm_version: "16.05.2"
+                  input_file_name: <% $.csv_file_name %>
+                  analysis: "klinik"
+                  globals: "MORIARTY"
+                  normal: "annovar"
+                  project: "wp1"
+                  ref_dir: "/projects/wp1/refFiles_current/refFiles/"
