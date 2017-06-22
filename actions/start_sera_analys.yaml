@@ -1,0 +1,64 @@
+---
+    name: 'start_sera_analys'
+    runner_type: 'remote-shell-script'
+    description: 'Create SERA inputFile and submit the analysis to slurm'
+    enabled: true
+    entry_point: 'lib/start_sera_analysis.sh'
+    parameters:
+        expirement_name:
+            type: 'string'
+            description: 'The name of the expirement'
+            required: true
+            position: 0
+        year:
+            type: 'string'
+            description: 'year when the sequnce where performed.'
+            required: true
+            position: 1
+        sera_version:
+            default: "17.0.4"
+            type: 'string'
+            description: 'SERA version that will be used'
+            required: true
+            position: 2
+        slurm_version:
+            default: "16.05.2"
+            type: 'string'
+            description: 'slurm version that will be used'
+            required: true
+            position: 3
+        input_file_name:
+            type: 'string'
+            description: 'name of the input file'
+            required: true
+            position: 4
+        analysis:
+            default: "klinik"
+            type: 'string'
+            description: 'the analysis type that will be performed'
+            required: true
+            position: 5
+        globals:
+            default: "MORIARTY"
+            type: 'string'
+            description: 'config version that will be used'
+            required: true
+            position: 6
+        normal:
+            default: "annovar"
+            type: 'string'
+            description: 'normal sample that will be used'
+            required: true
+            position: 7
+        project:
+            default: "wp1"
+            type: 'string'
+            description: 'Project that the analysis belong to'
+            required: true
+            position: 8
+        ref_dir:
+            default: "/projects/wp1/refFiles_current/refFiles/"
+            type: 'string'
+            description: 'ref_dir that will be used'
+            required: true
+            position: 9
