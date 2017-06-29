@@ -11,7 +11,7 @@
             required: true
             position: 0
         year:
-            type: 'string'
+            type: 'integer'
             description: 'year when the sequnce where performed.'
             required: true
             position: 1
