@@ -53,9 +53,9 @@ workflows:
                 action: core.local
                 input:
                     cwd: /data/fastq_filer
-                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>_raw"
+                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 publish:
-                    raw_data_folder: "/data/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_raw"
+                    raw_data_folder: "/data/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 on-success:
                     - copy_rawdata
 
@@ -71,7 +71,7 @@ workflows:
                 action: core.local
                 input:
                   cwd: <% $.runfolder %>
-                  cmd: cp <% $.csv_file_name %> /data/sample_files/
+                  cmd: cp <% $.csv_file_name %> /data/sample_files/<% $.run_year %>/
                 on-success:
                    - run_sera
 
