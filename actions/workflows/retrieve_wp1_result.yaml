@@ -49,5 +49,6 @@ workflows:
             transfer_result:
                 action: core.local
                 input:
+                    timeout: 86400
                     cwd: /opt/stackstorm/packs/auctornotitia/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
