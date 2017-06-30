@@ -1,5 +1,6 @@
 ---
-name: "auctornotitia.when_wp1_data_is_ready_process_it"
+name: "when_wp1_data_is_ready_process_it"
+pack: "auctornotitia"
 description: "..."
 enabled: true
 
@@ -9,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "regex"
-      pattern: r'^.+/runfolders/.+$'
+      pattern: "^.+/runfolders/.+$"
 
 action:
     ref: "auctornotitia.pre_process_wp1_data"
