@@ -1,5 +1,5 @@
 ---
-name: "auctornotitia.wp1_inbox_data"
+name: "auctornotitia.wp1_outbox_data"
 description: "..."
 enabled: true
 
@@ -12,7 +12,7 @@ criteria:
       pattern: "^.+/OUTBOX/.+$"
 
 action:
-    ref: "auctornotitia.process_wp1_inbox_data"
+    ref: "auctornotitia.retrieve_wp1_result"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"
