@@ -1,5 +1,6 @@
 ---
-name: "auctornotitia.wp1_outbox_data"
+name: "wp1_outbox_data"
+pack: "auctornotitia"
 description: "..."
 enabled: true
 

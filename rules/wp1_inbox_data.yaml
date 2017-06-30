@@ -1,5 +1,6 @@
 ---
-name: "auctornotitia.process_wp1_inbox_data"
+name: "process_wp1_inbox_data"
+pack: "auctornotitia"
 description: "..."
 enabled: true
 
