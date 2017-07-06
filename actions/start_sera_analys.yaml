@@ -16,7 +16,7 @@
             required: true
             position: 1
         sera_version:
-            default: "17.0.4"
+            default: "17.0.5"
             type: 'string'
             description: 'SERA version that will be used'
             required: true

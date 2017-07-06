@@ -10,6 +10,11 @@ workflows:
             - host
         output:
             output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - molpat_error_notifier
+                - bioinfo_error_notifier
         tasks:
             get_experiment_name:
                 action: core.local
@@ -29,7 +34,41 @@ workflows:
                 publish:
                     runfolder_name: "<% task(get_runfolder_name).result.get(wp1transfer).stdout %>"
                 on-success:
+                    - get_csv_file_name
+
+            get_csv_file_name:
+                action: core.remote
+                input:
+                    cmd: ls *.csv
+                    cwd: <% $.runfolder %>
+                    hosts: wp1transfer
+                publish:
+                    csv_file_name: "<% task(get_csv_file_name).result.get(wp1transfer).stdout %>"
+                on-success:
+                    - validate_csv_file
+                on-error:
+                    - missing_csv_file
+                    - mark_as_failed
+
+            validate_csv_file:
+                action: core.local
+                input:
+                    cmd: echo '<% $.csv_file_name %>' | awk '!/^.*\.csv$/ {exit(1)}'
+                on-success:
+                    - validate_folder_name
+                on-error:
+                    - missing_csv_file
+                    - mark_as_failed
+
+            validate_folder_name:
+                action: core.local
+                input:
+                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+                on-success:
                     - get_machine_type
+                on-error:
+                    - missing_runfolder
+                    - mark_as_failed
 
             get_machine_type:
                 action: core.local
@@ -39,6 +78,9 @@ workflows:
                     machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
                     - mark_as_started
+                on-error:
+                    - unexpected_machine_type
+                    - mark_as_failed
 
             mark_as_started:
                 action: core.http
@@ -48,6 +90,7 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_runfolder_on_moriarty
+                    - begin_transfer_of_found_runfolder
 
             create_runfolder_on_moriarty:
                 action: core.remote
@@ -55,12 +98,11 @@ workflows:
                     username: patsm159
                     private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /projects/wp1/nobackup/INBOX
-                    cmd: mkdir <% $.experiment_name %>
+                    cmd: mkdir -p <% $.experiment_name %>
                     timeout: 10
                     hosts: 130.238.54.142
                 on-success:
                     - create_raw_folder_on_moriarty
-                    - transfer_csv_file
 
             create_raw_folder_on_moriarty:
                 action: core.remote
@@ -68,14 +110,36 @@ workflows:
                     username: patsm159
                     private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
-                    cmd: mkdir raw
+                    cmd: mkdir -p raw
                     timeout: 10
                     hosts: 130.238.54.142
                 on-success:
-                    - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
-                    - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                     - transfer_runinfo_files
+
+
+            transfer_runinfo_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 600
+                    hosts: wp1transfer
+                on-success:
                     - transfer_interop_files
+
+            transfer_interop_files:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 600
+                    hosts: wp1transfer
+                on-success:
+                    - transfer_csv_file
 
             transfer_csv_file:
                 action: core.remote
@@ -83,11 +147,12 @@ workflows:
                     username: stanley
                     private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/*.csv" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
-                    timeout: 86400
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 600
                     hosts: wp1transfer
                 on-success:
-                    - create_transfer_complete_file
+                    - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
+                    - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
 
             transfer_miseq_fastq_files:
                 action: core.remote
@@ -113,32 +178,7 @@ workflows:
                 on-success:
                     - create_transfer_complete_file
 
-            transfer_runinfo_files:
-                action: core.remote
-                input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
-                    timeout: 86400
-                    hosts: wp1transfer
-                on-success:
-                    - create_transfer_complete_file
-
-            transfer_interop_files:
-                action: core.remote
-                input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
-                    timeout: 86400
-                    hosts: wp1transfer
-                on-success:
-                    - create_transfer_complete_file
-
             create_transfer_complete_file:
-                join: 4
                 action: core.remote
                 input:
                     username: patsm159
@@ -147,3 +187,73 @@ workflows:
                     cmd: echo "`date`" > .TransferComplete.txt
                     timeout: 10
                     hosts: 130.238.54.142
+                on-success:
+                    - mark_as_finished
+
+            begin_transfer_of_found_runfolder:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][SUCCESS] - Found WP1 runfolder <% $.experiment_name %>'"
+                    body: "Transfer of runfolder <% $.experiment_name %> to Moriarty will start now."
+
+            missing_runfolder:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
+                    body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
+                on-complete:
+                    - fail
+
+            unexpected_machine_type:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
+                    body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
+                on-complete:
+                    - fail
+
+            missing_csv_file:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
+                    body: "Couldn't locate a csv file in folder <% $.experiment_name %>"
+                on-complete:
+                    - fail
+
+            molpat_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail
