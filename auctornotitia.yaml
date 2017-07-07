@@ -4,4 +4,6 @@
   wp1_runfolder_service_address: "wp1runfolder"
   wp1_transfer_address: "wp1transfer"
   wp1_transfer_to_host: "130.238.54.142"
-  wp1_transfer_to_path:
+
+  wp1_bioinfo_mail: "patrik.smeds@ipg.uu.se"
+  wp1_mail_list: "molpat-clinical-genomics-uu@googlegroups.se"

@@ -10,6 +10,11 @@ workflows:
             - host
         output:
             output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - molpat_error_notifier
+                - bioinfo_error_notifier
         tasks:
             get_experiment_name:
                 action: core.local
@@ -37,6 +42,7 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_year_folder
+                    - retrieving_result
 
             create_year_folder:
                 action: core.local
@@ -52,3 +58,54 @@ workflows:
                     timeout: 86400
                     cwd: /opt/stackstorm/packs/auctornotitia/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
+            on-success:
+                - mark_as_finished
+                - result_retrieved
+
+            molpat_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
+                    body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
+                    body: "Something went wrong when retrieving sera result for <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail
+
+            retrieving_result:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][SUCCESS] - Retrieving result, <% $.experiment_name %>'"
+                    body: "Retrieving result from SERA analysis of <% $.experiment_name %>."
+
+            result_retrieved:
+                action: core.sendmail
+                input:
+                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
+                    body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
