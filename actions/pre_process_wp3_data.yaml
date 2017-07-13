@@ -1,0 +1,23 @@
+---
+name: pre_process_wp3_data
+description: >
+  Pre-process data for wp3......
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/pre_process_wp3_data.yaml
+pack: auctornotitia
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: auctornotitia.pre_process_wp3_data
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
