@@ -42,7 +42,6 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_year_folder
-                    - retrieving_result
 
             create_year_folder:
                 action: core.local
@@ -95,13 +94,6 @@ workflows:
                   method: "POST"
               on-complete:
                   - fail
-
-            retrieving_result:
-                action: core.sendmail
-                input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][SUCCESS] - Retrieving result, <% $.experiment_name %>'"
-                    body: "Retrieving result from SERA analysis of <% $.experiment_name %>."
 
             result_retrieved:
                 action: core.sendmail

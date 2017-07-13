@@ -51,7 +51,6 @@ workflows:
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
-                    - start_processing_notification
                     - create_rawdata_folder
                     - copy_csv_file
 
@@ -134,10 +133,3 @@ workflows:
                   method: "POST"
               on-complete:
                   - fail
-
-            start_processing_notification:
-                action: core.sendmail
-                input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][SUCCESS] - SERA processing started, <% $.experiment_name %>'"
-                    body: "SERA processing of <% $.experiment_name %> has been started"

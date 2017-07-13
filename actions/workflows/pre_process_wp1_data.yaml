@@ -90,7 +90,6 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_runfolder_on_moriarty
-                    - begin_transfer_of_found_runfolder
 
             create_runfolder_on_moriarty:
                 action: core.remote
@@ -189,13 +188,6 @@ workflows:
                     hosts: 130.238.54.142
                 on-success:
                     - mark_as_finished
-
-            begin_transfer_of_found_runfolder:
-                action: core.sendmail
-                input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][SUCCESS] - Found WP1 runfolder <% $.experiment_name %>'"
-                    body: "Transfer of runfolder <% $.experiment_name %> to Moriarty will start now."
 
             missing_runfolder:
                 action: core.sendmail
