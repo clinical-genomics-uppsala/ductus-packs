@@ -1,0 +1,19 @@
+---
+name: "when_wp3_data_is_ready_process_it"
+pack: "auctornotitia"
+description: "..."
+enabled: true
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "regex"
+      pattern: "^.+/wp3/.+$"
+
+action:
+    ref: "auctornotitia.pre_process_wp3_data"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"

@@ -1,0 +1,112 @@
+version: "2.0" # mistral version
+name: auctornotitia.pre_process_wp3_data
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - bioinfo_error_notifier
+        tasks:
+            get_runfolder_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - validate_folder_name
+
+            validate_folder_name:
+                action: core.local
+                input:
+                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+                on-success:
+                    - mark_as_started
+                on-error:
+                    - missing_runfolder
+                    - mark_as_failed
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - transfer_runfolder
+
+            transfer_runfolder:
+                action: core.remote
+                input:
+                    username: stanley
+                    private_key: /home/stanley/.ssh/stanley_rsa
+                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/projects/wp3/nobackup/INBOX/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2 -R -1
+                    timeout: 86400
+                    hosts: wp1transfer
+                on-success:
+                    - create_transfer_complete_file
+
+            create_transfer_complete_file:
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/moriarty_rsa
+                    cwd: /projects/wp3/nobackup/INBOX/<% $.runfolder_name %>
+                    cmd: echo "`date`" > .TransferComplete.txt
+                    timeout: 10
+                    hosts: 130.238.54.142
+                on-success:
+                    - mark_as_finished
+                    - pre_proccesing_complete_notifier
+
+            missing_runfolder:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP3][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
+                    body: "Problem with runfolder name: <% $.runfolder_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
+                on-complete:
+                    - fail
+
+            pre_proccesing_complete_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP3][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
+                    body: "Pre-processing of <% $.runfolder_name %> have been completed."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP3][ERROR] - Pre-processing, <% $.runfolder_name %>'"
+                    body: "Something went wrong during the pre-processing of <% $.runfolder_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail
