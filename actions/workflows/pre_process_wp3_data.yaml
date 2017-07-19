@@ -83,8 +83,6 @@ workflows:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     subject: "'[ANTI][WP3][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Pre-processing of <% $.runfolder_name %> have been completed."
-                on-complete:
-                    - fail
 
             bioinfo_error_notifier:
                 action: core.sendmail
