@@ -2,15 +2,15 @@
 name: "process_wp1_inbox_data"
 pack: "auctornotitia"
 description: "..."
-enabled: true
+enabled: false
 
 trigger:
     type: "arteria.runfolder_ready"
 
 criteria:
     trigger.runfolder:
-      type: "regex"
-      pattern: "^.+/INBOX/.+$"
+      type: "contains"
+      pattern: "/wp1/INBOX/"
 
 action:
     ref: "auctornotitia.process_wp1_inbox_data"

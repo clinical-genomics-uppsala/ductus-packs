@@ -19,85 +19,88 @@ workflows:
             get_experiment_name:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                  cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
                 publish:
-                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                  experiment_name: "<% task(get_experiment_name).result.stdout %>"
                 on-success:
-                    - get_run_year
+                  - get_run_year
 
             get_run_year:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                  cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
                 publish:
-                    run_year: "<% task(get_run_year).result.stdout %>"
+                  run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
-                    - mark_as_started
+                  - mark_as_started
 
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
+                  url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "started"}'
+                  method: "POST"
                 on-success:
-                    - create_year_folder
+                  - create_year_folder
 
             create_year_folder:
                 action: core.local
                 input:
-                    cwd: /data/wp1/NGS_result
-                    cmd: mkdir -p <% $.run_year %>
+                  cwd: /data/wp1/NGS_result
+                  cmd: mkdir -p <% $.run_year %>
                 on-success:
-                    - transfer_result
+                  - transfer_result
 
             transfer_result:
                 action: core.local
                 input:
-                    timeout: 86400
-                    cwd: /opt/stackstorm/packs/auctornotitia/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
-            on-success:
-                - mark_as_finished
-                - result_retrieved
+                  timeout: 86400
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
+                on-success:
+                  - mark_as_finished
+                  - result_retrieved
 
             molpat_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
-                    body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
+                  to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                  from: "stanley@clinicalgenomics-as.se"
+                  subject: "'[ANTI][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
+                  body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
-                    - fail
+                  - fail
 
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
-                    body: "Something went wrong when retrieving sera result for <% $.experiment_name %>, please investigate!!!"
+                  to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                  from: "stanley@clinicalgenomics-as.se"
+                  subject: "'[ANTI][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
+                  body: "Something went wrong when retrieving sera result for <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail
 
             mark_as_finished:
-              action: core.http
-              input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                action: core.http
+                input:
+                  url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
-              action: core.http
-              input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                action: core.http
+                input:
+                  url:  http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
-              on-complete:
+                on-complete:
                   - fail
 
             result_retrieved:
                 action: core.sendmail
                 input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
-                    subject: "'[ANTI][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
-                    body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
+                  to: "molpat-clinical-genomics-uu@googlegroups.com"
+                  from: "stanley@clinicalgenomics-as.se"
+                  subject: "'[ANTI][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
+                  body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
