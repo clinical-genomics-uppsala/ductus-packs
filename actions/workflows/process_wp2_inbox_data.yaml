@@ -1,0 +1,119 @@
+version: "2.0" # mistral version
+name: auctornotitia.process_wp2_inbox_data
+description: Will analyse data found in the inbox folder using ...
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - wp2_error_notifier
+                - bioinfo_error_notifier
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_run_year
+
+            get_run_year:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                    - get_csv_file_name
+
+            get_csv_file_name:
+                action: core.local
+                input:
+                    cmd: ls *.csv
+                    cwd: <% $.runfolder %>
+                publish:
+                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_rawdata_folder
+                    - copy_csv_file
+
+            create_and_transfer_data:
+                action: core.local
+                input:
+                    cwd: /analysis/wp2/TruSight_Myeloid
+                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>"
+                publish:
+                    analysis_folder: "/analysis/wp2/TruSight_Myeloid/<% $.run_year %>/<% $.experiment_name %>"
+                on-success:
+                    - copy_rawdata
+
+            copy_rawdata:
+                action: core.local
+                input:
+                  cwd: <% $.runfolder %>
+                  cmd: cp -r * <% $.analysis_folder %>/
+                on-success:
+                  - run_analysis
+
+            run_analysis:
+              action: auctornotitia.start_wp2_truesight_myeloid_analysis.sh
+              input:
+                  username: patsm159
+                  private_key: /home/stanley/.ssh/moriarty_rsa
+                  hosts: 130.238.54.142
+                  analysis_folder_path: <% $.analysis_folder %>
+                  date: <% $.run_year %>
+                  slurm_version: "16.05.2"
+              on-success:
+                - mark_as_finished
+
+            wp2_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    subject: "'[ANTI][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail

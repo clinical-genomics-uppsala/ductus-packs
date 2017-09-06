@@ -1,0 +1,17 @@
+---
+    name: 'start_wp2_truesight_myeloid_analysis'
+    runner_type: 'remote-shell-script'
+    description: 'Run wp2 Truesight Myeloid analysis'
+    enabled: true
+    entry_point: 'lib/start_wp2_truesight_myeloid_analysis.sh'
+    parameters:
+        analysis_folder_path:
+            type: 'string'
+            description: 'Path to the analysis data.'
+            required: true
+            position: 0
+        date:
+            type: 'string'
+            description: 'The date when the sequencing was  done, which will be used in the report.'
+            required: true
+            position: 1

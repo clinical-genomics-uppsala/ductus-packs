@@ -1,0 +1,19 @@
+---
+name: "wp2_preprocessing_inbox"
+pack: "auctornotitia"
+description: "..."
+enabled: true
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "regex"
+      pattern: "^.+\/wp2\/INBOX\/.+$"
+
+action:
+    ref: "auctornotitia.pre_process_wp2_data"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"

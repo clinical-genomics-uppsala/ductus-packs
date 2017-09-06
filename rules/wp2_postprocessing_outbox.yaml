@@ -1,0 +1,19 @@
+---
+name: "wp2_postprocessing_outbox"
+pack: "auctornotitia"
+description: "..."
+enabled: true
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "regex"
+      pattern: "^.+\/wp2\/OUTBOX\/.+$"
+
+action:
+    ref: "auctornotitia.retrieve_wp2_result"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"
