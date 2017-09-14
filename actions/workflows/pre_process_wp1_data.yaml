@@ -26,24 +26,22 @@ workflows:
                     - get_runfolder_name
 
             get_runfolder_name:
-                action: core.remote
+                action: core.local
                 input:
                     cmd: ls -d */ | sed 's/\///'
                     cwd: <% $.runfolder %>
-                    hosts: wp1transfer
                 publish:
-                    runfolder_name: "<% task(get_runfolder_name).result.get(wp1transfer).stdout %>"
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
                 on-success:
                     - get_csv_file_name
 
             get_csv_file_name:
-                action: core.remote
+                action: core.local
                 input:
                     cmd: ls *.csv
                     cwd: <% $.runfolder %>
-                    hosts: wp1transfer
                 publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.get(wp1transfer).stdout %>"
+                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
                 on-success:
                     - validate_csv_file
                 on-error:
@@ -95,7 +93,7 @@ workflows:
                 action: core.remote
                 input:
                     username: patsm159
-                    private_key: /home/stanley/.ssh/stanley_rsa
+                    private_key: /home/stanley/.ssh/moriarty_rsa
                     cwd: /projects/wp1/nobackup/INBOX
                     cmd: mkdir -p <% $.experiment_name %>
                     timeout: 10
@@ -107,7 +105,7 @@ workflows:
                 action: core.remote
                 input:
                     username: patsm159
-                    private_key: /home/stanley/.ssh/stanley_rsa
+                    private_key: /home/stanley/.ssh/moriarty_rsa
                     cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
                     cmd: mkdir -p raw
                     timeout: 10
@@ -117,63 +115,48 @@ workflows:
 
 
             transfer_runinfo_files:
-                action: core.remote
+                action: core.local
                 input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
-                    hosts: wp1transfer
                 on-success:
                     - transfer_interop_files
 
             transfer_interop_files:
-                action: core.remote
+                action: core.local
                 input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
-                    hosts: wp1transfer
                 on-success:
                     - transfer_csv_file
 
             transfer_csv_file:
-                action: core.remote
+                action: core.local
                 input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
-                    hosts: wp1transfer
                 on-success:
                     - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                     - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
 
             transfer_miseq_fastq_files:
-                action: core.remote
+                action: core.local
                 input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
-                    hosts: wp1transfer
                 on-success:
                     - create_transfer_complete_file
 
             transfer_miniseq_fastq_files:
-                action: core.remote
+                action: core.local
                 input:
-                    username: stanley
-                    private_key: /home/stanley/.ssh/stanley_rsa
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
-                    hosts: wp1transfer
                 on-success:
                     - create_transfer_complete_file
 
@@ -193,6 +176,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
                     body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
                 on-complete:
@@ -202,6 +186,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
                     body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
                 on-complete:
@@ -211,6 +196,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
                     body: "Couldn't locate a csv file in folder <% $.experiment_name %>"
                 on-complete:
@@ -220,6 +206,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
                     body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
                 on-complete:
@@ -229,6 +216,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:

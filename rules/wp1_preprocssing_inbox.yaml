@@ -1,16 +1,16 @@
 ---
-name: "when_wp1_data_is_ready_process_it"
+name: "wp1_preprocssing_inbox"
 pack: "auctornotitia"
 description: "..."
-enabled: true
+enabled: false
 
 trigger:
     type: "arteria.runfolder_ready"
 
 criteria:
     trigger.runfolder:
-      type: "regex"
-      pattern: "^.+/runfolders/.+$"
+      type: "contains"
+      pattern: "/wp1/INBOX/"
 
 action:
     ref: "auctornotitia.pre_process_wp1_data"
