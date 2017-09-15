@@ -89,7 +89,7 @@ workflows:
                   hosts: 130.238.54.142
                   expirement_name: <% $.experiment_name %>
                   year: <% $.run_year %>
-                  sera_version: "17.0.5"
+                  sera_version: "17.0.7"
                   slurm_version: "16.05.2"
                   input_file_name: <% $.csv_file_name %>
                   analysis: "klinik"
@@ -104,6 +104,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
@@ -113,6 +114,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
