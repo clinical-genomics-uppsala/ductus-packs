@@ -5,13 +5,29 @@
     enabled: true
     entry_point: 'lib/start_wp2_truesight_myeloid_analysis.sh'
     parameters:
-        analysis_folder_path:
+        experiment_name:
             type: 'string'
-            description: 'Path to the analysis data.'
+            description: 'The name of the experiment'
             required: true
             position: 0
-        date:
-            type: 'string'
-            description: 'The date when the sequencing was  done, which will be used in the report.'
+        run_year:
+            type: 'integer'
+            description: 'year when the sequnce where performed.'
             required: true
             position: 1
+        current_date:
+            type: 'string'
+            description: 'Current date, used in the analysis'
+            required: true
+            position: 2
+        wp2_trusight_myelod_script_version:
+            type: 'string'
+            description: 'version of wp2 truesight myelod script that will be used.'
+            required: true
+            position: 3
+        slurm_version:
+            default: "16.05.2"
+            type: 'string'
+            description: 'slurm version that will be used'
+            required: true
+            position: 4

@@ -27,11 +27,12 @@ workflows:
 
             get_run_year:
                 action: core.local
-                    cmd: python -c 'import sys;import re; p = re.compile("^(TrueS_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% $.experiment_name %>").group(1))'
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
-                    - mark_as_started
+                  - mark_as_started
 
             mark_as_started:
                 action: core.http
@@ -45,7 +46,7 @@ workflows:
             create_year_folder:
                 action: core.local
                 input:
-                    cwd: /data/wp1/NGS_result
+                    cwd: /data/wp2/result
                     cmd: mkdir -p <% $.run_year %>
                 on-success:
                     - transfer_result
@@ -55,7 +56,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp2/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
+                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp2/result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
             on-success:
                 - mark_as_finished
                 - result_retrieved
@@ -64,6 +65,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][ERROR] - Processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
@@ -73,6 +75,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][ERROR] - WP2 Processing, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving truesight wp2 result for <% $.experiment_name %>, please investigate!!!"
                 on-complete:
@@ -98,5 +101,6 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
                     body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."

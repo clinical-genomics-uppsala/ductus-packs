@@ -2,15 +2,15 @@
 name: "wp2_postprocessing_outbox"
 pack: "auctornotitia"
 description: "..."
-enabled: true
+enabled: false
 
 trigger:
     type: "arteria.runfolder_ready"
 
 criteria:
     trigger.runfolder:
-      type: "regex"
-      pattern: "^.+\/wp2\/OUTBOX\/.+$"
+      type: "contains"
+      pattern: "wp2/TruSight_Myeloid/OUTBOX/"
 
 action:
     ref: "auctornotitia.retrieve_wp2_result"

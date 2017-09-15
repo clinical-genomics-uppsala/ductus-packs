@@ -55,14 +55,14 @@ workflows:
             get_run_date:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("_")[0])'
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder_name %>".split("_")[0])'
                 publish:
                     run_date: "<% task(get_run_date).result.stdout %>"
                 on-success:
                     - create_analysis_folder_name
 
             create_analysis_folder_name:
-                action: core.remote
+                action: core.local
                 input:
                     cmd: echo "TruS_Myeloid_<% $.run_date %>_<% $.machine_id %>"
                 publish:
@@ -70,13 +70,13 @@ workflows:
                 on-success:
                     - create_inbox_analysis_folder_on_moriarty
 
-            create_runfolder_on_moriarty:
+            create_inbox_analysis_folder_on_moriarty:
                 action: core.remote
                 input:
                     username: patsm159
-                    private_key: /home/stanley/.ssh/stanley_rsa
+                    private_key: /home/stanley/.ssh/moriarty_rsa
                     cwd: /projects/wp2/nobackup/INBOX
-                    cmd: mkdir -p <% $.analysis_folder_name %>/raw
+                    cmd: mkdir -p <% $.analysis_folder_name %>/bam
                     timeout: 10
                     hosts: 130.238.54.142
                 on-success:
@@ -96,7 +96,7 @@ workflows:
                 input:
                     cmd: stat -c %n <% $.runfolder %>/Data/Intensities/BaseCalls/Alignment*  | tail -n 1
                 publish:
-                    alignment_folder: "<% task(get_runfolder_name).result.get(wp1transfer).stdout %>"
+                    alignment_folder: "<% task(find_miseq_alignment_folder).result.stdout %>"
                 on-success:
                     - transfer_miseq_alignment_bam_files
 
@@ -104,7 +104,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
                     - transfer_miseq_alignment_vcf_files
@@ -113,7 +113,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -134,7 +134,8 @@ workflows:
             missing_runfolder:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
                     body: "Problem with runfolder name: <% $.runfolder_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
                 on-complete:
@@ -143,16 +144,16 @@ workflows:
             pre_proccesing_complete_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Pre-processing of <% $.runfolder_name %> have been completed."
-                on-complete:
-                    - fail
 
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
                     subject: "'[ANTI][WP2][ERROR] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.runfolder_name %>, please investigate!!!"
                 on-complete:

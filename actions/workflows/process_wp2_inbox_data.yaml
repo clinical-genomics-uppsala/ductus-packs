@@ -16,6 +16,15 @@ workflows:
                 - wp2_error_notifier
                 - bioinfo_error_notifier
         tasks:
+            get_current_date:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; import time; sys.stdout.write(time.strftime("%d/%m/%Y"))'
+                publish:
+                    current_date: "<% task(get_current_date).result.stdout %>"
+                on-success:
+                    - get_experiment_name
+
             get_experiment_name:
                 action: core.local
                 input:
@@ -28,19 +37,9 @@ workflows:
             get_run_year:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% $.experiment_name %>").group(1))'
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
-                on-success:
-                    - get_csv_file_name
-
-            get_csv_file_name:
-                action: core.local
-                input:
-                    cmd: ls *.csv
-                    cwd: <% $.runfolder %>
-                publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
                 on-success:
                     - mark_as_started
 
@@ -51,35 +50,27 @@ workflows:
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
-                    - create_rawdata_folder
-                    - copy_csv_file
+                    - copy_inbox_data
 
-            create_and_transfer_data:
+            copy_inbox_data:
                 action: core.local
                 input:
-                    cwd: /analysis/wp2/TruSight_Myeloid
-                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>"
-                publish:
-                    analysis_folder: "/analysis/wp2/TruSight_Myeloid/<% $.run_year %>/<% $.experiment_name %>"
+                    cwd: /data/wp2/INBOX/
+                    cmd: cp -r <% $.experiment_name %> /data/wp2/analysis/<% $.run_year %>/
+                    timeout: 86400
                 on-success:
-                    - copy_rawdata
-
-            copy_rawdata:
-                action: core.local
-                input:
-                  cwd: <% $.runfolder %>
-                  cmd: cp -r * <% $.analysis_folder %>/
-                on-success:
-                  - run_analysis
+                    - run_analysis
 
             run_analysis:
-              action: auctornotitia.start_wp2_truesight_myeloid_analysis.sh
+              action: auctornotitia.start_wp2_truesight_myeloid_analysis
               input:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
                   hosts: 130.238.54.142
-                  analysis_folder_path: <% $.analysis_folder %>
-                  date: <% $.run_year %>
+                  experiment_name: <% $.experiment_name %>
+                  run_year: <% $.run_year %>
+                  current_date: <% $.current_date %>
+                  wp2_trusight_myelod_script_version: "1.0"
                   slurm_version: "16.05.2"
               on-success:
                 - mark_as_finished
@@ -88,6 +79,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
@@ -97,6 +89,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
