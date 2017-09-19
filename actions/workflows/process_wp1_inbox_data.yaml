@@ -87,7 +87,7 @@ workflows:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
                   hosts: 130.238.54.142
-                  expirement_name: <% $.experiment_name %>
+                  experiment_name: <% $.experiment_name %>
                   year: <% $.run_year %>
                   sera_version: "17.0.7"
                   slurm_version: "16.05.2"
