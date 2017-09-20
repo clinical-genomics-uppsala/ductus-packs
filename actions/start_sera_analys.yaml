@@ -5,9 +5,9 @@
     enabled: true
     entry_point: 'lib/start_sera_analysis.sh'
     parameters:
-        expirement_name:
+        experiment_name:
             type: 'string'
-            description: 'The name of the expirement'
+            description: 'The name of the experiment'
             required: true
             position: 0
         year:

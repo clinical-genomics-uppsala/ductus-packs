@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
 name: auctornotitia.process_wp1_inbox_data
-description: Will rsync new sequence data to moriarty for processing
+description: Will analyse data found in the inbox folder using SERA
 
 workflows:
     main:
@@ -28,7 +28,7 @@ workflows:
             get_run_year:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
@@ -60,7 +60,7 @@ workflows:
                     cwd: /data/fastq_filer
                     cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 publish:
-                    raw_data_folder: "/data/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    raw_data_folder: "/data/wp1/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 on-success:
                     - copy_rawdata
 
@@ -87,9 +87,9 @@ workflows:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
                   hosts: 130.238.54.142
-                  expirement_name: <% $.experiment_name %>
+                  experiment_name: <% $.experiment_name %>
                   year: <% $.run_year %>
-                  sera_version: "17.0.5"
+                  sera_version: "17.0.7"
                   slurm_version: "16.05.2"
                   input_file_name: <% $.csv_file_name %>
                   analysis: "klinik"
@@ -104,6 +104,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
@@ -113,6 +114,7 @@ workflows:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[ANTI][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
