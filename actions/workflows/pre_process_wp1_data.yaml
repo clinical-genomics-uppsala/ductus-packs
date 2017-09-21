@@ -113,7 +113,6 @@ workflows:
                 on-success:
                     - transfer_runinfo_files
 
-
             transfer_runinfo_files:
                 action: core.local
                 input:
