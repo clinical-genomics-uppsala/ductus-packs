@@ -1,0 +1,166 @@
+version: "2.0" # mistral version
+name: auctornotitia.archive_wp1_data
+description: Will archive WP1 data, when processing has finished.
+
+workflows:
+    main:
+        type: direct
+        input:
+            - experiment_name
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - bioinfo_error_notifier
+        tasks:
+            get_runfolder_name:
+                action: core.local
+                input:
+                  cmd: ls -d */ | sed 's/\///'
+                  cwd: /data/wp1/INBOX/<% $.experiment_name %>
+                publish:
+                  runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                  - get_run_year
+
+            get_run_year:
+                action: core.local
+                input:
+                  cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                  run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                  - get_machine_type
+                  - create_year_index_folder
+                  - create_year_runfolder_folder
+
+            get_machine_type:
+                action: core.local
+                input:
+                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                publish:
+                    machine_type: "<% task(get_machine_type).result.stdout %>"
+                on-success:
+                    - create_fastq_samle_folder
+
+            create_fastq_samle_folder:
+                action: core.local
+                input:
+                  cwd: /data/wp1/archive/fastq
+                  cmd: mkdir -p <% $.run_year %>/<% $.runfolder_name %>
+                publish:
+                  fastq_folder: "/data/wp1/archive/fastq/<% $.run_year %>/<% $.runfolder_name %>/"
+                on-success:
+                  - sync_run_info
+
+            sync_run_info:
+                action: core.local
+                input:
+                  timeout: 86400
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Run*" -t <% $.fastq_folder %> -l
+                on-success:
+                  - sync_interop
+
+            sync_interop:
+                action: core.local
+                input:
+                  timeout: 86400
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/InterOp" -t <% $.fastq_folder %> -l
+                on-success:
+                  - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
+                  - sync_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
+
+            sync_miseq_fastq_files:
+                action: core.local
+                input:
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% $.fastq_folder %> -l
+                  timeout: 86400
+                on-success:
+                  - archive_done_notifier
+
+            sync_miniseq_fastq_files:
+                action: core.local
+                input:
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
+                  timeout: 86400
+                on-success:
+                   - archive_done_notifier
+
+            create_year_index_folder:
+                action: core.local
+                input:
+                  cwd: /data/wp1/archive/indexfiles
+                  cmd: mkdir -p <% $.run_year %>
+                publish:
+                  index_folder: "/data/wp1/archive/indexfiles/<% $.run_year %>/"
+                on-success:
+                  - sync_index_file
+
+            sync_index_file:
+                action: core.local
+                input:
+                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/*index.csv" -t "<% $.index_folder %>" -l
+                  timeout: 86400
+                on-success:
+                  - archive_done_notifier
+
+            create_year_runfolder_folder:
+                action: core.local
+                input:
+                  cwd: /data/wp1/archive/runfolders
+                  cmd: mkdir -p <% $.run_year %>
+                publish:
+                  archive_runfolder: "/data/wp1/archive/runfolders/<% $.run_year %>/"
+                on-success:
+                  - compress_runfolder_folder
+
+            compress_runfolder_folder:
+                action: core.local
+                input:
+                  cmd: tar -zcf <% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz /data/wp1/INBOX/<% $.experiment_name %>
+                  timeout: 86400
+                on-success:
+                  - validate_runfolder_archive
+
+            validate_runfolder_archive:
+                action: core.local
+                input:
+                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -c /data/wp1/INBOX
+                  timeout: 86400
+                on-success:
+                  - create_checksum_for_archive
+
+            create_checksum_for_archive:
+                action: core.local
+                input:
+                  cmd: sha256sum <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz > <% $.index_folder%>/<% $.experiment_name %>.tar.gz.sha256
+                  timeout: 86400
+                on-success:
+                  - archive_done_notifier
+
+            archive_done_notifier:
+                join: 3
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[ANTI][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
+                    body: "<% $.experiment_name %> has been archived!!!"
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[ANTI][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
+                    body: "Something went wrong during the archiving of <% $.runfolder_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
