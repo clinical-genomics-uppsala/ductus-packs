@@ -59,6 +59,7 @@ workflows:
                   cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
                 on-success:
                   - mark_as_finished
+                  - archive_data
                   - result_retrieved
 
             molpat_error_notifier:
@@ -104,3 +105,8 @@ workflows:
                   from: "stanley@clinicalgenomics-as.se"
                   subject: "'[ANTI][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
                   body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
+
+            archive_data:
+                action: auctornotitia.archive_wp1_data
+                input:
+                  experiment_name: <% $.experiment_name %>
