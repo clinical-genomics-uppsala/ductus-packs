@@ -9,8 +9,8 @@ trigger:
 
 criteria:
     trigger.runfolder:
-      type: "regex"
-      pattern: "^.\/wp3\/INBOX\/.+$"
+      type: "contains"
+      pattern: "/wp3/INBOX/"
 
 action:
     ref: "auctornotitia.pre_process_wp3_data"
