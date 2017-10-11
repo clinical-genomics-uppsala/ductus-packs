@@ -57,8 +57,8 @@ workflows:
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cwd: /data/fastq_filer
-                    cmd: mkdir "<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    cwd: /data/wp1/fastq_filer
+                    cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 publish:
                     raw_data_folder: "/data/wp1/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 on-success:
@@ -76,7 +76,7 @@ workflows:
                 action: core.local
                 input:
                   cwd: <% $.runfolder %>
-                  cmd: cp <% $.csv_file_name %> /data/sample_files/<% $.run_year %>/
+                  cmd: cp <% $.csv_file_name %> /data/wp1/sample_files/
                 on-success:
                    - run_sera
 
