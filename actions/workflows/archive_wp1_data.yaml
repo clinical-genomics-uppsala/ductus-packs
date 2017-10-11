@@ -122,7 +122,8 @@ workflows:
             compress_runfolder_folder:
                 action: core.local
                 input:
-                  cmd: tar -zcf <% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz /data/wp1/INBOX/<% $.experiment_name %>
+                  cwd: /data/wp1/INBOX
+                  cmd: tar -zcf <% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz <% $.experiment_name %>
                   timeout: 86400
                 on-success:
                   - validate_runfolder_archive
@@ -130,7 +131,7 @@ workflows:
             validate_runfolder_archive:
                 action: core.local
                 input:
-                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -c /data/wp1/INBOX
+                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -C /data/wp1/INBOX
                   timeout: 86400
                 on-success:
                   - create_checksum_for_archive
@@ -138,7 +139,7 @@ workflows:
             create_checksum_for_archive:
                 action: core.local
                 input:
-                  cmd: sha256sum <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz > <% $.index_folder%>/<% $.experiment_name %>.tar.gz.sha256
+                  cmd: sha256sum <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz > <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz.sha256
                   timeout: 86400
                 on-success:
                   - archive_done_notifier
