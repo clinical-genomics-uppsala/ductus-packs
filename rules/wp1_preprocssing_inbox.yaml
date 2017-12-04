@@ -1,6 +1,6 @@
 ---
 name: "wp1_preprocssing_inbox"
-pack: "auctornotitia"
+pack: "ductus"
 description: "..."
 enabled: false
 
@@ -13,7 +13,7 @@ criteria:
       pattern: "/wp1/INBOX/"
 
 action:
-    ref: "auctornotitia.pre_process_wp1_data"
+    ref: "ductus.pre_process_wp1_data"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

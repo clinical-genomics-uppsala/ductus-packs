@@ -5,14 +5,14 @@ description: >
 enabled: true
 runner_type: mistral-v2
 entry_point: workflows/archive_wp1_data.yaml
-pack: auctornotitia
+pack: ductus
 parameters:
   context:
     default: {}
     immutable: true
     type: object
   workflow:
-    default: auctornotitia.archive_wp1_data
+    default: ductus.archive_wp1_data
     immutable: true
     type: string
   experiment_name:

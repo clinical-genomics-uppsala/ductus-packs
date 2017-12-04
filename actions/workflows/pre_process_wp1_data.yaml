@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.pre_process_wp1_data
+name: ductus.pre_process_wp1_data
 description: Will rsync new sequence data to moriarty for processing
 
 workflows:
@@ -116,7 +116,7 @@ workflows:
             transfer_runinfo_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
                 on-success:
@@ -125,7 +125,7 @@ workflows:
             transfer_interop_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
                 on-success:
@@ -134,7 +134,7 @@ workflows:
             transfer_csv_file:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
                 on-success:
@@ -144,7 +144,7 @@ workflows:
             transfer_miseq_fastq_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
@@ -153,7 +153,7 @@ workflows:
             transfer_miniseq_fastq_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
@@ -165,7 +165,7 @@ workflows:
                     username: patsm159
                     private_key: /home/stanley/.ssh/moriarty_rsa
                     cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
-                    cmd: echo "`date`" > .TransferComplete.txt
+                    cmd: echo "`date`" > Done.txt
                     timeout: 10
                     hosts: 130.238.54.142
                 on-success:

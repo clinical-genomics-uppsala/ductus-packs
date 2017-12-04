@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.archive_wp1_data
+name: ductus.archive_wp1_data
 description: Will archive WP1 data, when processing has finished.
 
 workflows:
@@ -57,7 +57,7 @@ workflows:
                 action: core.local
                 input:
                   timeout: 86400
-                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cwd: /opt/src/ductus-core/ductus/scripts
                   cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Run*" -t <% $.fastq_folder %> -l
                 on-success:
                   - sync_interop
@@ -66,7 +66,7 @@ workflows:
                 action: core.local
                 input:
                   timeout: 86400
-                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cwd: /opt/src/ductus-core/ductus/scripts
                   cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/InterOp" -t <% $.fastq_folder %> -l
                 on-success:
                   - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
@@ -75,7 +75,7 @@ workflows:
             sync_miseq_fastq_files:
                 action: core.local
                 input:
-                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cwd: /opt/src/ductus-core/ductus/scripts
                   cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% $.fastq_folder %> -l
                   timeout: 86400
                 on-success:
@@ -84,7 +84,7 @@ workflows:
             sync_miniseq_fastq_files:
                 action: core.local
                 input:
-                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cwd: /opt/src/ductus-core/ductus/scripts
                   cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
                   timeout: 86400
                 on-success:
@@ -103,7 +103,7 @@ workflows:
             sync_index_file:
                 action: core.local
                 input:
-                  cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                  cwd: /opt/src/ductus-core/ductus/scripts
                   cmd: python rsync.py -c -f "/data/wp1/INBOX/<% $.experiment_name %>/*index.csv" -t "<% $.index_folder %>" -l
                   timeout: 86400
                 on-success:

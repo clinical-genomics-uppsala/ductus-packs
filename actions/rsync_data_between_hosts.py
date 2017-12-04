@@ -1,7 +1,7 @@
 from st2actions.runners.pythonrunner import Action
 
-from auctornotitia.tools.wrappers import Rsync
-from auctornotitia.tools.wrappers import AddressException, PortInaccessibleException, SshAccessException, RsyncException
+from ductus.tools.wrappers import Rsync
+from ductus.tools.wrappers import AddressException, PortInaccessibleException, SshAccessException, RsyncException
 
 class RsyncDataBetweenHosts(Action):
     """

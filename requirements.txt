@@ -1,1 +1,1 @@
--e git+git@bitbucket.org:clinsequu/auctornotitia-core.git#egg=auctornotitia-core
+-e git+git@bitbucket.org:clinsequu/ductus-core.git#egg=ductus-core
