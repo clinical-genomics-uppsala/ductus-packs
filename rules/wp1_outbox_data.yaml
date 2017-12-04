@@ -1,6 +1,6 @@
 ---
 name: "wp1_outbox_data"
-pack: "auctornotitia"
+pack: "ductus"
 description: "..."
 enabled: false
 
@@ -13,7 +13,7 @@ criteria:
       pattern: "wp1/ngs/klinik/OUTBOX"
 
 action:
-    ref: "auctornotitia.retrieve_wp1_result"
+    ref: "ductus.retrieve_wp1_result"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

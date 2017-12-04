@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.pre_process_wp3_data
+name: ductus.pre_process_wp3_data
 description: Will rsync new sequence data to moriarty for processing
 
 workflows:
@@ -48,7 +48,7 @@ workflows:
                 input:
                     username: stanley
                     private_key: /home/stanley/.ssh/stanley_rsa
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/projects/wp3/nobackup/INBOX/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2 -R -1
                     timeout: 86400
                     hosts: wp1transfer

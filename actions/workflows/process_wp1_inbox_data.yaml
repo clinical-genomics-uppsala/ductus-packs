@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.process_wp1_inbox_data
+name: ductus.process_wp1_inbox_data
 description: Will analyse data found in the inbox folder using SERA
 
 workflows:
@@ -82,7 +82,7 @@ workflows:
 
             run_sera:
               join: all
-              action: auctornotitia.start_sera_analys
+              action: ductus.start_sera_analys
               input:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
