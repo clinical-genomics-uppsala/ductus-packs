@@ -52,7 +52,7 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_rawdata_folder
-                    - copy_csv_file
+                    - create_csv_folder
 
             create_rawdata_folder:
                 action: core.local
@@ -72,11 +72,20 @@ workflows:
                 on-success:
                   - run_sera
 
+            create_csv_folder:
+                action: core.local
+                input:
+                    cmd: mkdir -p /data/wp1/sample_files/<% $.run_year %>
+                publish:
+                    csv_folder: "/data/wp1/sample_files/<% $.run_year %>"
+                on-success:
+                    - copy_csv_file
+
             copy_csv_file:
                 action: core.local
                 input:
                   cwd: <% $.runfolder %>
-                  cmd: cp <% $.csv_file_name %> /data/wp1/sample_files/
+                  cmd: cp <% $.csv_file_name %> <% $.csv_folder %>/
                 on-success:
                    - run_sera
 
