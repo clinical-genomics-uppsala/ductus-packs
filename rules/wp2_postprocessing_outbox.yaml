@@ -1,6 +1,6 @@
 ---
 name: "wp2_postprocessing_outbox"
-pack: "auctornotitia"
+pack: "ductus"
 description: "..."
 enabled: false
 
@@ -13,7 +13,7 @@ criteria:
       pattern: "wp2/TruSight_Myeloid/OUTBOX/"
 
 action:
-    ref: "auctornotitia.retrieve_wp2_result"
+    ref: "ductus.retrieve_wp2_result"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

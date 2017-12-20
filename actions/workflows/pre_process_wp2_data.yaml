@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.pre_process_wp2_data
+name: ductus.pre_process_wp2_data
 description: Will rsync new wp2 sequence data to moriarty for processing
 
 workflows:
@@ -136,7 +136,7 @@ workflows:
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
                     body: "Problem with runfolder name: <% $.runfolder_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
                 on-complete:
                     - fail
@@ -146,7 +146,7 @@ workflows:
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
+                    subject: "'[DUCTUS][WP2][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Pre-processing of <% $.runfolder_name %> have been completed."
 
             bioinfo_error_notifier:
@@ -154,7 +154,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][ERROR] - Pre-processing, <% $.runfolder_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.runfolder_name %>, please investigate!!!"
                 on-complete:
                     - fail

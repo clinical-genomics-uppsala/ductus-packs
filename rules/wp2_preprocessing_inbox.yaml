@@ -1,11 +1,11 @@
 ---
 name: "wp2_preprocessing_inbox"
-pack: "auctornotitia"
+pack: "ductus"
 description: "..."
 enabled: false
 
 trigger:
-    type: "arteria.runfolder_ready"
+    type: "ductus.runfolder_ready"
 
 criteria:
     trigger.runfolder:
@@ -13,7 +13,7 @@ criteria:
       pattern: "wp2/INBOX"
 
 action:
-    ref: "auctornotitia.pre_process_wp2_data"
+    ref: "ductus.pre_process_wp2_data"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

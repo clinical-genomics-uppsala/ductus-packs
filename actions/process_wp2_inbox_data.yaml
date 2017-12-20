@@ -5,14 +5,14 @@ description: >
 enabled: true
 runner_type: mistral-v2
 entry_point: workflows/process_wp2_inbox_data.yaml
-pack: auctornotitia
+pack: ductus
 parameters:
   context:
     default: {}
     immutable: true
     type: object
   workflow:
-    default: auctornotitia.process_wp2_inbox_data
+    default: ductus.process_wp2_inbox_data
     immutable: true
     type: string
   runfolder:

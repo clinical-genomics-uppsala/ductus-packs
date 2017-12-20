@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.retrieve_wp2_result
+name: ductus.retrieve_wp2_result
 description: Will rsync result back from moriarty
 
 workflows:
@@ -37,7 +37,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -55,7 +55,7 @@ workflows:
                 action: core.local
                 input:
                     timeout: 86400
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
+                    cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp2/result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
             on-success:
                 - mark_as_finished
@@ -66,7 +66,7 @@ workflows:
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][ERROR] - Processing failure, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - Processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
                     - fail
@@ -76,7 +76,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][ERROR] - WP2 Processing, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - WP2 Processing, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving truesight wp2 result for <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail
@@ -102,5 +102,5 @@ workflows:
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
                     body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."

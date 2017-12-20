@@ -1,6 +1,6 @@
 ---
 name: "wp2_processing_inbox"
-pack: "auctornotitia"
+pack: "ductus"
 description: "..."
 enabled: false
 
@@ -13,7 +13,7 @@ criteria:
       pattern: "wp2/INBOX"
 
 action:
-    ref: "auctornotitia.process_wp2_inbox_data"
+    ref: "ductus.process_wp2_inbox_data"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

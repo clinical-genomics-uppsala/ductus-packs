@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: auctornotitia.process_wp2_inbox_data
+name: ductus.process_wp2_inbox_data
 description: Will analyse data found in the inbox folder using ...
 
 workflows:
@@ -55,8 +55,8 @@ workflows:
             copy_inbox_data:
                 action: core.local
                 input:
-                    cwd: /data/wp2/INBOX/
-                    cmd: cp -r <% $.experiment_name %> /data/wp2/analysis/<% $.run_year %>/
+                    cwd: /data/wp2/TruSight_Myeloid/INBOX
+                    cmd: cp -r <% $.experiment_name %> /data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/
                     timeout: 86400
                 on-success:
                     - run_analysis
@@ -80,7 +80,7 @@ workflows:
                 input:
                     to: "wp2-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[ANTI][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
                     - fail
@@ -90,7 +90,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[ANTI][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail
