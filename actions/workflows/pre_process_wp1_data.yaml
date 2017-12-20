@@ -176,7 +176,7 @@ workflows:
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
                     body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
                 on-complete:
                     - fail
@@ -186,7 +186,7 @@ workflows:
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
                     body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
                 on-complete:
                     - fail
@@ -196,7 +196,7 @@ workflows:
                 input:
                     to: "molpat-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
                     body: "Couldn't locate a csv file in folder <% $.experiment_name %>"
                 on-complete:
                     - fail
@@ -206,7 +206,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
                     body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
                 on-complete:
                     - fail
@@ -216,7 +216,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail

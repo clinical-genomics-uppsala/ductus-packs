@@ -114,7 +114,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[ANTI][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
                     - fail
@@ -124,7 +124,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[ANTI][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail
