@@ -150,7 +150,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
                     body: "<% $.experiment_name %> has been archived!!!"
 
             bioinfo_error_notifier:
@@ -158,7 +158,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
                     body: "Something went wrong during the archiving of <% $.runfolder_name %>, please investigate!!!"
                 on-complete:
                     - fail
