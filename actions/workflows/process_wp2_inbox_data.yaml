@@ -1,0 +1,122 @@
+version: "2.0" # mistral version
+name: ductus.process_wp2_inbox_data
+description: Will analyse data found in the inbox folder using ...
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - wp2_error_notifier
+                - bioinfo_error_notifier
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_run_year
+
+            get_run_year:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                    - get_run_date
+
+            get_run_date:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{6})_M[0-9A-Z]+$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_date:  "<% task(get_run_date).result.stdout %>"
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_rawdata_folder
+
+            create_rawdata_folder:
+                action: core.local
+                input:
+                    cwd: /data/wp1/fastq_filer
+                    cmd: mkdir -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                publish:
+                    analysis_folder : "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                on-success:
+                    - copy_inbox_data
+
+            copy_inbox_data:
+                action: core.local
+                input:
+                    cwd: /data/wp2/TruSight_Myeloid/INBOX
+                    cmd: cp -r <% $.experiment_name %>/* <% $.analysis_folder %>/
+                    timeout: 86400
+                on-success:
+                    - run_analysis
+
+            run_analysis:
+              action: ductus.start_wp2_truesight_myeloid_analysis
+              input:
+                  username: patsm159
+                  private_key: /home/stanley/.ssh/moriarty_rsa
+                  hosts: 130.238.54.14
+                  experiment_name: <% $.experiment_name %>
+                  run_year: <% $.run_year %>
+                  current_date: <% $.run_date %>
+                  wp2_trusight_myelod_script_version: "1.0"
+                  slurm_version: "16.05.2"
+              on-success:
+               - mark_as_finished
+
+            wp2_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-uu.se"
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail

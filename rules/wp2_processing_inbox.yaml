@@ -1,0 +1,19 @@
+---
+name: "wp2_processing_inbox"
+pack: "ductus"
+description: "..."
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "wp2/TruSight_Myeloid/INBOX"
+
+action:
+    ref: "ductus.process_wp2_inbox_data"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"

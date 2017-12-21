@@ -1,0 +1,23 @@
+---
+name: pre_process_wp2_data
+description: >
+  Pre-process data for wp2......
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/pre_process_wp2_data.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.pre_process_wp2_data
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
