@@ -14,7 +14,8 @@ PATH_ANALYSIS_FOLDER="/projects/wp2/TruSight_Myeloid/Analyses/${YEAR}/${EXPERIME
 
 SCRIPTS="/projects/wp2/TruSight_Myeloid/scripts"
 
-echo "$SCRIPTS/TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d \"${CURRENT_DATE}\""
+echo "TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d \"${CURRENT_DATE}\""
 
-bash $SCRIPTS/TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d "${CURRENT_DATE}"
+cd $SCRIPTS
+bash TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d "${CURRENT_DATE}"
 
