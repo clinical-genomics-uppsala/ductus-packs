@@ -16,7 +16,7 @@
             required: true
             position: 1
         current_date:
-            type: 'string'
+            type: 'integer'
             description: 'Current date, used in the analysis'
             required: true
             position: 2

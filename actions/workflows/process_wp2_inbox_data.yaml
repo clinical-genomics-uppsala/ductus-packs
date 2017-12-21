@@ -16,15 +16,6 @@ workflows:
                 - wp2_error_notifier
                 - bioinfo_error_notifier
         tasks:
-            get_current_date:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys; import time; sys.stdout.write(time.strftime("%d/%m/%Y"))'
-                publish:
-                    current_date: "<% task(get_current_date).result.stdout %>"
-                on-success:
-                    - get_experiment_name
-
             get_experiment_name:
                 action: core.local
                 input:
@@ -41,6 +32,15 @@ workflows:
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
+                    - get_run_date
+
+            get_run_date:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{6})_M[0-9A-Z]+$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_date:  "<% task(get_run_date).result.stdout %>"
+                on-success:
                     - mark_as_started
 
             mark_as_started:
@@ -50,30 +50,40 @@ workflows:
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
+                    - create_rawdata_folder
+
+            create_rawdata_folder:
+                action: core.local
+                input:
+                    cwd: /data/wp1/fastq_filer
+                    cmd: mkdir -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                publish:
+                    analysis_folder : "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                on-success:
                     - copy_inbox_data
 
             copy_inbox_data:
                 action: core.local
                 input:
                     cwd: /data/wp2/TruSight_Myeloid/INBOX
-                    cmd: cp -r <% $.experiment_name %> /data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/
+                    cmd: cp -r <% $.experiment_name %>/* <% $.analysis_folder %>/
                     timeout: 86400
                 on-success:
                     - run_analysis
 
             run_analysis:
-              action: auctornotitia.start_wp2_truesight_myeloid_analysis
+              action: ductus.start_wp2_truesight_myeloid_analysis
               input:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
-                  hosts: 130.238.54.142
+                  hosts: 130.238.54.14
                   experiment_name: <% $.experiment_name %>
                   run_year: <% $.run_year %>
-                  current_date: <% $.current_date %>
+                  current_date: <% $.run_date %>
                   wp2_trusight_myelod_script_version: "1.0"
                   slurm_version: "16.05.2"
               on-success:
-                - mark_as_finished
+               - mark_as_finished
 
             wp2_error_notifier:
                 action: core.sendmail

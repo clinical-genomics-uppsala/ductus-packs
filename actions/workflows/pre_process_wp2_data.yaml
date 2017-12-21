@@ -85,8 +85,8 @@ workflows:
             transfer_smplesheet_file:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet.csv" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet.csv" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 600
                 on-success:
                     - find_miseq_alignment_folder
@@ -103,8 +103,8 @@ workflows:
             transfer_miseq_alignment_bam_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
                     - transfer_miseq_alignment_vcf_files
@@ -112,8 +112,8 @@ workflows:
             transfer_miseq_alignment_vcf_files:
                 action: core.local
                 input:
-                    cwd: /opt/src/auctornotitia-core/auctornotitia/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -123,8 +123,8 @@ workflows:
                 input:
                     username: patsm159
                     private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp2/nobackup/INBOX/<% $.analysis_folder_name %>/
-                    cmd: echo "`date`" > .TransferComplete.txt
+                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/
+                    cmd: echo "`date`" > Done.txt
                     timeout: 10
                     hosts: 130.238.54.142
                 on-success:

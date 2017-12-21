@@ -1,5 +1,5 @@
 ---
-name: "wp2_postprocessing_outbox"
+name: "wp2_outbox_data"
 pack: "ductus"
 description: "..."
 enabled: false

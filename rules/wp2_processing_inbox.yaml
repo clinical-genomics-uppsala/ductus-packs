@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/INBOX"
+      pattern: "wp2/TruSight_Myeloid/INBOX"
 
 action:
     ref: "ductus.process_wp2_inbox_data"

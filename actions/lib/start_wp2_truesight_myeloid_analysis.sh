@@ -9,12 +9,12 @@ SLURM_VERSION=${5}
 PATH_INPUT_FILES="/projects/wp1/ngs/klinik/sample_files/${YEAR}"
 PATH_ANALYSIS_FOLDER="/projects/wp2/TruSight_Myeloid/Analyses/${YEAR}/${EXPERIMENT_NAME}"
 
-module load slurm/${SLURM_VERSION}
-module load wp2_analysis/${WP2_ANALYSIS_VERSION}
+#module load slurm/${SLURM_VERSION}
+#module load wp2_analysis/${WP2_ANALYSIS_VERSION}
 
-echo "TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d \"${CURRENT_DATE}\""
+SCRIPTS="/projects/wp2/TruSight_Myeloid/scripts"
 
-TruSight_Run_Moriarty.sh \
-              -m ${PATH_ANALYSIS_FOLDER} \
-              -d "${CURRENT_DATE}"
+echo "$SCRIPTS/TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d \"${CURRENT_DATE}\""
+
+bash $SCRIPTS/TruSight_Run_Moriarty.sh -m ${PATH_ANALYSIS_FOLDER} -d "${CURRENT_DATE}"
 

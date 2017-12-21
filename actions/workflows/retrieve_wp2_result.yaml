@@ -57,9 +57,9 @@ workflows:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp2/result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
-            on-success:
-                - mark_as_finished
-                - result_retrieved
+                on-success:
+                  - result_retrieved
+                  - mark_as_finished
 
             wp2_error_notifier:
                 action: core.sendmail
@@ -84,23 +84,23 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
-                  body: '{"state": "done"}'
-                  method: "POST"
+                 url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
+                 body: '{"state": "done"}'
+                 method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:
                   - fail
 
             result_retrieved:
-                action: core.sendmail
-                input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
-                    body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
+               action: core.sendmail
+               input:
+                   to: "molpat-clinical-genomics-uu@googlegroups.com"
+                   from: "stanley@clinicalgenomics-as.se"
+                   subject: "'[DUCTUS][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
+                   body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
