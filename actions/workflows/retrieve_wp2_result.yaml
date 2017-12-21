@@ -100,7 +100,7 @@ workflows:
             result_retrieved:
                action: core.sendmail
                input:
-                   to: "molpat-clinical-genomics-uu@googlegroups.com"
+                   to: "wp2-clinical-genomics-uu@googlegroups.com"
                    from: "stanley@clinicalgenomics-as.se"
-                   subject: "'[DUCTUS][WP2][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
-                   body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
+                   subject: "'[DUCTUS][WP2][SUCCESS] - WP2 analysis available, <% $.experiment_name %>'"
+                   body: "The result from WP2 analysis of <% $.experiment_name %> can now be accessed."
