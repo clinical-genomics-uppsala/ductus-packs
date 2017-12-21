@@ -55,8 +55,7 @@ workflows:
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cwd: /data/wp1/fastq_filer
-                    cmd: mkdir -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                    cmd: mkdir -m 770 -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 publish:
                     analysis_folder : "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 on-success:
@@ -76,7 +75,7 @@ workflows:
               input:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
-                  hosts: 130.238.54.14
+                  hosts: 130.238.54.142
                   experiment_name: <% $.experiment_name %>
                   run_year: <% $.run_year %>
                   current_date: <% $.run_date %>
