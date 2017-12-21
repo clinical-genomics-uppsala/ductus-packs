@@ -1,0 +1,23 @@
+---
+name: retrieve_wp2_result
+description: >
+  Retrieve processed data for wp2......
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/retrieve_wp2_result.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.retrieve_wp2_result
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
