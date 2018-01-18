@@ -56,7 +56,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp2/result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/*" -t "/data/wp2/result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
                 on-success:
                   - result_retrieved
                   - mark_as_finished
