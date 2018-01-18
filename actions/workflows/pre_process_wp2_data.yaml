@@ -75,7 +75,7 @@ workflows:
                 input:
                     username: patsm159
                     private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp2/nobackup/INBOX
+                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX
                     cmd: mkdir -p <% $.analysis_folder_name %>/bam
                     timeout: 10
                     hosts: 130.238.54.142
