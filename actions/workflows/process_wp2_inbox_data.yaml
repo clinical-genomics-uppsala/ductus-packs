@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
-name: ductus.process_wp1_inbox_data
-description: Will analyse data found in the inbox folder using SERA
+name: ductus.process_wp2_inbox_data
+description: Will analyse data found in the inbox folder using ...
 
 workflows:
     main:
@@ -13,7 +13,7 @@ workflows:
         task-defaults:
             on-error:
                 - mark_as_failed
-                - molpat_error_notifier
+                - wp2_error_notifier
                 - bioinfo_error_notifier
         tasks:
             get_experiment_name:
@@ -28,19 +28,18 @@ workflows:
             get_run_year:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% $.experiment_name %>").group(1))'
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
-                    - get_csv_file_name
+                    - get_run_date
 
-            get_csv_file_name:
+            get_run_date:
                 action: core.local
                 input:
-                    cmd: ls *.csv
-                    cwd: <% $.runfolder %>
+                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{6})_M[0-9A-Z]+$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
                 publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
+                    run_date:  "<% task(get_run_date).result.stdout %>"
                 on-success:
                     - mark_as_started
 
@@ -52,70 +51,46 @@ workflows:
                     method: "POST"
                 on-success:
                     - create_rawdata_folder
-                    - create_csv_folder
 
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cwd: /data/wp1/fastq_filer
-                    cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    cmd: mkdir -m 770 -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 publish:
-                    raw_data_folder: "/data/wp1/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    analysis_folder : "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 on-success:
-                    - copy_rawdata
+                    - copy_inbox_data
 
-            copy_rawdata:
+            copy_inbox_data:
                 action: core.local
                 input:
-                  cwd: <% $.runfolder %>
-                  cmd: cp raw/*.fastq.gz <% $.raw_data_folder %>/
+                    cwd: /data/wp2/TruSight_Myeloid/INBOX
+                    cmd: cp -r <% $.experiment_name %>/* <% $.analysis_folder %>/
+                    timeout: 86400
                 on-success:
-                  - run_sera
+                    - run_analysis
 
-            create_csv_folder:
-                action: core.local
-                input:
-                    cmd: mkdir -p /data/wp1/sample_files/<% $.run_year %>
-                publish:
-                    csv_folder: "/data/wp1/sample_files/<% $.run_year %>"
-                on-success:
-                    - copy_csv_file
-
-            copy_csv_file:
-                action: core.local
-                input:
-                  cwd: <% $.runfolder %>
-                  cmd: cp <% $.csv_file_name %> <% $.csv_folder %>/
-                on-success:
-                   - run_sera
-
-            run_sera:
-              join: all
-              action: ductus.start_sera_analys
+            run_analysis:
+              action: ductus.start_wp2_truesight_myeloid_analysis
               input:
                   username: patsm159
                   private_key: /home/stanley/.ssh/moriarty_rsa
                   hosts: 130.238.54.142
                   experiment_name: <% $.experiment_name %>
-                  year: <% $.run_year %>
-                  sera_version: "17.0.7"
+                  run_year: <% $.run_year %>
+                  current_date: <% $.run_date %>
+                  wp2_trusight_myelod_script_version: "1.0"
                   slurm_version: "16.05.2"
-                  input_file_name: <% $.csv_file_name %>
-                  analysis: "klinik"
-                  globals: "MORIARTY"
-                  normal: "annovar"
-                  project: "wp1"
-                  ref_dir: "/projects/wp1/refFiles_current/refFiles/"
               on-success:
-                - mark_as_finished
+               - mark_as_finished
 
-            molpat_error_notifier:
+            wp2_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
-                    body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
                     - fail
 
@@ -124,7 +99,7 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail

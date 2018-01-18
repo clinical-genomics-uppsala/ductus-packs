@@ -1,0 +1,176 @@
+version: "2.0" # mistral version
+name: ductus.pre_process_wp2_data
+description: Will rsync new wp2 sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+        output:
+            output_the_whole_workflow_context: <% $ %>
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - bioinfo_error_notifier
+        tasks:
+            get_runfolder_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - validate_folder_name
+
+            validate_folder_name:
+                action: core.local
+                input:
+                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+                on-success:
+                    - mark_as_started
+                on-error:
+                    - missing_runfolder
+                    - mark_as_failed
+
+            mark_as_started:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "started"}'
+                  method: "POST"
+              on-success:
+                  - get_machine_id
+
+            get_machine_id:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("_")[1])'
+                publish:
+                    machine_id: "<% task(get_machine_id).result.stdout %>"
+                on-success:
+                    - get_run_date
+
+            get_run_date:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder_name %>".split("_")[0])'
+                publish:
+                    run_date: "<% task(get_run_date).result.stdout %>"
+                on-success:
+                    - create_analysis_folder_name
+
+            create_analysis_folder_name:
+                action: core.local
+                input:
+                    cmd: echo "TruS_Myeloid_<% $.run_date %>_<% $.machine_id %>"
+                publish:
+                    analysis_folder_name: "<% task(create_analysis_folder_name).result.stdout %>"
+                on-success:
+                    - create_inbox_analysis_folder_on_moriarty
+
+            create_inbox_analysis_folder_on_moriarty:
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/moriarty_rsa
+                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX
+                    cmd: mkdir -p <% $.analysis_folder_name %>/bam
+                    timeout: 10
+                    hosts: 130.238.54.142
+                on-success:
+                    - transfer_smplesheet_file
+
+            transfer_smplesheet_file:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet.csv" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 600
+                on-success:
+                    - find_miseq_alignment_folder
+
+            find_miseq_alignment_folder:
+                action: core.local
+                input:
+                    cmd: stat -c %n <% $.runfolder %>/Data/Intensities/BaseCalls/Alignment*  | tail -n 1
+                publish:
+                    alignment_folder: "<% task(find_miseq_alignment_folder).result.stdout %>"
+                on-success:
+                    - transfer_miseq_alignment_bam_files
+
+            transfer_miseq_alignment_bam_files:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                on-success:
+                    - transfer_miseq_alignment_vcf_files
+
+            transfer_miseq_alignment_vcf_files:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    timeout: 86400
+                on-success:
+                    - create_transfer_complete_file
+
+            create_transfer_complete_file:
+                action: core.remote
+                input:
+                    username: patsm159
+                    private_key: /home/stanley/.ssh/moriarty_rsa
+                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/
+                    cmd: echo "`date`" > Done.txt
+                    timeout: 10
+                    hosts: 130.238.54.142
+                on-success:
+                    - mark_as_finished
+                    - pre_proccesing_complete_notifier
+
+            missing_runfolder:
+                action: core.sendmail
+                input:
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP2][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
+                    body: "Problem with runfolder name: <% $.runfolder_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
+                on-complete:
+                    - fail
+
+            pre_proccesing_complete_notifier:
+                action: core.sendmail
+                input:
+                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP2][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
+                    body: "Pre-processing of <% $.runfolder_name %> have been completed."
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP2][ERROR] - Pre-processing, <% $.runfolder_name %>'"
+                    body: "Something went wrong during the pre-processing of <% $.runfolder_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail

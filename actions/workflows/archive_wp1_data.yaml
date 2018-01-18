@@ -47,9 +47,9 @@ workflows:
                 action: core.local
                 input:
                   cwd: /data/wp1/archive/fastq
-                  cmd: mkdir -p <% $.run_year %>/<% $.runfolder_name %>
+                  cmd: mkdir -p <% $.run_year %>/<% $.experiment_name %>
                 publish:
-                  fastq_folder: "/data/wp1/archive/fastq/<% $.run_year %>/<% $.runfolder_name %>/"
+                  fastq_folder: "/data/wp1/archive/fastq/<% $.run_year %>/<% $.experiment_name %>/"
                 on-success:
                   - sync_run_info
 
@@ -150,17 +150,15 @@ workflows:
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
+                    subject: "'[DUCTUS][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
                     body: "<% $.experiment_name %> has been archived!!!"
-                on-complete:
-                    - fail
 
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
                     to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[ANTI][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
+                    subject: "'[DUCTUS][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
                     body: "Something went wrong during the archiving of <% $.runfolder_name %>, please investigate!!!"
                 on-complete:
                     - fail

@@ -37,7 +37,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                  url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "started"}'
                   method: "POST"
                 on-success:
@@ -67,7 +67,7 @@ workflows:
                 input:
                   to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                   from: "stanley@clinicalgenomics-as.se"
-                  subject: "'[ANTI][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
+                  subject: "'[DUCTUS][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
                   body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
                 on-complete:
                   - fail
@@ -77,7 +77,7 @@ workflows:
                 input:
                   to: "bioinfo-clinical-genomics-uu@googlegroups.com"
                   from: "stanley@clinicalgenomics-as.se"
-                  subject: "'[ANTI][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
+                  subject: "'[DUCTUS][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
                   body: "Something went wrong when retrieving sera result for <% $.experiment_name %>, please investigate!!!"
                 on-complete:
                     - fail
@@ -85,14 +85,14 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                  url: http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
                 action: core.http
                 input:
-                  url:  http://130.238.54.142:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
                 on-complete:
@@ -103,7 +103,7 @@ workflows:
                 input:
                   to: "molpat-clinical-genomics-uu@googlegroups.com"
                   from: "stanley@clinicalgenomics-as.se"
-                  subject: "'[ANTI][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
+                  subject: "'[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
                   body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
 
             archive_data:
