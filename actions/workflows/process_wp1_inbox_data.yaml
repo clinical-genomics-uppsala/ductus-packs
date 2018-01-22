@@ -98,7 +98,7 @@ workflows:
                   hosts: 130.238.54.142
                   experiment_name: <% $.experiment_name %>
                   year: <% $.run_year %>
-                  sera_version: "17.0.7"
+                  sera_version: "18.0.0"
                   slurm_version: "16.05.2"
                   input_file_name: <% $.csv_file_name %>
                   analysis: "klinik"
