@@ -1,0 +1,20 @@
+---
+name: "wp1_project_fetch_outbox"
+pack: "ductus"
+description: "Rule that triggers a fetching action, when a external wp1 project has been submitted to the outbox."
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "/wp1/ngs/projekt/OUTBOX"
+
+action:
+    ref: "ductus.wp1_fetch_inbox"
+    parameters:
+        runfolder_host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"
+        project_type: "projekt"

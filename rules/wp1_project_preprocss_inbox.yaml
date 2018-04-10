@@ -1,0 +1,20 @@
+---
+name: "wp1_project_preprocss_inbox"
+pack: "ductus"
+description: "Rule that triggers preprocessing action, when a external wp1 project experiment has been submitted to the inbox"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "/wp1/projekt/INBOX/"
+
+action:
+    ref: "ductus.wp1_preprocess_outbox"
+    parameters:
+        runfolder_host: "{{trigger.host }}"
+        runfolder: "{{trigger.runfolder}}"
+        project_type: "projekt"

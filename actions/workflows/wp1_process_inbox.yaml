@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: ductus.process_wp1_inbox_data
+name: ductus.wp1_process_inbox
 description: Will analyse data found in the inbox folder using SERA
 
 workflows:
@@ -7,7 +7,16 @@ workflows:
         type: direct
         input:
             - runfolder
-            - host
+            - runfolder_host
+            - runfolder_host_port
+            - runfolder_api_version
+            - local_folder_prefix
+            - project_type
+            - processing_host
+            - processing_key
+            - processing_user
+            - ref_files
+            - mail_bioinfo
         output:
             output_the_whole_workflow_context: <% $ %>
         task-defaults:
@@ -47,7 +56,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -57,10 +66,10 @@ workflows:
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cwd: /data/wp1/fastq_filer
+                    cwd: <% $.local_folder_prefix %>/<% $.project_type %>/fastq_filer
                     cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 publish:
-                    raw_data_folder: "/data/wp1/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    raw_data_folder: "<% $.local_folder_prefix %>/<% $.project_type %>/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 on-success:
                     - copy_rawdata
 
@@ -75,9 +84,9 @@ workflows:
             create_csv_folder:
                 action: core.local
                 input:
-                    cmd: mkdir -p /data/wp1/sample_files/<% $.run_year %>
+                    cmd: mkdir -p <% $.local_folder_prefix %>/<% $.project_type %>/sample_files/<% $.run_year %>
                 publish:
-                    csv_folder: "/data/wp1/sample_files/<% $.run_year %>"
+                    csv_folder: "<% $.local_folder_prefix %>/<% $.project_type %>/sample_files/<% $.run_year %>"
                 on-success:
                     - copy_csv_file
 
@@ -93,26 +102,26 @@ workflows:
               join: all
               action: ductus.start_sera_analys
               input:
-                  username: patsm159
-                  private_key: /home/stanley/.ssh/moriarty_rsa
-                  hosts: 130.238.54.142
+                  username: hosts: <% $.processing_user %>
+                  private_key: hosts: <% $.processing_key %>
+                  hosts: <% $.processing_host %>
                   experiment_name: <% $.experiment_name %>
                   year: <% $.run_year %>
-                  sera_version: "18.0.0"
-                  slurm_version: "16.05.2"
+                  sera_version: <% $.wp1_sera_version %>
+                  slurm_version: <% $.wp1_slurm_version %>
                   input_file_name: <% $.csv_file_name %>
-                  analysis: "klinik"
+                  analysis: <% $.project_type %>
                   globals: "MORIARTY"
                   normal: "annovar"
                   project: "wp1"
-                  ref_dir: "/projects/wp1/refFiles_current/refFiles/"
+                  ref_dir: <% $.ref_files %>
               on-success:
                 - mark_as_finished
 
             molpat_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[DUCTUS][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
@@ -122,7 +131,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[DUCTUS][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
@@ -132,14 +141,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:
