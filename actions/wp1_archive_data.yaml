@@ -18,6 +18,13 @@ parameters:
   experiment_name:
     required: true
     type: string
+  project_type:
+    required: true
+    type: string
+  storage_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_fetch_to_prefix }}"
   raw_inbox_storage_path:
     required: true
     type: string

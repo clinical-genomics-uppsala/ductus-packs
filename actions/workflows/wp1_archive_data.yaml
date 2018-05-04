@@ -11,8 +11,6 @@ workflows:
             - project_type
             - raw_inbox_storage_path
             - mail_bioinfo
-        output:
-            output_the_whole_workflow_context: <% $ %>
         task-defaults:
             on-error:
                 - bioinfo_error_notifier
@@ -21,7 +19,7 @@ workflows:
                 action: core.local
                 input:
                   cmd: ls -d */ | sed 's/\///'
-                  cwd: <% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>
+                  cwd: <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
                 publish:
                   runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
                 on-success:
@@ -45,15 +43,15 @@ workflows:
                 publish:
                     machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
-                    - create_fastq_samle_folder
+                    - create_fastq_sample_folder
 
-            create_fastq_samle_folder:
+            create_fastq_sample_folder:
                 action: core.local
                 input:
-                  cwd: <% $.storage_path %>/<% $.project_type %>/archive/fastq
+                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/fastq
                   cmd: mkdir -p <% $.run_year %>/<% $.experiment_name %>
                 publish:
-                  fastq_folder: "<% $.storage_path %>/<% $.project_type %>/archive/fastq/<% $.run_year %>/<% $.experiment_name %>/"
+                  fastq_folder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/fastq/<% $.run_year %>/<% $.experiment_name %>/"
                 on-success:
                   - sync_run_info
 
@@ -62,7 +60,7 @@ workflows:
                 input:
                   timeout: 86400
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Run*" -t <% $.fastq_folder %> -l
+                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Run*" -t <% $.fastq_folder %> -l
                 on-success:
                   - sync_interop
 
@@ -71,7 +69,7 @@ workflows:
                 input:
                   timeout: 86400
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/InterOp" -t <% $.fastq_folder %> -l
+                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/InterOp" -t <% $.fastq_folder %> -l
                 on-success:
                   - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                   - sync_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
@@ -80,7 +78,7 @@ workflows:
                 action: core.local
                 input:
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% $.fastq_folder %> -l
+                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% $.fastq_folder %> -l
                   timeout: 86400
                 on-success:
                   - archive_done_notifier
@@ -89,7 +87,7 @@ workflows:
                 action: core.local
                 input:
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
+                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
                   timeout: 86400
                 on-success:
                    - archive_done_notifier
@@ -97,10 +95,10 @@ workflows:
             create_year_index_folder:
                 action: core.local
                 input:
-                  cwd: <% $.storage_location %>/<% $.project_type %>/archive/indexfiles
+                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/indexfiles
                   cmd: mkdir -p <% $.run_year %>
                 publish:
-                  index_folder: "<% $.storage_location %>/<% $.project_type %>/archive/indexfiles/<% $.run_year %>/"
+                  index_folder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/indexfiles/<% $.run_year %>/"
                 on-success:
                   - sync_index_file
 
@@ -108,7 +106,7 @@ workflows:
                 action: core.local
                 input:
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/*index.csv" -t "<% $.index_folder %>" -l
+                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/*index.csv" -t "<% $.index_folder %>" -l
                   timeout: 86400
                 on-success:
                   - archive_done_notifier
@@ -116,17 +114,17 @@ workflows:
             create_year_runfolder_folder:
                 action: core.local
                 input:
-                  cwd: <% $.storage_path %>/<% $.project_type %>/archive/runfolders
+                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/runfolders
                   cmd: mkdir -p <% $.run_year %>
                 publish:
-                  archive_runfolder: "<% $.storage_path %>/<% $.project_type %>/archive/runfolders/<% $.run_year %>/"
+                  archive_runfolder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/runfolders/<% $.run_year %>/"
                 on-success:
                   - compress_runfolder_folder
 
             compress_runfolder_folder:
                 action: core.local
                 input:
-                  cwd: <% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX
+                  cwd: <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX
                   cmd: tar -zcf <% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz <% $.experiment_name %>
                   timeout: 86400
                 on-success:
@@ -135,7 +133,7 @@ workflows:
             validate_runfolder_archive:
                 action: core.local
                 input:
-                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -C <% $.raw_inbox_storage_path %>/<% $.project_type %>/INBOX
+                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -C <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX
                   timeout: 86400
                 on-success:
                   - create_checksum_for_archive

@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "/wp1/ngs/klinik/INBOX/"
+      pattern: "/wp1/ngs/klinik/INBOX"
 
 action:
     ref: "ductus.wp1_process_inbox"

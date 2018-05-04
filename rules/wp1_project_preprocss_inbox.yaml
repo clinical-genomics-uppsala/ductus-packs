@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "/wp1/projekt/INBOX/"
+      pattern: "/wp1/ngs/projekt/INBOX/"
 
 action:
     ref: "ductus.wp1_preprocess_outbox"

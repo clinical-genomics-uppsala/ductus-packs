@@ -21,6 +21,7 @@ parameters:
   runfolder_host:
     required: true
     type: string
+    default: "{{ config_context.wp1_transfer_from_host_ip }}"
   project_type:
     required: true
     type: string

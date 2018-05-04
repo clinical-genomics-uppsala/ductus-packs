@@ -17,8 +17,6 @@ workflows:
             - project_type
             - mail_lab
             - mail_bioinfo
-        output:
-            stdout: <% $.stdout %>
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -92,7 +90,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.runfolder_host_ip %>:<% $.runfolder_host_port %>api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -103,7 +101,7 @@ workflows:
                 input:
                     username: <% $.transfer_user %>
                     private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/<% $.project_type %>/INBOX
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX
                     cmd: mkdir -p <% $.experiment_name %>
                     timeout: 10
                     hosts: <% $.transfer_to_host %>
@@ -115,7 +113,7 @@ workflows:
                 input:
                     username: <% $.transfer_user %>
                     private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/INBOX/<% $.experiment_name %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
                     cmd: mkdir -p raw
                     timeout: 10
                     hosts: <% $.transfer_to_host %>
@@ -126,7 +124,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_interop_files
@@ -135,7 +133,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_csv_file
@@ -144,7 +142,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
@@ -154,7 +152,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "<% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -163,7 +161,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -233,14 +231,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.runfolder_host_ip %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.runfolder_host_ip %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:

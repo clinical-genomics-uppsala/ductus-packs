@@ -16,9 +16,9 @@ workflows:
             - processing_key
             - processing_user
             - ref_files
+            - sera_version
+            - slurm_version
             - mail_bioinfo
-        output:
-            output_the_whole_workflow_context: <% $ %>
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -56,7 +56,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -66,10 +66,10 @@ workflows:
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cwd: <% $.local_folder_prefix %>/<% $.project_type %>/fastq_filer
+                    cwd: <% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer
                     cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 publish:
-                    raw_data_folder: "<% $.local_folder_prefix %>/<% $.project_type %>/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
+                    raw_data_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
                 on-success:
                     - copy_rawdata
 
@@ -84,9 +84,9 @@ workflows:
             create_csv_folder:
                 action: core.local
                 input:
-                    cmd: mkdir -p <% $.local_folder_prefix %>/<% $.project_type %>/sample_files/<% $.run_year %>
+                    cmd: mkdir -p <% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>
                 publish:
-                    csv_folder: "<% $.local_folder_prefix %>/<% $.project_type %>/sample_files/<% $.run_year %>"
+                    csv_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>"
                 on-success:
                     - copy_csv_file
 
@@ -102,18 +102,19 @@ workflows:
               join: all
               action: ductus.start_sera_analys
               input:
-                  username: hosts: <% $.processing_user %>
-                  private_key: hosts: <% $.processing_key %>
+                  username: <% $.processing_user %>
+                  private_key: <% $.processing_key %>
                   hosts: <% $.processing_host %>
                   experiment_name: <% $.experiment_name %>
                   year: <% $.run_year %>
-                  sera_version: <% $.wp1_sera_version %>
-                  slurm_version: <% $.wp1_slurm_version %>
+                  sera_version: <% $.sera_version %>
+                  slurm_version: <% $.slurm_version %>
                   input_file_name: <% $.csv_file_name %>
                   analysis: <% $.project_type %>
                   globals: "MORIARTY"
                   normal: "annovar"
                   project: "wp1"
+                  project_type: <% $.project_type %>
                   ref_dir: <% $.ref_files %>
               on-success:
                 - mark_as_finished
@@ -141,14 +142,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:

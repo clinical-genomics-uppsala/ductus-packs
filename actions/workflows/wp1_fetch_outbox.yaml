@@ -18,8 +18,6 @@ workflows:
             - project_type
             - mail_lab
             - mail_bioinfo
-        output:
-            output_the_whole_workflow_context: <% $ %>
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -56,7 +54,7 @@ workflows:
             create_year_folder:
                 action: core.local
                 input:
-                  cwd: <% $.storage_path %>/<% $.project_type %>/NGS_result
+                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/NGS_result
                   cmd: mkdir -p <% $.run_year %>
                 on-success:
                   - transfer_result
@@ -66,10 +64,10 @@ workflows:
                 input:
                   timeout: 86400
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.storage_path %>/<% $.project_type %>/NGS_result/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
+                  cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.storage_path %>/ngs/<% $.project_type %>/NGS_result/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
                 on-success:
                   - mark_as_finished
-                  - archive_data:  "{{ $.project_type == 'klinik' }}"
+                  - archive_data: "{{ _.project_type == 'klinik' }}"
                   - result_retrieved
 
             molpat_error_notifier:
