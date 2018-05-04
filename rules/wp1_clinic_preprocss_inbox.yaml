@@ -16,5 +16,5 @@ action:
     ref: "ductus.wp1_preprocess_inbox"
     parameters:
         runfolder: "{{trigger.runfolder}}"
-        runfolder_host_ip: "{{trigger.host }}"
+        runfolder_host: "{{trigger.host }}"
         project_type: "klinik"
