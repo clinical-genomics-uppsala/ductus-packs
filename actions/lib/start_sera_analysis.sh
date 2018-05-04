@@ -9,10 +9,11 @@ ANALYSIS=${6}
 GLOBALS=${7}
 NORMAL=${8}
 PROJECT=${9}
-REFDIR=${10}
+PROJECT_TYPE=${10}
+REFDIR=${11}
 
-PATH_INPUT_FILES="/projects/wp1/ngs/klinik/sample_files/${YEAR}"
-PATH_ANALYSIS_FOLDER="/projects/wp1/ngs/klinik/analys/${YEAR}/${EXPERIMENT_NAME}"
+PATH_INPUT_FILES="/projects/wp1/nobackup/ngs/${PROJECT_TYPE}/sample_files/${YEAR}"
+PATH_ANALYSIS_FOLDER="/projects/wp1/nobackup/ngs/${PROJECT_TYPE}/analys/${YEAR}/${EXPERIMENT_NAME}"
 
 module load slurm/${SLURM_VERSION}
 module load sera/${SERA_VERSION}

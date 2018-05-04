@@ -1,0 +1,67 @@
+---
+name: wp1_process_inbox
+description: >
+  Initialize processing of wp1 data using sera. Will move data to appropriate locations and then submit cluster jobs.
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/wp1_process_inbox.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.wp1_process_inbox
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  project_type:
+    required: true
+    type: string
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_runfolder_api_version }}"
+  local_folder_prefix:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_process_local_prefix_location }}"
+  processing_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_processing_host_ip }}"
+  processing_key:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_processing_key }}"
+  processing_user:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_processing_host_user }}"
+  sera_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_sera_version }}"
+  slurm_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_slurm_version }}"
+  ref_files:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_ref_files_location }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_notification_mail_bioinfo }}"

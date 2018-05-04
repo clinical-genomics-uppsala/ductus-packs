@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: ductus.pre_process_wp1_data
+name: ductus.wp1_preprocess_inbox
 description: Will rsync new sequence data to moriarty for processing
 
 workflows:
@@ -7,9 +7,16 @@ workflows:
         type: direct
         input:
             - runfolder
-            - host
-        output:
-            output_the_whole_workflow_context: <% $ %>
+            - runfolder_host
+            - runfolder_host_port
+            - api_version
+            - transfer_to_host
+            - transfer_location
+            - transfer_key
+            - transfer_user
+            - project_type
+            - mail_lab
+            - mail_bioinfo
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -83,7 +90,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -92,24 +99,24 @@ workflows:
             create_runfolder_on_moriarty:
                 action: core.remote
                 input:
-                    username: patsm159
-                    private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp1/nobackup/INBOX
+                    username: <% $.transfer_user %>
+                    private_key: <% $.transfer_key %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX
                     cmd: mkdir -p <% $.experiment_name %>
                     timeout: 10
-                    hosts: 130.238.54.142
+                    hosts: <% $.transfer_to_host %>
                 on-success:
                     - create_raw_folder_on_moriarty
 
             create_raw_folder_on_moriarty:
                 action: core.remote
                 input:
-                    username: patsm159
-                    private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
+                    username: <% $.transfer_user %>
+                    private_key: <% $.transfer_key %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
                     cmd: mkdir -p raw
                     timeout: 10
-                    hosts: 130.238.54.142
+                    hosts: <% $.transfer_to_host %>
                 on-success:
                     - transfer_runinfo_files
 
@@ -117,7 +124,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_interop_files
@@ -126,7 +133,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_csv_file
@@ -135,7 +142,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
@@ -145,7 +152,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -154,7 +161,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "/projects/wp1/nobackup/INBOX/<% $.experiment_name %>/raw" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -162,19 +169,19 @@ workflows:
             create_transfer_complete_file:
                 action: core.remote
                 input:
-                    username: patsm159
-                    private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp1/nobackup/INBOX/<% $.experiment_name %>
+                    username: <% $.transfer_user %>
+                    private_key: <% $.transfer_key %>
+                    cwd: <% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>
                     cmd: echo "`date`" > Done.txt
                     timeout: 10
-                    hosts: 130.238.54.142
+                    hosts: <% $.transfer_to_host %>
                 on-success:
                     - mark_as_finished
 
             missing_runfolder:
                 action: core.sendmail
                 input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
                     body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
@@ -184,7 +191,7 @@ workflows:
             unexpected_machine_type:
                 action: core.sendmail
                 input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
                     body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
@@ -194,7 +201,7 @@ workflows:
             missing_csv_file:
                 action: core.sendmail
                 input:
-                    to: "molpat-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
                     body: "Couldn't locate a csv file in folder <% $.experiment_name %>"
@@ -204,7 +211,7 @@ workflows:
             molpat_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
                     body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
@@ -214,7 +221,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
@@ -224,14 +231,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:

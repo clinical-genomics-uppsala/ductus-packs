@@ -56,9 +56,15 @@
             description: 'Project that the analysis belong to'
             required: true
             position: 8
+        project_type:
+            default: "klinik"
+            type: 'string'
+            description: 'Type of project, ex klinik or utveckling'
+            required: true
+            position: 9
         ref_dir:
             default: "/projects/wp1/refFiles_current/refFiles/"
             type: 'string'
             description: 'ref_dir that will be used'
             required: true
-            position: 9
+            position: 10
