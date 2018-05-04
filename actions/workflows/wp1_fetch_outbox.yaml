@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: ductus.retrieve_wp1_result
+name: ductus.wp1_fetch_outbox
 description: Will rsync result back from moriarty
 
 workflows:
@@ -7,9 +7,17 @@ workflows:
         type: direct
         input:
             - runfolder
-            - host
-        output:
-            output_the_whole_workflow_context: <% $ %>
+            - runfolder_host
+            - runfolder_port
+            - runfolder_api_version
+            - transfer_from_user
+            - transfer_from_key
+            - transfer_from_host
+            - storage_path
+            - preprocessing_storage_path
+            - project_type
+            - mail_lab
+            - mail_bioinfo
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -37,7 +45,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                  url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "started"}'
                   method: "POST"
                 on-success:
@@ -46,7 +54,7 @@ workflows:
             create_year_folder:
                 action: core.local
                 input:
-                  cwd: /data/wp1/NGS_result
+                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/NGS_result
                   cmd: mkdir -p <% $.run_year %>
                 on-success:
                   - transfer_result
@@ -56,16 +64,16 @@ workflows:
                 input:
                   timeout: 86400
                   cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.runfolder %>" -t "/data/wp1/NGS_result/<% $.run_year %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 1
+                  cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.storage_path %>/ngs/<% $.project_type %>/NGS_result/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
                 on-success:
                   - mark_as_finished
-                  - archive_data
+                  - archive_data: "{{ _.project_type == 'klinik' }}"
                   - result_retrieved
 
             molpat_error_notifier:
                 action: core.sendmail
                 input:
-                  to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                  to: "<% $.mail_lab %>"
                   from: "stanley@clinicalgenomics-as.se"
                   subject: "'[DUCTUS][WP1][ERROR] - Processing failure, <% $.experiment_name %>'"
                   body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
@@ -75,7 +83,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                  to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                  to: "<% $.mail_bioinfo %>"
                   from: "stanley@clinicalgenomics-as.se"
                   subject: "'[DUCTUS][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
                   body: "Something went wrong when retrieving sera result for <% $.experiment_name %>, please investigate!!!"
@@ -85,14 +93,14 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                  url: http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
                 action: core.http
                 input:
-                  url:  http://130.238.54.142:10801/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
                 on-complete:
@@ -101,12 +109,16 @@ workflows:
             result_retrieved:
                 action: core.sendmail
                 input:
-                  to: "molpat-clinical-genomics-uu@googlegroups.com"
+                  to: "<% $.mail_lab %>"
                   from: "stanley@clinicalgenomics-as.se"
                   subject: "'[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% $.experiment_name %>'"
                   body: "The result from SERA analysis of <% $.experiment_name %> can now be accessed."
 
             archive_data:
-                action: ductus.archive_wp1_data
+                action: ductus.wp1_archive_data
                 input:
                   experiment_name: <% $.experiment_name %>
+                  storage_path: <% $.storage_path %>
+                  project_type: <% $.project_type %>
+                  raw_inbox_storage_path: <% $.preprocessing_storage_path %>
+                  mail_bioinfo: <% $.mail_bioinfo %>

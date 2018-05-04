@@ -65,7 +65,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /data/wp2/TruSight_Myeloid/INBOX
-                    cmd: cp -r <% $.experiment_name %>/* <% $.analysis_folder %>/
+                    cmd: cp -rp <% $.experiment_name %>/* <% $.analysis_folder %>/
                     timeout: 86400
                 on-success:
                     - run_analysis
