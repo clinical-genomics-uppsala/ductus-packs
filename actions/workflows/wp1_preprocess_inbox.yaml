@@ -171,7 +171,7 @@ workflows:
                 input:
                     username: <% $.transfer_user %>
                     private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/<% $.project_type %>/INBOX/<% $.experiment_name %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
                     cmd: echo "`date`" > Done.txt
                     timeout: 10
                     hosts: <% $.transfer_to_host %>

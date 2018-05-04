@@ -1,5 +1,5 @@
 ---
-name: "wp1_project_preprocss_inbox"
+name: "wp1_project_preprocess_inbox"
 pack: "ductus"
 description: "Rule that triggers preprocessing action, when a external wp1 project experiment has been submitted to the inbox"
 enabled: false
@@ -13,7 +13,7 @@ criteria:
       pattern: "/wp1/ngs/projekt/INBOX/"
 
 action:
-    ref: "ductus.wp1_preprocess_outbox"
+    ref: "ductus.wp1_preprocess_inbox"
     parameters:
         runfolder_host: "{{trigger.host }}"
         runfolder: "{{trigger.runfolder}}"

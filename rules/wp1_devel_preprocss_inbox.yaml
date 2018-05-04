@@ -1,5 +1,5 @@
 ---
-name: "wp1_devel_preprocss_inbox"
+name: "wp1_devel_preprocess_inbox"
 pack: "ductus"
 description: "Rule that triggers preprocessing action, when a development wp1 experiment has been submitted to the inbox"
 enabled: false
