@@ -1,5 +1,5 @@
 ---
-name: "wp1_clinic_research_process_inbox"
+name: "wp1_research_process_inbox"
 pack: "ductus"
 description: "Rule that triggers a processing action, when a research wp1 experiment has been submitted to the inbox"
 enabled: false
