@@ -125,7 +125,7 @@ workflows:
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 600
+                    timeout: 3600
                 on-success:
                     - transfer_interop_files
 
@@ -134,7 +134,7 @@ workflows:
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 600
+                    timeout: 3600
                 on-success:
                     - transfer_csv_file
 
@@ -143,7 +143,7 @@ workflows:
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 600
+                    timeout: 3600
                 on-success:
                     - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                     - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"

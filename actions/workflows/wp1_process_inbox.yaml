@@ -78,6 +78,7 @@ workflows:
                 input:
                   cwd: <% $.runfolder %>
                   cmd: cp raw/*.fastq.gz <% $.raw_data_folder %>/
+                  timeout: 3600
                 on-success:
                   - run_sera
 
