@@ -1,0 +1,67 @@
+version: "2.0" # mistral version
+name: ductus.wp3_inbox_moriarty_process
+description: Will analyse data found in the inbox folder
+
+workflows:
+    main:
+        type: direct
+        input:
+            - SS_folder
+            - host
+            - runpanel
+            - processing_user
+            - processing_key
+            - processing_host
+            - mail_lab
+        task-defaults:
+            on-error:
+                - mark_as_failed
+        tasks:
+            runfolder_directory:
+                action: core.local
+                input:
+                    cwd: <% $.SS_folder %>
+                    cmd: ls -d */ | sed 's/\///'
+                publish:
+                    runfolder_name: "<% task(runfolder_directory).result.stdout %>"
+                on-success:
+                    - send_start_notifier
+
+            send_start_notifier:
+              join: 3
+              action: core.sendmail
+              input:
+                to: "<% $.mail_lab %>"
+                from: "stanley@clinicalgenomics-as.se"
+                subject: "WP3: Starting analysis of <% $.SS_folder %>"
+                body: "<% $.SS_folder %> analysis has been started!!!"
+              on-success:
+              - start_script
+
+            start_script:
+                join: all
+                action: ductus.start_bcbio_analysis
+                input:
+                    username: <% $.processing_user %>
+                    private_key: <% $.processing_key %>
+                    hosts: <% $.processing_host %>
+                    panel_name: <% $.runpanel %>
+                    runfolder_directory: <% $.SS_folder %>/<% $.runfolder_name %>
+                on-success:
+                    - mark_as_finished
+
+            mark_as_failed:
+                action: core.http
+                input:
+                    url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.SS_folder %>
+                    body: '{"state": "error"}'
+                    method: "POST"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+                action: core.http
+                input:
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    body: '{"state": "done"}'
+                    method: "POST"

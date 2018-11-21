@@ -1,0 +1,42 @@
+---
+name: wp3_inbox_moriarty_process
+description: >
+  Process data for wp3......
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/wp3_inbox_moriarty_process.yaml
+pack: ductus
+parameters:
+    context:
+        default: {}
+        immutable: true
+        type: object
+    workflow:
+        default: ductus.wp3_inbox_moriarty_process
+        immutable: true
+        type: string
+    SS_folder:
+        required: true
+        type: string
+    host:
+        required: true
+        type: string
+    runpanel:
+        required: true
+        type: string
+    processing_host:
+      required: true
+      type: string
+      default: "{{ config_context.wp3_processing_host_ip }}"
+    processing_key:
+      required: true
+      type: string
+      default: "{{ config_context.wp3_processing_key }}"
+    processing_user:
+      required: true
+      type: string
+      default: "{{ config_context.wp3_processing_user }}"
+    mail_lab:
+      required: true
+      type: string
+      default: "{{ config_context.wp3_notification_mail_lab }}"

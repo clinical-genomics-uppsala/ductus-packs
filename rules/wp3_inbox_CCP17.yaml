@@ -1,0 +1,20 @@
+---
+name: "wp3_inbox_CCP17"
+pack: "ductus"
+description: "CCP17 Moriarty inbox rule"
+enabled: true
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+        type: "contains"
+        pattern: "/projects/wp3/nobackup/CCP17/INBOX/"
+
+action:
+    ref: "ductus.wp3_inbox_moriarty_process"
+    parameters:
+        host: "{{trigger.host}}"
+        SS_folder: "{{trigger.runfolder}}"
+        runpanel: "CCP17"

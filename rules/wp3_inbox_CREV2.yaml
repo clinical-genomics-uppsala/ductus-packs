@@ -1,0 +1,20 @@
+---
+name: "wp3_inbox_CREV2"
+pack: "ductus"
+description: "CREV2 Moriarty inbox rule"
+enabled: true
+
+trigger:
+  type: "arteria.runfolder_ready"
+
+criteria:
+  trigger.runfolder:
+      type: "contains"
+      pattern: "/projects/wp3/nobackup/CREV2/INBOX/"
+
+action:
+  ref: "ductus.wp3_inbox_moriarty_process"
+  parameters:
+      host: "{{trigger.host}}"
+      SS_folder: "{{trigger.runfolder}}"
+      runpanel: "CREV2"
