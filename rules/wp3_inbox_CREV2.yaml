@@ -2,7 +2,7 @@
 name: "wp3_inbox_CREV2"
 pack: "ductus"
 description: "CREV2 rule running on facility cluster"
-enabled: true
+enabled: false
 
 trigger:
   type: "arteria.runfolder_ready"

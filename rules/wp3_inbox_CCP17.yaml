@@ -2,7 +2,7 @@
 name: "wp3_inbox_CCP17"
 pack: "ductus"
 description: "CCP17 rule running on facility cluster"
-enabled: true
+enabled: false
 
 trigger:
     type: "arteria.runfolder_ready"
