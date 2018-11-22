@@ -1,0 +1,20 @@
+---
+name: "wp3_outbox_data_CCP17"
+pack: "ductus"
+description: "Check if new data needs to be transfered"
+enabled: false
+
+trigger:
+  type: "arteria.runfolder_ready"
+
+criteria:
+  trigger.runfolder:
+    type: "contains"
+    pattern: "/projects/wp3/nobackup/CCP17/OUTBOX/"
+
+action:
+  ref: "ductus.retrieve_wp3_result_CCP17"
+  parameters:
+    host: "{{trigger.host}}"
+    runfolder: "{{trigger.runfolder}}"
+    runpanel: "CCP17"

@@ -1,5 +1,5 @@
 ---
-name: "wp3_inbox_CREV2"
+name: "wp3_processing_inbox_CREV2"
 pack: "ductus"
 description: "CREV2 rule running on facility cluster"
 enabled: false

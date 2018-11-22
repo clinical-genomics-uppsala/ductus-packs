@@ -1,5 +1,5 @@
 ---
-name: wp3_inbox_moriarty_process
+name: wp3_process_inbox
 description: >
   Start analyze data on facility cluster
 enabled: true
