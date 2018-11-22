@@ -1,7 +1,7 @@
 ---
 name: "wp3_inbox_CREV2"
 pack: "ductus"
-description: "CREV2 Moriarty inbox rule"
+description: "CREV2 rule running on facility cluster"
 enabled: true
 
 trigger:
@@ -13,7 +13,7 @@ criteria:
       pattern: "/projects/wp3/nobackup/CREV2/INBOX/"
 
 action:
-  ref: "ductus.wp3_inbox_moriarty_process"
+  ref: "ductus.wp3_process_inbox"
   parameters:
       host: "{{trigger.host}}"
       SS_folder: "{{trigger.runfolder}}"

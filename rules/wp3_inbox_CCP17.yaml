@@ -1,7 +1,7 @@
 ---
 name: "wp3_inbox_CCP17"
 pack: "ductus"
-description: "CCP17 Moriarty inbox rule"
+description: "CCP17 rule running on facility cluster"
 enabled: true
 
 trigger:
@@ -13,7 +13,7 @@ criteria:
         pattern: "/projects/wp3/nobackup/CCP17/INBOX/"
 
 action:
-    ref: "ductus.wp3_inbox_moriarty_process"
+    ref: "ductus.wp3_process_inbox"
     parameters:
         host: "{{trigger.host}}"
         SS_folder: "{{trigger.runfolder}}"

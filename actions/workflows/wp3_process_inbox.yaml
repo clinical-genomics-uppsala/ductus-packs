@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
-name: ductus.wp3_inbox_moriarty_process
-description: Will analyse data found in the inbox folder
+name: ductus.wp3_process_inbox
+description: Start analyze data on facility cluster
 
 workflows:
     main:
@@ -25,21 +25,29 @@ workflows:
                 publish:
                     runfolder_name: "<% task(runfolder_directory).result.stdout %>"
                 on-success:
-                    - send_start_notifier
+                    - SS_basename_get
+
+            SS_basename_get:
+                action: core.local
+                input:
+                    cwd: <% $.SS_folder %>
+                    cmd: basename <% $.SS_folder %>
+                publish:
+                    SS_basename: "<% task(SS_basename_get).result.stdout %>"
+                on-success:
+                - send_start_notifier
 
             send_start_notifier:
-              join: 3
               action: core.sendmail
               input:
                 to: "<% $.mail_lab %>"
                 from: "stanley@clinicalgenomics-as.se"
-                subject: "WP3: Starting analysis of <% $.SS_folder %>"
-                body: "<% $.SS_folder %> analysis has been started!!!"
+                subject: "WP3: Starting analysis of <% $.SS_basename %>"
+                body: "<% $.SS_basename %> analysis has been started!"
               on-success:
               - start_script
 
             start_script:
-                join: all
                 action: ductus.start_bcbio_analysis
                 input:
                     username: <% $.processing_user %>

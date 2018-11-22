@@ -1,10 +1,10 @@
 ---
 name: wp3_inbox_moriarty_process
 description: >
-  Process data for wp3......
+  Start analyze data on facility cluster
 enabled: true
 runner_type: mistral-v2
-entry_point: workflows/wp3_inbox_moriarty_process.yaml
+entry_point: workflows/wp3_process_inbox.yaml
 pack: ductus
 parameters:
     context:
@@ -12,7 +12,7 @@ parameters:
         immutable: true
         type: object
     workflow:
-        default: ductus.wp3_inbox_moriarty_process
+        default: ductus.wp3_process_inbox
         immutable: true
         type: string
     SS_folder:
@@ -31,11 +31,11 @@ parameters:
     processing_key:
       required: true
       type: string
-      default: "{{ config_context.wp3_processing_key }}"
+      default: "{{ config_context.wp3_processing_host_key }}"
     processing_user:
       required: true
       type: string
-      default: "{{ config_context.wp3_processing_user }}"
+      default: "{{ config_context.wp3_processing_host_user }}"
     mail_lab:
       required: true
       type: string
