@@ -70,6 +70,6 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.SS_folder %>
                     body: '{"state": "done"}'
                     method: "POST"
