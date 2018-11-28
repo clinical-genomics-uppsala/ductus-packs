@@ -1,0 +1,20 @@
+---
+name: "wp3_preproccesing_inbox_CCP17"
+pack: "ductus"
+description: "Transfer files to Moriarty"
+enabled: false
+
+trigger:
+  type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+        type: "contains"
+        pattern: "/workarea/Klinisk_Genetik/NextSeq1_Runfolder"
+
+action:
+    ref: "ductus.wp3_preproccesing_inbox"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"
+        runpanel: "CCP17"

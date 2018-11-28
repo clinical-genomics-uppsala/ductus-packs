@@ -5,16 +5,16 @@ description: "CREV2 rule running on facility cluster"
 enabled: false
 
 trigger:
-  type: "arteria.runfolder_ready"
+    type: "arteria.runfolder_ready"
 
 criteria:
-  trigger.runfolder:
-      type: "contains"
-      pattern: "/projects/wp3/nobackup/CREV2/INBOX/"
+    trigger.runfolder:
+        type: "contains"
+        pattern: "/projects/wp3/nobackup/CREV2/INBOX/"
 
 action:
-  ref: "ductus.wp3_process_inbox"
-  parameters:
-      host: "{{trigger.host}}"
-      SS_folder: "{{trigger.runfolder}}"
-      runpanel: "CREV2"
+    ref: "ductus.wp3_process_inbox"
+    parameters:
+        host: "{{trigger.host}}"
+        SS_folder: "{{trigger.runfolder}}"
+        runpanel: "CREV2"

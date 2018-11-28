@@ -1,10 +1,10 @@
 ---
-name: wp3_process_inbox
+name: wp3_preprocessing_inbox
 description: >
-  Start analyze data on facility cluster
+  Transfer runfolder to Moriarty.....
 enabled: true
 runner_type: mistral-v2
-entry_point: workflows/wp3_process_inbox.yaml
+entry_point: workflows/wp3_preprocessing_inbox.yaml
 pack: ductus
 parameters:
     context:
@@ -12,10 +12,10 @@ parameters:
         immutable: true
         type: object
     workflow:
-        default: ductus.wp3_process_inbox
+        default: ductus.wp3_preprocessing_inbox
         immutable: true
         type: string
-    SS_folder:
+    runfolder:
         required: true
         type: string
     host:
@@ -28,19 +28,23 @@ parameters:
     runpanel:
         required: true
         type: string
-    processing_host:
-        required: true
-        type: string
-        default: "{{ config_context.wp3_processing_host_ip }}"
-    processing_key:
-        required: true
-        type: string
-        default: "{{ config_context.wp3_processing_host_key }}"
-    processing_user:
-        required: true
-        type: string
-        default: "{{ config_context.wp3_processing_host_user }}"
     mail_lab:
         required: true
         type: string
         default: "{{ config_context.wp3_notification_mail_lab }}"
+    transfer_to_host:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_ip }}"
+    transfer_to_user:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_user}}"
+    transfer_to_key:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_key }}"
+    transfer_location:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"

@@ -13,6 +13,7 @@ workflows:
             - processing_key
             - processing_host
             - mail_lab
+            - host_port
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -35,17 +36,17 @@ workflows:
                 publish:
                     SS_basename: "<% task(SS_basename_get).result.stdout %>"
                 on-success:
-                - send_start_notifier
+                    - send_start_notifier
 
             send_start_notifier:
-              action: core.sendmail
-              input:
-                to: "<% $.mail_lab %>"
-                from: "stanley@clinicalgenomics-as.se"
-                subject: "WP3: Starting analysis of <% $.SS_basename %>"
-                body: "<% $.SS_basename %> analysis has been started!"
-              on-success:
-              - start_script
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "WP3: Starting analysis of <% $.SS_basename %>"
+                    body: "<% $.SS_basename %> analysis has been started!"
+                on-success:
+                    - start_script
 
             start_script:
                 action: ductus.start_bcbio_analysis
@@ -61,7 +62,7 @@ workflows:
             mark_as_failed:
                 action: core.http
                 input:
-                    url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.SS_folder %>
+                    url:  http://<% $.host %>:<% $.host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
                     body: '{"state": "error"}'
                     method: "POST"
                 on-complete:
@@ -70,6 +71,6 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.host %>:<% $.host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
                     body: '{"state": "done"}'
                     method: "POST"

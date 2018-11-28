@@ -5,16 +5,16 @@ description: "Check if new data needs to be transfered"
 enabled: false
 
 trigger:
-  type: "arteria.runfolder_ready"
+    type: "arteria.runfolder_ready"
 
 criteria:
-  trigger.runfolder:
-    type: "contains"
-    pattern: "/projects/wp3/nobackup/CREV2/OUTBOX/"
+    trigger.runfolder:
+        type: "contains"
+        pattern: "/projects/wp3/nobackup/CREV2/OUTBOX/"
 
 action:
-  ref: "ductus.retrieve_wp3_result_CREV2"
-  parameters:
-    host: "{{trigger.host}}"
-    runfolder: "{{trigger.runfolder}}"
-    runpanel: "CREV2"
+    ref: "ductus.wp3_retrieve_result"
+    parameters:
+        host: "{{trigger.host}}"
+        SS_folder: "{{trigger.runfolder}}"
+        runpanel: "CREV2"
