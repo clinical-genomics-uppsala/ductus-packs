@@ -181,3 +181,8 @@
     type: string
     required: true
     default: "/projects/wp3/nobackup/"
+  wp3_runfolder_api_version:
+    description: The arteria-runfolder api version that should be used.
+    type: string
+    required: true
+    default: "1.0"

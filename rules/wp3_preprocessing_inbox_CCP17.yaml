@@ -17,4 +17,3 @@ action:
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"
-        runpanel: "CCP17"

@@ -14,6 +14,7 @@ workflows:
             - processing_host
             - mail_lab
             - host_port
+            - runfolder_api_version
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -62,7 +63,7 @@ workflows:
             mark_as_failed:
                 action: core.http
                 input:
-                    url:  http://<% $.host %>:<% $.host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
+                    url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
                     body: '{"state": "error"}'
                     method: "POST"
                 on-complete:
@@ -71,6 +72,6 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:<% $.host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
                     body: '{"state": "done"}'
                     method: "POST"

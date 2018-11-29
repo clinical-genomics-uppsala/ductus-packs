@@ -14,6 +14,7 @@ workflows:
             - transfer_from_host_port
             - transfer_from_user
             - transfer_from_key
+            - runfolder_api_version
         output:
             output_the_whole_workflow_context: <% $ %>
         task-defaults:
@@ -42,7 +43,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -69,14 +70,14 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
                     body: '{"state": "done"}'
                     method: "POST"
 
             mark_as_failed:
                 action: core.http
                 input:
-                    url:  http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/1.0/runfolders/path<% $.SS_folder %>
+                    url:  http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
                     body: '{"state": "error"}'
                     method: "POST"
                 on-complete:
