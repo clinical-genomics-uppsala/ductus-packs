@@ -18,6 +18,10 @@ parameters:
     runfolder:
         required: true
         type: string
+    runfolder_api_version:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_runfolder_api_version }}"
     host:
         required: true
         type: string
@@ -25,9 +29,6 @@ parameters:
         required: true
         type: string
         default: "{{ config_context.wp3_runfolder_service_port }}"
-    runpanel:
-        required: true
-        type: string
     mail_lab:
         required: true
         type: string
@@ -44,7 +45,7 @@ parameters:
         required: true
         type: string
         default: "{{ config_context.wp3_preprocess_transfer_key }}"
-    transfer_location:
+    transfer_to_location:
         required: true
         type: string
         default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"

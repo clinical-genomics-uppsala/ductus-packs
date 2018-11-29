@@ -18,6 +18,10 @@ parameters:
     SS_folder:
         required: true
         type: string
+    runfolder_api_version:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_runfolder_api_version }}"
     host:
         required: true
         type: string
