@@ -1,5 +1,5 @@
 ---
-name: "wp3_preproccesing_inbox"
+name: "wp3_preprocessing_inbox"
 pack: "ductus"
 description: "Transfer files to Moriarty"
 enabled: false
@@ -13,7 +13,7 @@ criteria:
         pattern: "/workarea/Klinisk_Genetik/NextSeq1_Runfolder"
 
 action:
-    ref: "ductus.wp3_preproccesing_inbox"
+    ref: "ductus.wp3_preprocessing_inbox"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"
