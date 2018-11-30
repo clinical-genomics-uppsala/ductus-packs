@@ -28,23 +28,17 @@ workflows:
                 publish:
                     SS_name: "SS<% task(get_SS_name).result.stdout %>_"
                 on-success:
-                    - get_date
+                    - concatenate_SS_name_and_date
 
-            get_date:
+           concatenate_SS_name_and_date:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
                     cmd: cat *.csv | grep 'Date' | sed 's/.*,//'
                 publish:
-                    date: "<% task(get_date).result.stdout %>"
+                    SS_folder: <% $.SS_name %>"<% task(concatenate_SS_name_and_date).result.stdout %>"
                 on-success:
-                    - concatenate_SS_name_and_date
-
-            concatenate_SS_name_and_date:
-                publish:
-                    SS_folder: "<% SS_name %><% date %>"
-                on-success:
-                    - get_runpanel
+                    get_runpanel
 
             get_runpanel:
                 action: core.local
