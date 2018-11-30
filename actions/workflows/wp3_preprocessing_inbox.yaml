@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: ductus.wp1_preprocess_inbox
+name: ductus.wp3_preprocessing_inbox
 description: Will rsync new sequence data to moriarty for processing
 
 workflows:
