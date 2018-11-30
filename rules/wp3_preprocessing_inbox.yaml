@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
         type: "contains"
-        pattern: "/workarea/Klinisk_Genetik/NextSeq1_Runfolder"
+        pattern: "/workarea/Klinisk_Genetik/NextSeq1_Runfolder/"
 
 action:
     ref: "ductus.wp3_preprocessing_inbox"
