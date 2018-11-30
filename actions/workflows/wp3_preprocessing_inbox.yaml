@@ -30,7 +30,7 @@ workflows:
                 on-success:
                     - concatenate_SS_name_and_date
 
-           concatenate_SS_name_and_date:
+            concatenate_SS_name_and_date:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
