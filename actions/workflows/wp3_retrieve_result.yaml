@@ -61,7 +61,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.SS_folder %>" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
+                    cmd: python rsync.py -c -f "<% $.SS_folder %>" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
                 on-success:
                     - result_retrieved
                     - mark_as_finished
