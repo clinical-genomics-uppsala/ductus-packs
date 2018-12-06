@@ -24,7 +24,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: cat *.csv | grep 'Experiment Name' | tr -d '[:space:]' | tail -c 2
+                    cmd: cat *.csv | grep 'Experiment Name' | tr -d '[:space:]' | tr -dc '0-9'
                 publish:
                     SS_name: "SS<% task(get_SS_name).result.stdout %>_"
                 on-success:
