@@ -57,6 +57,7 @@ workflows:
                     hosts: <% $.processing_host %>
                     panel_name: <% $.runpanel %>
                     runfolder_directory: <% $.SS_folder %>/<% $.runfolder_name %>
+                    timeout: 999999
                 on-success:
                     - mark_as_finished
 
