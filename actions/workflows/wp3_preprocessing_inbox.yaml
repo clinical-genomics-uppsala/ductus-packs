@@ -57,7 +57,6 @@ workflows:
                     private_key: <% $.transfer_to_key %>
                     cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX
                     cmd: mkdir -p <% $.SS_folder %>
-                    timeout: 10
                     hosts: <% $.transfer_to_host %>
                 on-success:
                     - send_mail
@@ -88,7 +87,6 @@ workflows:
                     private_key: <% $.transfer_to_key %>
                     cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.SS_folder %>/
                     cmd: touch Done.txt
-                    timeout: 10
                     hosts: <% $.transfer_to_host %>
                 on-success:
                     - mark_as_finished
