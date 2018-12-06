@@ -88,4 +88,4 @@ workflows:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "WP3: <% $.SS_basename %> results transferred"
-                    body: "<% $.SS_basename %> analysis has been finished and transferred!"
+                    body: "<% $.SS_basename %> analysis has been finished and transferred to N:\\Klinisk_Genetik\\Konstitutionell\\Klinik\\<% $.runpanel %>\\Resultat\\<% $.run_year %>\\<% $.SS_basename %>!"
