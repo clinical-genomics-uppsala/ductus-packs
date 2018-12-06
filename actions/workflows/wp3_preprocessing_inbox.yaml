@@ -66,8 +66,8 @@ workflows:
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: Start transfer of <% $.SS_basename %> to Moriarty"
-                    body: "Transfer of <% $.SS_basename %> has been executed!"
+                    subject: "WP3: Start transfer of <% $.SS_name %> to Moriarty"
+                    body: "Transfer of <% $.SS_name %> has been executed!"
                 on-success:
                     - transfer_runfolder
 
