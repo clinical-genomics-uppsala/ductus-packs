@@ -36,7 +36,7 @@ workflows:
                     cwd: <% $.runfolder %>
                     cmd: cat *.csv | grep 'Date' | sed 's/.*,//'
                 publish:
-                    SS_folder: <% $.SS_name %>"<% task(concatenate_SS_name_and_date).result.stdout %>"
+                    SS_folder: <% $.SS_name %><% task(concatenate_SS_name_and_date).result.stdout %>
                 on-success:
                     get_runpanel
 
