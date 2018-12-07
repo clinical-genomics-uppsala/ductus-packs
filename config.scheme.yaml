@@ -113,3 +113,76 @@
     type: string
     required: true
     default: "/data/ref_data/wp1"
+
+
+
+  wp3_processing_host_ip:
+      description: The host where pre-process data should be pushed to.
+      type: string
+      required: true
+      default: "130.238.54.142"
+  wp3_processing_host_user:
+      description: The user that will be used to push data.
+      type: string
+      required: true
+      default: "patsm159"
+  wp3_processing_host_key:
+      description: The key that will be used transfer data.
+      type: string
+      required: true
+      default: "/home/stanley/.ssh/moriarty_rsa"
+  wp3_notification_mail_lab:
+      description: Email address where notifications to lab will be sent.
+      type: string
+      required: true
+      default: "andrei.alexsson@scilifelab.uu.se"
+  wp3_runfolder_service_port:
+      description: Port that will be used to send requests to the runfolder service, for wp1
+      type: string
+      required: true
+      default: "10800"
+  wp3_transfer_from_host_port:
+      description: The port used to communiction with remote runfolder service.
+      type: string
+      required: true
+      default: "10801"
+  wp3_transfer_from_host_ip:
+      description: The host where outbox data will be retrieved.
+      type: string
+      required: true
+      default: "130.238.54.142"
+  wp3_transfer_from_user:
+      description: The user that will be used to push data.
+      type: string
+      required: true
+      default: "patsm159"
+  wp3_transfer_from_key:
+      description: The key that will be used transfer data.
+      type: string
+      required: true
+      default: "/home/stanley/.ssh/moriarty_rsa"
+  wp3_preprocess_transfer_user:
+    description: The user that will be used to push data.
+    type: string
+    required: true
+    default: "patsm159"
+  wp3_preprocess_transfer_key:
+    description: The key that will be used transfer data.
+    type: string
+    required: true
+    default: "/home/stanley/.ssh/moriarty_rsa"
+  wp3_preprocess_transfer_ip:
+    description: The host where pre-process data should be pushed to.
+    type: string
+    required: true
+    default: "130.238.54.142"
+  wp3_preprocess_transfer_prefix_location:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/projects/wp3/nobackup/"
+  wp3_runfolder_api_version:
+    description: The arteria-runfolder api version that should be used.
+    type: string
+    required: true
+    default: "1.0"
