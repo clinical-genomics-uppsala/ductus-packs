@@ -1,0 +1,108 @@
+version: "2.0" # mistral version
+name: ductus.wp3_preprocessing_inbox
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - host
+            - host_port
+            - runfolder_api_version
+            - transfer_to_host
+            - transfer_to_location
+            - transfer_to_key
+            - transfer_to_user
+            - mail_lab
+        task-defaults:
+            on-error:
+                - mark_as_failed
+
+        tasks:
+            get_SS_name:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: cat *.csv | grep 'Experiment Name' | tr -d '[:space:]' | tr -dc '[:digit:]'
+                publish:
+                    SS_name: "SS<% task(get_SS_name).result.stdout %>_"
+                on-success:
+                    - concatenate_SS_name_and_date
+
+            concatenate_SS_name_and_date:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: cat *.csv | grep 'Date' | sed 's/.*,//'
+                publish:
+                    SS_folder: <% $.SS_name %><% task(concatenate_SS_name_and_date).result.stdout %>
+                on-success:
+                    get_runpanel
+
+            get_runpanel:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: if grep -q "EXO" *.csv ; then echo "CREV2" ; else echo "CCP17" ; fi
+                publish:
+                    runpanel: "<% task(get_runpanel).result.stdout %>"
+                on-success:
+                    - create_SS_folder_on_moriarty
+
+            create_SS_folder_on_moriarty:
+                action: core.remote
+                input:
+                    username: <% $.transfer_to_user %>
+                    private_key: <% $.transfer_to_key %>
+                    cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX
+                    cmd: mkdir -p <% $.SS_folder %>
+                    hosts: <% $.transfer_to_host %>
+                on-success:
+                    - send_mail
+
+            send_mail:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "WP3: Start transfer of <% $.SS_folder %> to Moriarty"
+                    body: "Transfer of <% $.SS_folder %> has been executed!"
+                on-success:
+                    - transfer_runfolder
+
+            transfer_runfolder:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.SS_folder %>/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
+                    timeout: 99999
+                on-success:
+                    - create_transfer_complete_file
+
+            create_transfer_complete_file:
+                action: core.remote
+                input:
+                    username: <% $.transfer_to_user %>
+                    private_key: <% $.transfer_to_key %>
+                    cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.SS_folder %>/
+                    cmd: touch Done.txt
+                    hosts: <% $.transfer_to_host %>
+                on-success:
+                    - mark_as_finished
+
+            mark_as_finished:
+                action: core.http
+                input:
+                    url: http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                    body: '{"state": "done"}'
+                    method: "POST"
+
+            mark_as_failed:
+                action: core.http
+                input:
+                    url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                    body: '{"state": "error"}'
+                    method: "POST"
+                on-complete:
+                    - fail
