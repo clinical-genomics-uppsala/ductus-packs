@@ -8,6 +8,17 @@ workflows:
         input:
             - runfolder
             - host
+            - project_type
+            - runfolder_host
+            - runfolder_host_port
+            - runfolder_api_version
+            - processing_host
+            - processing_key
+            - processing_user
+            - local_folder_prefix
+            - slurm_version
+            - mail_lab
+            - mail_bioinfo
         output:
             output_the_whole_workflow_context: <% $ %>
         task-defaults:
@@ -46,7 +57,7 @@ workflows:
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -55,16 +66,16 @@ workflows:
             create_rawdata_folder:
                 action: core.local
                 input:
-                    cmd: mkdir -m 770 -p "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                    cmd: mkdir -m 770 -p "<% $.local_folder_prefix %>/<% $.project_type %>/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 publish:
-                    analysis_folder : "/data/wp2/TruSight_Myeloid/analysis/<% $.run_year %>/<% $.experiment_name %>"
+                    analysis_folder : "<% $.local_folder_prefix %>/<% $.project_type %>/analysis/<% $.run_year %>/<% $.experiment_name %>"
                 on-success:
                     - copy_inbox_data
 
             copy_inbox_data:
                 action: core.local
                 input:
-                    cwd: /data/wp2/TruSight_Myeloid/INBOX
+                    cwd: <% $.local_folder_prefix %>/<% $.project_type %>/INBOX
                     cmd: cp -rp <% $.experiment_name %>/* <% $.analysis_folder %>/
                     timeout: 86400
                 on-success:
@@ -73,21 +84,21 @@ workflows:
             run_analysis:
               action: ductus.start_wp2_truesight_myeloid_analysis
               input:
-                  username: patsm159
-                  private_key: /home/stanley/.ssh/moriarty_rsa
-                  hosts: 130.238.54.142
+                  username: <% $.processing_user %>
+                  private_key: <% $.processing_key %>
+                  hosts: <% $.processing_host %>
                   experiment_name: <% $.experiment_name %>
                   run_year: <% $.run_year %>
                   current_date: <% $.run_date %>
                   wp2_trusight_myelod_script_version: "1.0"
-                  slurm_version: "16.05.2"
+                  slurm_version: <% $.slurm_version %>
               on-success:
                - mark_as_finished
 
             wp2_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
@@ -97,7 +108,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
                     body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
@@ -107,14 +118,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:
