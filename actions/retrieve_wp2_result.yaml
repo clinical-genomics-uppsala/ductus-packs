@@ -45,10 +45,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_fetch_to_prefix }}"
-  preprocessing_storage_path:
-    required: true
-    type: string
-    default: "{{ config_context.wp2_preprocess_storage_path }}"
   project_type:
     required: true
     type: string
@@ -57,3 +53,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_notification_mail_lab }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_notification_mail_bioinfo }}"
