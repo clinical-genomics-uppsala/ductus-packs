@@ -65,7 +65,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/*" -t "<%.storage_path %>/result/<% $.run_year %>/" -u % $.transfer_user %> -i /home/stanley/.ssh/moriarty_rsa -r % $.transfer_from_host %> -p 1
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/*" -t "<% $.storage_path %>/result/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %>  -r <% $.transfer_from_host %> -p 1
                 on-success:
                   - result_retrieved
                   - mark_as_finished
@@ -73,7 +73,7 @@ workflows:
             wp2_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "% $.mail_lab %>"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP2][ERROR] - Processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving sera result for <% $.experiment_name %>. A Bioinformatician has been notified."
@@ -83,7 +83,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "% $.mail_bioinfo %>"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP2][ERROR] - WP2 Processing, <% $.experiment_name %>'"
                     body: "Something went wrong when retrieving truesight wp2 result for <% $.experiment_name %>, please investigate!!!"
@@ -93,14 +93,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                 url: http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_port %>/runfolders/path<% $.runfolder %>
+                 url: http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                  body: '{"state": "done"}'
                  method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_port %>/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.transfer_from_host %>:<% $.runfolder_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:
