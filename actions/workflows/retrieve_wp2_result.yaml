@@ -55,7 +55,7 @@ workflows:
             create_year_folder:
                 action: core.local
                 input:
-                    cwd: <%.storage_path %>/result
+                    cwd: <% $.storage_path %>/result
                     cmd: mkdir -p <% $.run_year %>
                 on-success:
                     - transfer_result
