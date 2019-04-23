@@ -61,6 +61,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_ref_files_location }}"
+  mail_lab:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_notification_mail_lab }}"
   mail_bioinfo:
     required: true
     type: string

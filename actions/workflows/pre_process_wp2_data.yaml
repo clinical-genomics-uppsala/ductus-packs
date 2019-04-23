@@ -8,6 +8,16 @@ workflows:
         input:
             - runfolder
             - host
+            - project_type
+            - runfolder_host
+            - runfolder_host_port
+            - runfolder_api_version
+            - transfer_to_host
+            - transfer_to_location
+            - transfer_to_key
+            - transfer_to_user
+            - mail_lab
+            - mail_bioinfo
         output:
             output_the_whole_workflow_context: <% $ %>
         task-defaults:
@@ -37,7 +47,7 @@ workflows:
             mark_as_started:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "started"}'
                   method: "POST"
               on-success:
@@ -73,12 +83,12 @@ workflows:
             create_inbox_analysis_folder_on_moriarty:
                 action: core.remote
                 input:
-                    username: patsm159
-                    private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX
+                    username: <% $.transfer_to_user %>
+                    private_key: <% $.transfer_to_key %>
+                    cwd: <% $.transfer_to_location %>/<% $.project_type %>/INBOX
                     cmd: mkdir -p <% $.analysis_folder_name %>/bam
                     timeout: 10
-                    hosts: 130.238.54.142
+                    hosts: <% $.transfer_to_host %>
                 on-success:
                     - transfer_smplesheet_file
 
@@ -86,7 +96,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet.csv" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet.csv" -t "<% $.transfer_to_location %>/<% $.project_type %>/INBOX/<% $.analysis_folder_name %>/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 600
                 on-success:
                     - find_miseq_alignment_folder
@@ -104,7 +114,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.bam*" -t "<% $.transfer_to_location %>/<% $.project_type %>/INBOX/<% $.analysis_folder_name %>/bam/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - transfer_miseq_alignment_vcf_files
@@ -113,7 +123,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "/projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/bam/" -u patsm159 -i /home/stanley/.ssh/moriarty_rsa -r 130.238.54.142 -p 2
+                    cmd: python rsync.py -c -f "<% $.alignment_folder %>/*.vcf*" -t "<% $.transfer_to_location %>/<% $.project_type %>/INBOX/<% $.analysis_folder_name %>/bam/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
@@ -121,12 +131,12 @@ workflows:
             create_transfer_complete_file:
                 action: core.remote
                 input:
-                    username: patsm159
-                    private_key: /home/stanley/.ssh/moriarty_rsa
-                    cwd: /projects/wp2/nobackup/TruSight_Myeloid/INBOX/<% $.analysis_folder_name %>/
+                    username: <% $.transfer_to_user %>
+                    private_key: <% $.transfer_to_key %>
+                    cwd: <% $.transfer_to_location %>/<% $.project_type %>/INBOX/<% $.analysis_folder_name %>/
                     cmd: echo "`date`" > Done.txt
                     timeout: 10
-                    hosts: 130.238.54.142
+                    hosts: <% $.transfer_host %>
                 on-success:
                     - mark_as_finished
                     - pre_proccesing_complete_notifier
@@ -134,7 +144,7 @@ workflows:
             missing_runfolder:
                 action: core.sendmail
                 input:
-                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP2][ERROR] - Runfolder name error: <% $.runfolder_name %>'"
                     body: "Problem with runfolder name: <% $.runfolder_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
@@ -144,7 +154,7 @@ workflows:
             pre_proccesing_complete_notifier:
                 action: core.sendmail
                 input:
-                    to: "wp2-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP2][SUCCESS] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Pre-processing of <% $.runfolder_name %> have been completed."
@@ -152,7 +162,7 @@ workflows:
             bioinfo_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "bioinfo-clinical-genomics-uu@googlegroups.com"
+                    to: "<% $.mail_bioinfo %>"
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP2][ERROR] - Pre-processing, <% $.runfolder_name %>'"
                     body: "Something went wrong during the pre-processing of <% $.runfolder_name %>, please investigate!!!"
@@ -162,14 +172,14 @@ workflows:
             mark_as_finished:
               action: core.http
               input:
-                  url: http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "done"}'
                   method: "POST"
 
             mark_as_failed:
               action: core.http
               input:
-                  url:  http://<% $.host %>:10800/api/1.0/runfolders/path<% $.runfolder %>
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                   body: '{"state": "error"}'
                   method: "POST"
               on-complete:

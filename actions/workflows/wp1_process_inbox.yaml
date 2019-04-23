@@ -18,6 +18,7 @@ workflows:
             - ref_files
             - sera_version
             - slurm_version
+            - mail_lab
             - mail_bioinfo
         task-defaults:
             on-error:
@@ -123,7 +124,7 @@ workflows:
             molpat_error_notifier:
                 action: core.sendmail
                 input:
-                    to: "<% $.mail_bioinfo %>"
+                    to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-uu.se"
                     subject: "'[DUCTUS][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
                     body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."

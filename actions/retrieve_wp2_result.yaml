@@ -21,3 +21,39 @@ parameters:
   host:
     required: true
     type: string
+  runfolder_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_transfer_from_runfolder_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_runfolder_api_version }}"
+  transfer_from_user:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_tansfer_from_user }}"
+  transfer_from_key:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_tansfer_from_key }}"
+  transfer_from_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_transfer_from_host_ip }}"
+  storage_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_fetch_to_prefix }}"
+  project_type:
+    required: true
+    type: string
+    default: TruSight_Myeloid
+  mail_lab:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_notification_mail_lab }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_notification_mail_bioinfo }}"
