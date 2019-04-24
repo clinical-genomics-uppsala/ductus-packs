@@ -136,7 +136,7 @@ workflows:
                     cwd: <% $.transfer_to_location %>/<% $.project_type %>/INBOX/<% $.analysis_folder_name %>/
                     cmd: echo "`date`" > Done.txt
                     timeout: 10
-                    hosts: <% $.transfer_host %>
+                    hosts: <% $.transfer_to_host %>
                 on-success:
                     - mark_as_finished
                     - pre_proccesing_complete_notifier
