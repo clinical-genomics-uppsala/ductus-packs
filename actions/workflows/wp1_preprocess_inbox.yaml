@@ -35,7 +35,7 @@ workflows:
             get_runfolder_name:
                 action: core.local
                 input:
-                    cmd: ls -d */ | sed 's/\///'
+                    cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
                     cwd: <% $.runfolder %>
                 publish:
                     runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
@@ -78,7 +78,7 @@ workflows:
             get_machine_type:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                    cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
                 publish:
                     machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
@@ -118,7 +118,9 @@ workflows:
                     timeout: 10
                     hosts: <% $.transfer_to_host %>
                 on-success:
-                    - transfer_runinfo_files
+                    - transfer_runinfo_files: "{{ _.machine_type == 'MN' }}"
+                    - transfer_runinfo_files: "{{ _.machine_type == 'M0' }}"
+                    - transfer_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
 
             transfer_runinfo_files:
                 action: core.local
@@ -138,6 +140,24 @@ workflows:
                 on-success:
                     - transfer_csv_file
 
+            transfer_nextseq_runinfo_files:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    timeout: 3600
+                on-success:
+                    - transfer_nextseq_interop_files
+
+            transfer_nextseq_interop_files:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    timeout: 3600
+                on-success:
+                    - transfer_csv_file
+
             transfer_csv_file:
                 action: core.local
                 input:
@@ -147,6 +167,7 @@ workflows:
                 on-success:
                     - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                     - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
+                    - transfer_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
 
             transfer_miseq_fastq_files:
                 action: core.local
@@ -165,6 +186,15 @@ workflows:
                     timeout: 86400
                 on-success:
                     - create_transfer_complete_file
+
+             transfer_nextseq_fastq_files:
+                 action: core.local
+                 input:
+                     cwd: /opt/src/ductus-core/ductus/scripts
+                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                     timeout: 86400
+                 on-success:
+                     - create_transfer_complete_file
 
             create_transfer_complete_file:
                 action: core.remote
