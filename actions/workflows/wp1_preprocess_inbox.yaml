@@ -120,7 +120,7 @@ workflows:
                 on-success:
                     - transfer_runinfo_files: "{{ _.machine_type == 'MN' }}"
                     - transfer_runinfo_files: "{{ _.machine_type == 'M0' }}"
-                    - transfer_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
+                    - transfer_nextseq_runinfo_files: "{{ _.machine_type == 'NDX' }}"
 
             transfer_runinfo_files:
                 action: core.local
@@ -187,11 +187,11 @@ workflows:
                 on-success:
                     - create_transfer_complete_file
 
-             transfer_nextseq_fastq_files:
+            transfer_nextseq_fastq_files:
                  action: core.local
                  input:
                      cwd: /opt/src/ductus-core/ductus/scripts
-                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                      timeout: 86400
                  on-success:
                      - create_transfer_complete_file

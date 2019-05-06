@@ -1,5 +1,5 @@
 version: "2.0" # mistral version
-name: ductus.wp1_preprocess_inbox
+name: ductus.wp1_workspace_to_inbox
 description: Will rsync new sequence data to moriarty for processing
 
 workflows:
@@ -22,7 +22,6 @@ workflows:
         tasks:
             get_csv_file_name:
                 action: core.local
-                wait-before: 7200
                 input:
                     cmd: ls *_index.csv | grep -E '^[0-9]+'
                     cwd: <% $.runfolder %>
@@ -32,10 +31,10 @@ workflows:
                     - get_experiment_name
                 on-error:
                     - missing_csv_file
-                    - mark_as_failed
 
             get_experiment_name:
                 action: core.local
+                wait-before: 7200
                 input:
                     cmd: echo '<% $.csv_file_name %>' | sed 's/_index\.csv//'
                 publish:
@@ -59,9 +58,6 @@ workflows:
                     cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
                 on-success:
                     - look_for_complete_file
-                on-error:
-                    - missing_runfolder
-                    - mark_as_failed
 
             look_for_complete_file:
                 action: core.local
@@ -72,7 +68,6 @@ workflows:
                 on-error:
                     - completed_job_file_missing
                     - molpat_error_notifier
-                    - mark_as_failed
 
             mark_as_started:
                 action: core.http
@@ -91,7 +86,7 @@ workflows:
                 publish:
                   inbox_folder : "<% $.preprocessing_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/"
                 on-success:
-                  - sync_run_info
+                  - transfer_runfolder
 
             transfer_runfolder:
                 action: core.local
@@ -109,7 +104,7 @@ workflows:
                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.inbox_folder %>/" -l
                     timeout: 3600
                 on-success:
-                    - create_tansfer_completeine_type == 'NDX' }}"
+                    - create_tansfer_complete
 
             create_tansfer_complete:
                 action: core.local
@@ -118,7 +113,7 @@ workflows:
                     cmd: touch TransferComplete.txt
                     timeout: 3600
                 on-success:
-                    - transfer_nextseq_interop_files
+                   - nextex_moved
 
             completed_job_file_missing:
                 action: core.sendmail
@@ -137,8 +132,6 @@ workflows:
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][SUCCESS] - Runfolder, <% $.runfolder %>, moved to inbox'"
                     body: "Rufolder moved to inbox."
-                on-complete:
-                    - fail
 
             missing_csv_file:
                 action: core.sendmail

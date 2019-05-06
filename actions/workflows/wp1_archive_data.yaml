@@ -73,6 +73,7 @@ workflows:
                 on-success:
                   - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                   - sync_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
+                  - sync_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
 
             sync_miseq_fastq_files:
                 action: core.local
@@ -91,6 +92,15 @@ workflows:
                   timeout: 86400
                 on-success:
                    - archive_done_notifier
+
+            sync_nextseq_fastq_files:
+                 action: core.local
+                 input:
+                     cwd: /opt/src/ductus-core/ductus/scripts
+                     cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                     timeout: 86400
+                 on-success:
+                     - archive_done_notifier
 
             create_year_index_folder:
                 action: core.local
