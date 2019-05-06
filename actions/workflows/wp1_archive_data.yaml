@@ -39,7 +39,7 @@ workflows:
             get_machine_type:
                 action: core.local
                 input:
-                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
                 publish:
                     machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
@@ -97,7 +97,7 @@ workflows:
                  action: core.local
                  input:
                      cwd: /opt/src/ductus-core/ductus/scripts
-                     cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                     cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
                      timeout: 86400
                  on-success:
                      - archive_done_notifier

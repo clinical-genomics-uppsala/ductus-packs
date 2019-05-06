@@ -132,6 +132,8 @@ workflows:
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "'[DUCTUS][WP1][SUCCESS] - Runfolder, <% $.runfolder %>, moved to inbox'"
                     body: "Rufolder moved to inbox."
+                on-complete:
+                    - mark_as_finished
 
             missing_csv_file:
                 action: core.sendmail

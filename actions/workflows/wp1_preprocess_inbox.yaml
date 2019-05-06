@@ -144,7 +144,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 3600
                 on-success:
                     - transfer_nextseq_interop_files
@@ -153,7 +153,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 3600
                 on-success:
                     - transfer_csv_file
