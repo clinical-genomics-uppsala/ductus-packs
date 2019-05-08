@@ -39,7 +39,7 @@ workflows:
             get_machine_type:
                 action: core.local
                 input:
-                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
                 publish:
                     machine_type: "<% task(get_machine_type).result.stdout %>"
                 on-success:
@@ -73,6 +73,7 @@ workflows:
                 on-success:
                   - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
                   - sync_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
+                  - sync_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
 
             sync_miseq_fastq_files:
                 action: core.local
@@ -91,6 +92,15 @@ workflows:
                   timeout: 86400
                 on-success:
                    - archive_done_notifier
+
+            sync_nextseq_fastq_files:
+                 action: core.local
+                 input:
+                     cwd: /opt/src/ductus-core/ductus/scripts
+                     cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
+                     timeout: 86400
+                 on-success:
+                     - archive_done_notifier
 
             create_year_index_folder:
                 action: core.local
