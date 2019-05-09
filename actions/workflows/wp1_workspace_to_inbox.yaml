@@ -62,7 +62,7 @@ workflows:
             look_for_complete_file:
                 action: core.local
                 input:
-                    cmd: ls <% $.runfolder %>/<% $.runfolder_name %>/Alignment_1/CompletedJobInfo.xml
+                    cmd: ls <% $.runfolder %>/<% $.runfolder_name %>/Alignment_1/*/CompletedJobInfo.xml
                 on-success:
                     - mark_as_started
                 on-error:
