@@ -44,7 +44,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: if grep -q "EXO" *.csv ; then echo "CREV2" ; else echo "CCP17" ; fi
+                    cmd: if grep -i -q "CREv2" *.csv ; then echo "CREV2" ; elif grep -i -q "CCP17" *.csv ; then echo "CCP17" ; fi
                 publish:
                     runpanel: "<% task(get_runpanel).result.stdout %>"
                 on-success:
