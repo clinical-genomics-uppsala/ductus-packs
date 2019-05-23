@@ -20,6 +20,17 @@ workflows:
                 - mark_as_failed
 
         tasks:
+            check_if_samplesheet_exists:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: cat *.csv
+                on-success:
+                    - get_SS_name
+                on-error:
+                    - mark_as_failed
+                    - wp3_error_notifier
+
             get_SS_name:
                 action: core.local
                 input:
@@ -104,5 +115,23 @@ workflows:
                     url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "error"}'
                     method: "POST"
+                on-complete:
+                    - fail
+
+            wp3_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "WP3 (ERROR): Missing samplesheet in <% $.SS_folder %>"
+                    body: "Transfer of <% $.SS_folder %> has been stopped. Paste in samplesheet and re-copy TransferComplete.txt."
+                on-success:
+                    - remove_arteria_folder
+
+            remove_arteria_folder:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: rm -r .arteria
                 on-complete:
                     - fail
