@@ -132,6 +132,6 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: rm -r .arteria
+                    cmd: rm TransferComplete.txt && rm -r .arteria
                 on-complete:
                     - fail
