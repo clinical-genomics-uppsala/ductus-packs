@@ -123,8 +123,8 @@ workflows:
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3 (ERROR): Missing samplesheet in <% $.SS_folder %>"
-                    body: "Transfer of <% $.SS_folder %> has been stopped. Paste in samplesheet and re-copy TransferComplete.txt."
+                    subject: "WP3 (ERROR): Missing samplesheet in runfolder <% $.runfolder %>"
+                    body: "Transfer has been stopped. Paste in samplesheet and re-copy TransferComplete.txt in runfolder <% $.runfolder %>."
                 on-success:
                     - remove_arteria_folder
 
