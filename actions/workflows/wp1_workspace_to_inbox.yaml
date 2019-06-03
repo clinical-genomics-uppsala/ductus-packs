@@ -93,7 +93,7 @@ workflows:
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
                     cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.inbox_folder %>/" -l
-                    timeout: 3600
+                    timeout: 36000
                 on-success:
                     - transfer_csv_file
 
