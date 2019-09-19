@@ -28,9 +28,16 @@ workflows:
                 on-success:
                     - get_SS_name
                 on-error:
-                    - mark_as_failed
+                    - if_error_samplesheet
+                    
+            if_error_samplesheet:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: rm TransferComplete.txt && rm -r .arteria
+                on-success:
                     - wp3_error_notifier
-
+    
             get_SS_name:
                 action: core.local
                 input:
