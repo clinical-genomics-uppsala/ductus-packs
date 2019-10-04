@@ -9,6 +9,7 @@ workflows:
             - SS_folder
             - host
             - runpanel
+            - bcbio_version
             - processing_user
             - processing_key
             - processing_host
@@ -50,7 +51,7 @@ workflows:
                     - start_script
 
             start_script:
-                action: ductus.start_bcbio_analysis
+                action: ductus.<% $.bcbio_version %>
                 input:
                     username: <% $.processing_user %>
                     private_key: <% $.processing_key %>

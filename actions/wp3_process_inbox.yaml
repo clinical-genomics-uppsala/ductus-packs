@@ -28,6 +28,9 @@ parameters:
     runpanel:
         required: true
         type: string
+    bcbio_version:
+        required: true
+        type: string
     runfolder_api_version:
         required: true
         type: string

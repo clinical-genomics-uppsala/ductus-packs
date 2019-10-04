@@ -1,7 +1,7 @@
 ---
-name: "wp3_processing_inbox_CCP17"
+name: "wp3_processing_inbox_TWIST"
 pack: "ductus"
-description: "CCP17 rule running on facility cluster"
+description: "TWIST rule running on facility cluster"
 enabled: false
 
 trigger:
@@ -10,12 +10,12 @@ trigger:
 criteria:
     trigger.runfolder:
         type: "contains"
-        pattern: "/projects/wp3/nobackup/CCP17/INBOX/"
+        pattern: "/projects/wp3/nobackup/TWIST/INBOX/"
 
 action:
     ref: "ductus.wp3_process_inbox"
     parameters:
         host: "{{trigger.host}}"
         SS_folder: "{{trigger.runfolder}}"
-        runpanel: "CCP17"
-        bcbio_version: "start_bcbio_analysis.yaml"
+        runpanel: "TWIST"
+        bcbio_version: "start_bcbio_analysis_gatk4.yaml"

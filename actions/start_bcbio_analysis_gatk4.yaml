@@ -1,0 +1,17 @@
+---
+    name: 'start_bcbio_analysis_gatk4'
+    runner_type: 'remote-shell-script'
+    description: 'Start bcbio analysis'
+    enabled: true
+    entry_point: 'lib/start_bcbio_gatk4.sh'
+    parameters:
+        panel_name:
+            type: 'string'
+            description: 'The name of the panel'
+            required: true
+            position: 0
+        runfolder_directory:
+            type: 'string'
+            description: 'Runfolder absolute path'
+            required: true
+            position: 1
