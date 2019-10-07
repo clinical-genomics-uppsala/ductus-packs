@@ -30,15 +30,15 @@
     required: true
     default: 1800
   wp1_num_check_demultipexing_completed:
-    description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
-    type: integer
-    required: true
-    default: 300
-  wp1_check_demultipexing_retry_delay:
     description: Number of times stackstorm should retry to validate that CompletedJobInfo.xml file has been created.
     type: integer
     required: true
     default: 24
+  wp1_check_demultipexing_retry_delay:
+    description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
+    type: integer
+    required: true
+    default: 300
 
   wp1_process_local_prefix_location:
     description: Local folder-prefix used during processing.
