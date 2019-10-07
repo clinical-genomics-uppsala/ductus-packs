@@ -51,13 +51,14 @@ workflows:
                     - start_script
 
             start_script:
-                action: ductus.<% $.bcbio_version %>
+                action: ductus.start_bcbio_analysis
                 input:
                     username: <% $.processing_user %>
                     private_key: <% $.processing_key %>
                     hosts: <% $.processing_host %>
                     panel_name: <% $.runpanel %>
                     runfolder_directory: <% $.SS_folder %>/<% $.runfolder_name %>
+                    bcbio_version: <% $.bcbio_version %>
                     timeout: 999999
                 on-success:
                     - mark_as_finished
