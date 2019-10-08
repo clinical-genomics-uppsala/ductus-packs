@@ -24,17 +24,17 @@
     type: string
     required: true
     default: "/data/wp1"
-  wp1_check_demultipexing_completed_delay:
+  wp1_check_demultiplexing_completed_delay:
     description: Delay times (seconds) before starting to check for CompletedJobInfo.xml.
     type: integer
     required: true
     default: 1800
-  wp1_num_check_demultipexing_completed:
+  wp1_num_check_demultiplexing_completed:
     description: Number of times stackstorm should retry to validate that CompletedJobInfo.xml file has been created.
     type: integer
     required: true
     default: 24
-  wp1_check_demultipexing_retry_delay:
+  wp1_check_demultiplexing_retry_delay:
     description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
     type: integer
     required: true
