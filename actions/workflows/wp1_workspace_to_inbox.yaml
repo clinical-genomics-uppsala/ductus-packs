@@ -14,6 +14,9 @@ workflows:
             - preprocessing_storage_path
             - mail_lab
             - mail_bioinfo
+            - wp1_check_demultiplexing_completed_delay
+            - wp1_num_check_demultiplexing_completed
+            - wp1_check_demultiplexing_retry_delay
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -34,7 +37,7 @@ workflows:
 
             get_experiment_name:
                 action: core.local
-                wait-before: 7200
+                wait-before: <% $.wp1_check_demultiplexing_completed_delay %>
                 input:
                     cmd: echo '<% $.csv_file_name %>' | sed 's/_index\.csv//'
                 publish:
@@ -63,6 +66,9 @@ workflows:
                 action: core.local
                 input:
                     cmd: ls <% $.runfolder %>/<% $.runfolder_name %>/Alignment_1/*/CompletedJobInfo.xml
+                retry:
+                    count: <% $.wp1_num_check_demultiplexing_completed %>
+                    delay: <% $.wp1_check_demultiplexing_retry_delay %>
                 on-success:
                     - mark_as_started
                 on-error:
