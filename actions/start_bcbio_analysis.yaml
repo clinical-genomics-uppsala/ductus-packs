@@ -15,3 +15,8 @@
             description: 'Runfolder absolute path'
             required: true
             position: 1
+        bcbio_version:
+            type: 'string'
+            description: 'bcbio version'
+            required: true
+            position: 2
