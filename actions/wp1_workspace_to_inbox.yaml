@@ -45,3 +45,15 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_notification_mail_bioinfo }}"
+  wp1_check_demultipexing_completed_delay:
+    required: true
+    type: integer
+    default: "{{ config_context.wp1_check_demultipexing_completed_delay }}"
+  wp1_num_check_demultipexing_completed:
+    required: true
+    type: integer
+    default: "{{ config_context.wp1_num_check_demultipexing_completed }}"
+  wp1_check_demultipexing_retry_delay:
+    required: true
+    type: integer
+    default: "{{ config_context.wp1_check_demultipexing_retry_delay }}"

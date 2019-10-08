@@ -14,6 +14,9 @@ workflows:
             - preprocessing_storage_path
             - mail_lab
             - mail_bioinfo
+            - wp1_check_demultipexing_completed_delay
+            - wp1_num_check_demultipexing_completed
+            - wp1_check_demultipexing_retry_delay
         task-defaults:
             on-error:
                 - mark_as_failed
