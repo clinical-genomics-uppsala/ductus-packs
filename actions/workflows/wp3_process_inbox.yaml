@@ -9,6 +9,7 @@ workflows:
             - SS_folder
             - host
             - runpanel
+            - bcbio_version
             - processing_user
             - processing_key
             - processing_host
@@ -57,6 +58,7 @@ workflows:
                     hosts: <% $.processing_host %>
                     panel_name: <% $.runpanel %>
                     runfolder_directory: <% $.SS_folder %>/<% $.runfolder_name %>
+                    bcbio_version: <% $.bcbio_version %>
                     timeout: 999999
                 on-success:
                     - mark_as_finished

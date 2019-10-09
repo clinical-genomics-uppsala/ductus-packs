@@ -28,7 +28,14 @@ workflows:
                 on-success:
                     - get_SS_name
                 on-error:
-                    - mark_as_failed
+                    - if_error_samplesheet
+
+            if_error_samplesheet:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: rm TransferComplete.txt && rm -r .arteria
+                on-success:
                     - wp3_error_notifier
 
             get_SS_name:
@@ -55,7 +62,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: if grep -i -q "CREv2" *.csv ; then echo "CREV2" ; elif grep -i -q "CCP17" *.csv ; then echo "CCP17" ; fi
+                    cmd: if grep -i -q "CREv2" *.csv ; then echo "CREV2" ; elif grep -i -q "CCP17" *.csv ; then echo "CCP17" ; elif grep -i -q "TWIST" *.csv ; then echo "TWIST" ; fi
                 publish:
                     runpanel: "<% task(get_runpanel).result.stdout %>"
                 on-success:

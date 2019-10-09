@@ -1,7 +1,7 @@
 ---
-name: "wp3_processing_inbox_CREV2"
+name: "wp3_processing_inbox_TWIST"
 pack: "ductus"
-description: "CREV2 rule running on facility cluster"
+description: "TWIST rule running on facility cluster"
 enabled: false
 
 trigger:
@@ -10,12 +10,12 @@ trigger:
 criteria:
     trigger.runfolder:
         type: "contains"
-        pattern: "/projects/wp3/nobackup/CREV2/INBOX/"
+        pattern: "/projects/wp3/nobackup/TWIST/INBOX/"
 
 action:
     ref: "ductus.wp3_process_inbox"
     parameters:
         host: "{{trigger.host}}"
         SS_folder: "{{trigger.runfolder}}"
-        runpanel: "CREV2"
-        bcbio_version: "1.0.5"
+        runpanel: "TWIST"
+        bcbio_version: "1.1.5"

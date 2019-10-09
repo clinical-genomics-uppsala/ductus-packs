@@ -18,3 +18,4 @@ action:
         host: "{{trigger.host}}"
         SS_folder: "{{trigger.runfolder}}"
         runpanel: "CCP17"
+        bcbio_version: "1.0.5"
