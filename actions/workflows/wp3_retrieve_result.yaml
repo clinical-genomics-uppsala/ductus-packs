@@ -6,7 +6,7 @@ workflows:
     main:
         type: direct
         input:
-            - SS_folder
+            - TE_folder
             - host
             - runpanel
             - mail_lab
@@ -28,21 +28,21 @@ workflows:
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
-                    - SS_basename_get
+                    - TE_basename_get
 
-            SS_basename_get:
+            TE_basename_get:
                 action: core.local
                 input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.SS_folder %>".split("/")[-1])'
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.TE_folder %>".split("/")[-1])'
                 publish:
-                    SS_basename: "<% task(SS_basename_get).result.stdout %>"
+                    TE_basename: "<% task(TE_basename_get).result.stdout %>"
                 on-success:
                     - mark_as_started
 
             mark_as_started:
                 action: core.http
                 input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
                     body: '{"state": "started"}'
                     method: "POST"
                 on-success:
@@ -61,7 +61,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.SS_folder %>" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
+                    cmd: python rsync.py -c -f "<% $.TE_folder %>" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
                 on-success:
                     - result_retrieved
                     - mark_as_finished
@@ -69,14 +69,14 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
                     body: '{"state": "done"}'
                     method: "POST"
 
             mark_as_failed:
                 action: core.http
                 input:
-                    url:  http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url:  http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
                     body: '{"state": "error"}'
                     method: "POST"
                 on-complete:
@@ -87,5 +87,5 @@ workflows:
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: <% $.SS_basename %> results transferred"
-                    body: "<% $.SS_basename %> analysis has been finished and transferred to KG_Archive\\Konstitutionell\\Klinik\\<% $.runpanel %>\\Resultat\\<% $.run_year %>\\<% $.SS_basename %>!"
+                    subject: "WP3: <% $.TE_basename %> results transferred"
+                    body: "<% $.TE_basename %> analysis has been finished and transferred to KG_Results\\Konstitutionell\\Klinik\\<% $.runpanel %>\\Resultat\\<% $.run_year %>\\<% $.TE_basename %>!"
