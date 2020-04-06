@@ -15,7 +15,7 @@ parameters:
         default: ductus.wp3_process_inbox
         immutable: true
         type: string
-    SS_folder:
+    TE_folder:
         required: true
         type: string
     host:

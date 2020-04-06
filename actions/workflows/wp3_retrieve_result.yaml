@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
 name: ductus.wp3_retrieve_result
-description: Will rsync result back from moriarty
+description: Will rsync result back from cluster
 
 workflows:
     main:
@@ -15,6 +15,7 @@ workflows:
             - transfer_from_user
             - transfer_from_key
             - runfolder_api_version
+            - retrieve_result_to_result_location
         output:
             output_the_whole_workflow_context: <% $ %>
         task-defaults:
@@ -51,7 +52,7 @@ workflows:
             create_year_folder:
                 action: core.local
                 input:
-                    cwd: /archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/
+                    cwd: <% retrieve_result_to_result_location %><% $.runpanel %>/Resultat/
                     cmd: mkdir -p <% $.run_year %>
                 on-success:
                     - transfer_result
@@ -61,7 +62,7 @@ workflows:
                 input:
                     timeout: 86400
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.TE_folder %>" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/<% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
+                    cmd: python rsync.py -c -f "<% $.TE_folder %>" -t "<% retrieve_result_to_result_location %><% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
                 on-success:
                     - result_retrieved
                     - mark_as_finished

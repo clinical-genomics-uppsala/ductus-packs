@@ -304,6 +304,16 @@
     type: string
     required: true
     default: "/projects/wp3/nobackup/"
+  wp3_retrieve_result_to_result_location:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/AL_NGS-Results/KG_Results/Konstitutionell/Klinik/"
+  wp3_retrieve_result_to_archive_location:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/AL_NGS-Archive/KG_Archive/Konstitutionell/Klinik/"
   wp3_runfolder_api_version:
     description: The arteria-runfolder api version that should be used.
     type: string

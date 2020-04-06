@@ -15,7 +15,7 @@ parameters:
         default: ductus.wp3_retrieve_result
         immutable: true
         type: string
-    SS_folder:
+    TE_folder:
         required: true
         type: string
     runfolder_api_version:
@@ -48,3 +48,7 @@ parameters:
         required: true
         type: string
         default: "{{ config_context.wp3_transfer_from_key }}"
+    retrieve_result_to_result_location:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_retrieve_result_to_result_location }}"

@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
 name: ductus.wp3_preprocessing_inbox
-description: Will rsync new sequence data to moriarty for processing
+description: Will rsync new sequence data to cluster for processing
 
 workflows:
     main:
@@ -18,6 +18,7 @@ workflows:
             - wp3_check_demultiplexing_completed_delay
             - wp3_num_check_demultiplexing_completed
             - wp3_check_demultiplexing_retry_delay
+            - retrieve_result_to_archive_location
         task-defaults:
             on-error:
                 - mark_as_failed
@@ -40,6 +41,8 @@ workflows:
                     cmd: sed '/Sample_ID/q' SampleSheet.csv > SampleSheet_TE.csv
                 on-success:
                     - extract_TE_samples_SampleSheet
+                on-error:
+                    - mark_as_failed
 
             extract_TE_samples_SampleSheet:
                 action: core.local
@@ -48,12 +51,14 @@ workflows:
                     cmd: grep ",TE" SampleSheet.csv >> SampleSheet_TE.csv
                 on-success:
                     - wait_for_demultiplexing
+                on-error:
+                    - mark_as_failed
 
             wait_for_demultiplexing:
                 action: core.local
                 wait-before: <% $.wp3_check_demultiplexing_completed_delay %>
                 input:
-                    cmd: ls <% $.runfolder %>/Alignment_1/*/TO BE FILLED/CompletedJobInfo.xml
+                    cmd: ls <% $.runfolder %>/Alignment_1/*/CompletedJobInfo.xml
                 retry:
                     count: <% $.wp3_num_check_demultiplexing_completed %>
                     delay: <% $.wp3_check_demultiplexing_retry_delay %>
@@ -71,6 +76,8 @@ workflows:
                     TE_name: "TE<% task(get_TE_name).result.stdout %>_"
                 on-success:
                     - concatenate_TE_name_and_date
+                on-error:
+                    - mark_as_failed
 
             concatenate_TE_name_and_date:
                 action: core.local
@@ -81,6 +88,8 @@ workflows:
                     TE_folder: <% $.TE_name %><% task(concatenate_TE_name_and_date).result.stdout %>
                 on-success:
                     get_runpanel
+                on-error:
+                    - mark_as_failed
 
             get_runpanel:
                 action: core.local
@@ -103,6 +112,8 @@ workflows:
                     runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
                 on-success:
                     - create_TE_folder_on_moriarty
+                on-error:
+                    - mark_as_failed
 
             create_TE_folder_on_moriarty:
                 action: core.remote
@@ -110,10 +121,12 @@ workflows:
                     username: <% $.transfer_to_user %>
                     private_key: <% $.transfer_to_key %>
                     cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX
-                    cmd: mkdir -p <% $.TE_folder %>/<% $.runfolder_name %>
+                    cmd: mkdir -p <% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq
                     hosts: <% $.transfer_to_host %>
                 on-success:
                     - send_mail
+                on-error:
+                    - mark_as_failed
 
             send_mail:
                 action: core.sendmail
@@ -123,16 +136,20 @@ workflows:
                     subject: "WP3: Start transfer of <% $.TE_folder %> to Moriarty"
                     body: "Transfer of <% $.TE_folder %> has been executed!"
                 on-success:
-                    - transfer_Alignment_1
+                    - transfer_fastq
+                on-error:
+                    - mark_as_failed
 
-            transfer_Alignment_1:
+            transfer_fastq:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/Alignment_1/TO BE FILLED" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2 ; done
                     timeout: 99999
                 on-success:
                     - transfer_SampleSheet
+                on-error:
+                    - mark_as_failed
 
             transfer_SampleSheet:
                 action: core.local
@@ -142,6 +159,8 @@ workflows:
                     timeout: 99999
                 on-success:
                     - create_transfer_complete_file
+                on-error:
+                    - mark_as_failed
 
             create_transfer_complete_file:
                 action: core.remote
@@ -153,6 +172,8 @@ workflows:
                     hosts: <% $.transfer_to_host %>
                 on-success:
                     - get_run_year
+                on-error:
+                    - mark_as_failed
 
             get_run_year:
                 action: core.local
@@ -161,39 +182,60 @@ workflows:
                 publish:
                     run_year: "<% task(get_run_year).result.stdout %>"
                 on-success:
-                    - prepare_transfer_of_fastq
+                    - prepare_transfer_of_fastq_to_archive
+                on-error:
+                    - mark_as_failed
 
-            prepare_transfer_of_fastq:
+            prepare_transfer_of_fastq_to_archive:
                 action: core.local
                 input:
-                    cmd: mkdir -p /archive/Klinisk_Genetik/Konstitutionell/Klinik/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq
+                    cmd: mkdir -p <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq
                 on-success:
-                    - prepare_transfer_of_runfolder
+                    - prepare_transfer_of_runfolder_to_archive
+                on-error:
+                    - mark_as_failed
 
-            prepare_transfer_of_runfolder:
+            prepare_transfer_of_runfolder_to_archive:
                 action: core.local
                 input:
-                    cmd: mkdir -p /archive/Klinisk_Genetik/Konstitutionell/Klinik/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder
+                    cmd: mkdir -p <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% runfolder_name %>
                 on-success:
-                    - transfer_fastq
+                    - transfer_fastq_to_archive
+                on-error:
+                    - mark_as_failed
 
-            transfer_fastq:
+            transfer_fastq_to_archive:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "TO BE FILLED" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l
+                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
                     timeout: 36000
                 on-success:
-                    - transfer_runfolder
+                    - transfer_runfolder_to_archive
+                on-error:
+                    - mark_as_failed
 
-            transfer_runfolder:
+            transfer_runfolder_to_archive:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "TO BE FILLED" -t "/archive/Klinisk_Genetik/Konstitutionell/Klinik/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/" -l
+                    cmd: for file in $(ls -1 -IAlignment_1 <% $.runfolder %>/) ; do python rsync.py -c -f "<% $.runfolder %>/${file}" -t "<% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% runfolder_name %>/" -l ; done
+                    timeout: 36000
+                on-success:
+                    - compress_runfolder
+                on-error:
+                    - mark_as_failed
+
+            compress_runfolder:
+                action: core.local
+                input:
+                    cwd: <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/
+                    cmd: tar -czf <% runfolder_name %>.tar.gz --remove-files <% runfolder_name %>
                     timeout: 36000
                 on-success:
                     - mark_as_finished
+                on-error:
+                    - mark_as_failed
 
             mark_as_finished:
                 action: core.http

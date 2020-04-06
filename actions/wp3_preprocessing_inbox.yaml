@@ -1,7 +1,7 @@
 ---
 name: wp3_preprocessing_inbox
 description: >
-  Transfer runfolder to Moriarty.....
+  Transfer runfolder to cluster.....
 enabled: true
 runner_type: mistral-v2
 entry_point: workflows/wp3_preprocessing_inbox.yaml
@@ -61,3 +61,7 @@ parameters:
         required: true
         type: integer
         default: "{{ config_context.wp3_check_demultiplexing_retry_delay }}"
+    retrieve_result_to_archive_location:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_retrieve_result_to_archive_location }}"
