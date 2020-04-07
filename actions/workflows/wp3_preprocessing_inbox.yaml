@@ -260,13 +260,5 @@ workflows:
                     from: "stanley@clinicalgenomics-as.se"
                     subject: "WP3 ERROR (<% $.TE_folder %>): Transfer stopped."
                     body: "Transfer of  <% $.TE_folder %> has been stopped. Please consult bioinformaticians."
-                on-success:
-                    - remove_arteria_folder
-
-            remove_arteria_folder:
-                action: core.local
-                input:
-                    cwd: <% $.runfolder %>
-                    cmd: rm RTAComplete.txt && rm -r .arteria
                 on-complete:
                     - fail
