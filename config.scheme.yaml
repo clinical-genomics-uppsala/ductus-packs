@@ -248,7 +248,7 @@
       description: The user that will be used to push data.
       type: string
       required: true
-      default: "patsm159"
+      default: "stanley"
   wp3_processing_host_key:
       description: The key that will be used transfer data.
       type: string
@@ -278,7 +278,7 @@
       description: The user that will be used to push data.
       type: string
       required: true
-      default: "patsm159"
+      default: "stanley"
   wp3_transfer_from_key:
       description: The key that will be used transfer data.
       type: string
@@ -288,7 +288,7 @@
     description: The user that will be used to push data.
     type: string
     required: true
-    default: "patsm159"
+    default: "stanley"
   wp3_preprocess_transfer_key:
     description: The key that will be used transfer data.
     type: string
