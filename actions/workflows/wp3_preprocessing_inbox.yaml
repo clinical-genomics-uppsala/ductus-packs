@@ -250,15 +250,15 @@ workflows:
                     url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "error"}'
                     method: "POST"
-                on-complete:
-                    - fail
+                on-success:
+                    - wp3_error_notifier
 
             wp3_error_notifier:
                 action: core.sendmail
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3 ERROR (<% $.TE_folder %>): Transfer stopped."
-                    body: "Transfer of  <% $.TE_folder %> has been stopped. Please consult bioinformaticians."
+                    subject: "WP3 ERROR (<% $.runfolder %>): Transfer stopped."
+                    body: "Transfer of  <% $.runfolder %> has been stopped. Please consult bioinformaticians."
                 on-complete:
                     - fail
