@@ -73,7 +73,7 @@ workflows:
                     cwd: <% $.runfolder %>
                     cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ 'NR==1{print $4}'
                 publish:
-                    TE_name: "TE<% task(get_TE_name).result.stdout %>_"
+                    TE_name: "TE<% task(get_TE_number).result.stdout %>_"
                 on-success:
                     - concatenate_TE_name_and_date
                 on-error:
