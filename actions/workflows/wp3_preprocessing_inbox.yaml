@@ -189,7 +189,7 @@ workflows:
             prepare_transfer_of_fastq_to_archive:
                 action: core.local
                 input:
-                    cmd: mkdir -p <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq
+                    cmd: mkdir -p <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq
                 on-success:
                     - prepare_transfer_of_runfolder_to_archive
                 on-error:
@@ -198,7 +198,7 @@ workflows:
             prepare_transfer_of_runfolder_to_archive:
                 action: core.local
                 input:
-                    cmd: mkdir -p <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% runfolder_name %>
+                    cmd: mkdir -p <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% $.runfolder_name %>
                 on-success:
                     - transfer_fastq_to_archive
                 on-error:
@@ -208,7 +208,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
+                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
                     timeout: 36000
                 on-success:
                     - transfer_runfolder_to_archive
@@ -218,8 +218,7 @@ workflows:
             transfer_runfolder_to_archive:
                 action: core.local
                 input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: for file in $(ls -1 -IAlignment_1 <% $.runfolder %>/) ; do python rsync.py -c -f "<% $.runfolder %>/${file}" -t "<% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% runfolder_name %>/" -l ; done
+                    cmd: ls -1 -IAlignment_1 <% $.runfolder %>/ | while read file ; do rsync -azh "<% $.runfolder %>/${file}" "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% $.runfolder_name %>/" ; done
                     timeout: 36000
                 on-success:
                     - compress_runfolder
@@ -229,8 +228,8 @@ workflows:
             compress_runfolder:
                 action: core.local
                 input:
-                    cwd: <% retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/
-                    cmd: tar -czf <% runfolder_name %>.tar.gz --remove-files <% runfolder_name %>
+                    cwd: <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/
+                    cmd: tar -czf <% $.runfolder_name %>.tar.gz --remove-files <% $.runfolder_name %>
                     timeout: 36000
                 on-success:
                     - mark_as_finished
