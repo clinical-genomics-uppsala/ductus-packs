@@ -1,7 +1,7 @@
 ---
 name: "wp3_preprocessing_inbox"
 pack: "ductus"
-description: "Transfer files to Moriarty"
+description: "Transfer files to cluster"
 enabled: false
 
 trigger:
@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
         type: "contains"
-        pattern: "/workarea/Klinisk_Genetik/NextSeq1_Runfolder/"
+        pattern: "/AL_NGS-Workarea/KG_Workarea/NextSeq1_Runfolder/"
 
 action:
     ref: "ductus.wp3_preprocessing_inbox"

@@ -1,6 +1,6 @@
 version: "2.0" # mistral version
 name: ductus.wp3_preprocessing_inbox
-description: Will rsync new sequence data to moriarty for processing
+description: Will rsync new sequence data to cluster for processing
 
 workflows:
     main:
@@ -15,99 +15,226 @@ workflows:
             - transfer_to_key
             - transfer_to_user
             - mail_lab
+            - wp3_check_demultiplexing_completed_delay
+            - wp3_num_check_demultiplexing_completed
+            - wp3_check_demultiplexing_retry_delay
+            - retrieve_result_to_archive_location
         task-defaults:
             on-error:
                 - mark_as_failed
 
         tasks:
-            check_if_samplesheet_exists:
+            check_if_TE_in_SampleSheet:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: cat *.csv
+                    cmd: grep -q ",TE" SampleSheet.csv
                 on-success:
-                    - get_SS_name
+                    - extract_TE_header_SampleSheet
                 on-error:
-                    - if_error_samplesheet
+                    - mark_as_failed
 
-            if_error_samplesheet:
+            extract_TE_header_SampleSheet:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: rm TransferComplete.txt && rm -r .arteria
+                    cmd: sed '/Sample_ID/q' SampleSheet.csv > SampleSheet_TE.csv
                 on-success:
-                    - wp3_error_notifier
+                    - extract_TE_samples_SampleSheet
+                on-error:
+                    - mark_as_failed
 
-            get_SS_name:
+            extract_TE_samples_SampleSheet:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: cat *.csv | grep 'Experiment Name' | tr -d '[:space:]' | tr -dc '[:digit:]'
-                publish:
-                    SS_name: "SS<% task(get_SS_name).result.stdout %>_"
+                    cmd: grep ",TE" SampleSheet.csv >> SampleSheet_TE.csv
                 on-success:
-                    - concatenate_SS_name_and_date
+                    - wait_for_demultiplexing
+                on-error:
+                    - mark_as_failed
 
-            concatenate_SS_name_and_date:
+            wait_for_demultiplexing:
+                action: core.local
+                wait-before: <% $.wp3_check_demultiplexing_completed_delay %>
+                input:
+                    cmd: ls <% $.runfolder %>/Alignment_1/*/CompletedJobInfo.xml
+                retry:
+                    count: <% $.wp3_num_check_demultiplexing_completed %>
+                    delay: <% $.wp3_check_demultiplexing_retry_delay %>
+                on-success:
+                    - get_TE_number
+                on-error:
+                    - mark_as_failed
+
+            get_TE_number:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: cat *.csv | grep 'Date' | sed 's/.*,//'
+                    cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ 'NR==1{print $4}'
                 publish:
-                    SS_folder: <% $.SS_name %><% task(concatenate_SS_name_and_date).result.stdout %>
+                    TE_name: "TE<% task(get_TE_number).result.stdout %>_"
+                on-success:
+                    - concatenate_TE_name_and_date
+                on-error:
+                    - mark_as_failed
+
+            concatenate_TE_name_and_date:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: pwd | xargs basename | awk -F_ '{print $1}'
+                publish:
+                    TE_folder: <% $.TE_name %><% task(concatenate_TE_name_and_date).result.stdout %>
                 on-success:
                     get_runpanel
+                on-error:
+                    - mark_as_failed
 
             get_runpanel:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: if grep -i -q "CREv2" *.csv ; then echo "CREV2" ; elif grep -i -q "CCP17" *.csv ; then echo "CCP17" ; elif grep -i -q "TWIST" *.csv ; then echo "TWIST" ; fi
+                    cmd: if grep -i -q ",TE" SampleSheet_TE.csv ; then echo "TWIST" ; fi
                 publish:
                     runpanel: "<% task(get_runpanel).result.stdout %>"
                 on-success:
-                    - create_SS_folder_on_moriarty
+                    - get_runfolder_name
+                on-error:
+                    - mark_as_failed
 
-            create_SS_folder_on_moriarty:
+            get_runfolder_name:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: pwd | xargs basename
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - create_TE_folder_on_moriarty
+                on-error:
+                    - mark_as_failed
+
+            create_TE_folder_on_moriarty:
                 action: core.remote
                 input:
                     username: <% $.transfer_to_user %>
                     private_key: <% $.transfer_to_key %>
                     cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX
-                    cmd: mkdir -p <% $.SS_folder %>
+                    cmd: mkdir -p <% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq
                     hosts: <% $.transfer_to_host %>
                 on-success:
                     - send_mail
+                on-error:
+                    - mark_as_failed
 
             send_mail:
                 action: core.sendmail
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: Start transfer of <% $.SS_folder %> to Moriarty"
-                    body: "Transfer of <% $.SS_folder %> has been executed!"
+                    subject: "WP3: Start transfer of <% $.TE_folder %> to Moriarty"
+                    body: "Transfer of <% $.TE_folder %> has been executed!"
                 on-success:
-                    - transfer_runfolder
+                    - transfer_fastq
+                on-error:
+                    - mark_as_failed
 
-            transfer_runfolder:
+            transfer_fastq:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.SS_folder %>/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
+                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2 ; done
+                    timeout: 99999
+                on-success:
+                    - transfer_SampleSheet
+                on-error:
+                    - mark_as_failed
+
+            transfer_SampleSheet:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/SampleSheet_TE.csv" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/SampleSheet.csv" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2
                     timeout: 99999
                 on-success:
                     - create_transfer_complete_file
+                on-error:
+                    - mark_as_failed
 
             create_transfer_complete_file:
                 action: core.remote
                 input:
                     username: <% $.transfer_to_user %>
                     private_key: <% $.transfer_to_key %>
-                    cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.SS_folder %>/
+                    cwd: <% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/
                     cmd: touch Done.txt
                     hosts: <% $.transfer_to_host %>
                 on-success:
+                    - get_run_year
+                on-error:
+                    - mark_as_failed
+
+            get_run_year:
+                action: core.local
+                input:
+                    cmd: date "+%Y"
+                publish:
+                    run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                    - prepare_transfer_of_fastq_to_archive
+                on-error:
+                    - mark_as_failed
+
+            prepare_transfer_of_fastq_to_archive:
+                action: core.local
+                input:
+                    cmd: mkdir -p <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq
+                on-success:
+                    - prepare_transfer_of_runfolder_to_archive
+                on-error:
+                    - mark_as_failed
+
+            prepare_transfer_of_runfolder_to_archive:
+                action: core.local
+                input:
+                    cmd: mkdir -p <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% $.runfolder_name %>
+                on-success:
+                    - transfer_fastq_to_archive
+                on-error:
+                    - mark_as_failed
+
+            transfer_fastq_to_archive:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
+                    timeout: 36000
+                on-success:
+                    - transfer_runfolder_to_archive
+                on-error:
+                    - mark_as_failed
+
+            transfer_runfolder_to_archive:
+                action: core.local
+                input:
+                    cmd: ls -1 -IAlignment_1 <% $.runfolder %>/ | while read file ; do rsync -azh "<% $.runfolder %>/${file}" "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/<% $.runfolder_name %>/" ; done
+                    timeout: 36000
+                on-success:
+                    - compress_runfolder
+                on-error:
+                    - mark_as_failed
+
+            compress_runfolder:
+                action: core.local
+                input:
+                    cwd: <% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Runfolder/
+                    cmd: tar -czf <% $.runfolder_name %>.tar.gz --remove-files <% $.runfolder_name %>
+                    timeout: 36000
+                on-success:
                     - mark_as_finished
+                on-error:
+                    - mark_as_failed
 
             mark_as_finished:
                 action: core.http
@@ -122,23 +249,15 @@ workflows:
                     url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
                     body: '{"state": "error"}'
                     method: "POST"
-                on-complete:
-                    - fail
+                on-success:
+                    - wp3_error_notifier
 
             wp3_error_notifier:
                 action: core.sendmail
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3 (ERROR): Missing samplesheet in runfolder <% $.runfolder %>"
-                    body: "Transfer has been stopped. Paste in samplesheet and re-copy TransferComplete.txt in runfolder <% $.runfolder %>."
-                on-success:
-                    - remove_arteria_folder
-
-            remove_arteria_folder:
-                action: core.local
-                input:
-                    cwd: <% $.runfolder %>
-                    cmd: rm TransferComplete.txt && rm -r .arteria
+                    subject: "WP3 ERROR (<% $.runfolder %>): Transfer stopped."
+                    body: "Transfer of  <% $.runfolder %> has been stopped. Please consult bioinformaticians."
                 on-complete:
                     - fail

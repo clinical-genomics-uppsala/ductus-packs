@@ -248,7 +248,7 @@
       description: The user that will be used to push data.
       type: string
       required: true
-      default: "patsm159"
+      default: "stanley"
   wp3_processing_host_key:
       description: The key that will be used transfer data.
       type: string
@@ -258,7 +258,7 @@
       description: Email address where notifications to lab will be sent.
       type: string
       required: true
-      default: "andrei.alexsson@scilifelab.uu.se"
+      default: "klinsek-sureselect-analysis@googlegroups.com"
   wp3_runfolder_service_port:
       description: Port that will be used to send requests to the runfolder service, for wp1
       type: string
@@ -278,7 +278,7 @@
       description: The user that will be used to push data.
       type: string
       required: true
-      default: "patsm159"
+      default: "stanley"
   wp3_transfer_from_key:
       description: The key that will be used transfer data.
       type: string
@@ -288,7 +288,7 @@
     description: The user that will be used to push data.
     type: string
     required: true
-    default: "patsm159"
+    default: "stanley"
   wp3_preprocess_transfer_key:
     description: The key that will be used transfer data.
     type: string
@@ -304,8 +304,33 @@
     type: string
     required: true
     default: "/projects/wp3/nobackup/"
+  wp3_retrieve_result_to_result_location:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/AL_NGS-Results/KG_Results/Konstitutionell/Klinik"
+  wp3_retrieve_result_to_archive_location:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/AL_NGS-Archive/KG_Archive/Konstitutionell/Klinik"
   wp3_runfolder_api_version:
     description: The arteria-runfolder api version that should be used.
     type: string
     required: true
     default: "1.0"
+  wp3_check_demultiplexing_completed_delay:
+    description: Delay times (seconds) before starting to check for CompletedJobInfo.xml.
+    type: integer
+    required: true
+    default: 3600
+  wp3_num_check_demultiplexing_completed:
+    description: Number of times stackstorm should retry to validate that CompletedJobInfo.xml file has been created.
+    type: integer
+    required: true
+    default: 99
+  wp3_check_demultiplexing_retry_delay:
+    description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
+    type: integer
+    required: true
+    default: 60

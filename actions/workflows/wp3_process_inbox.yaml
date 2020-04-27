@@ -6,7 +6,7 @@ workflows:
     main:
         type: direct
         input:
-            - SS_folder
+            - TE_folder
             - host
             - runpanel
             - bcbio_version
@@ -23,20 +23,20 @@ workflows:
             runfolder_directory:
                 action: core.local
                 input:
-                    cwd: <% $.SS_folder %>
+                    cwd: <% $.TE_folder %>
                     cmd: ls -d */ | sed 's/\///'
                 publish:
                     runfolder_name: "<% task(runfolder_directory).result.stdout %>"
                 on-success:
-                    - SS_basename_get
+                    - TE_basename_get
 
-            SS_basename_get:
+            TE_basename_get:
                 action: core.local
                 input:
-                    cwd: <% $.SS_folder %>
-                    cmd: basename <% $.SS_folder %>
+                    cwd: <% $.TE_folder %>
+                    cmd: basename <% $.TE_folder %>
                 publish:
-                    SS_basename: "<% task(SS_basename_get).result.stdout %>"
+                    TE_basename: "<% task(TE_basename_get).result.stdout %>"
                 on-success:
                     - send_start_notifier
 
@@ -45,8 +45,8 @@ workflows:
                 input:
                     to: "<% $.mail_lab %>"
                     from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: Starting analysis of <% $.SS_basename %>"
-                    body: "<% $.SS_basename %> analysis has been started!"
+                    subject: "WP3: Starting analysis of <% $.TE_basename %>"
+                    body: "<% $.TE_basename %> analysis has been started!"
                 on-success:
                     - start_script
 
@@ -57,7 +57,7 @@ workflows:
                     private_key: <% $.processing_key %>
                     hosts: <% $.processing_host %>
                     panel_name: <% $.runpanel %>
-                    runfolder_directory: <% $.SS_folder %>/<% $.runfolder_name %>
+                    runfolder_directory: <% $.TE_folder %>/<% $.runfolder_name %>
                     bcbio_version: <% $.bcbio_version %>
                     timeout: 999999
                 on-success:
@@ -66,7 +66,7 @@ workflows:
             mark_as_failed:
                 action: core.http
                 input:
-                    url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
                     body: '{"state": "error"}'
                     method: "POST"
                 on-complete:
@@ -75,6 +75,6 @@ workflows:
             mark_as_finished:
                 action: core.http
                 input:
-                    url: http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.SS_folder %>
+                    url: http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
                     body: '{"state": "done"}'
                     method: "POST"
