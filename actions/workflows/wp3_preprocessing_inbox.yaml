@@ -30,6 +30,16 @@ workflows:
                     cwd: <% $.runfolder %>
                     cmd: grep -q ",TE" SampleSheet.csv
                 on-success:
+                    - dos2unix
+                on-error:
+                    - mark_as_failed
+
+            dos2unix:
+                action: core.local
+                input:
+                    cwd: <% $.runfolder %>
+                    cmd: dos2unix SampleSheet.csv
+                on-success:
                     - extract_TE_header_SampleSheet
                 on-error:
                     - mark_as_failed
@@ -48,7 +58,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: grep ",TE" SampleSheet.csv >> SampleSheet_TE.csv
+                    cmd: grep ",TE$" SampleSheet.csv >> SampleSheet_TE.csv
                 on-success:
                     - wait_for_demultiplexing
                 on-error:
@@ -71,7 +81,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ 'NR==1{print $4}'
+                    cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ '{print $4}' | tail -1
                 publish:
                     TE_name: "TE<% task(get_TE_number).result.stdout %>_"
                 on-success:
@@ -95,7 +105,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: <% $.runfolder %>
-                    cmd: if grep -i -q ",TE" SampleSheet_TE.csv ; then echo "TWIST" ; fi
+                    cmd: if grep -i -q ",TE$" SampleSheet_TE.csv ; then echo "TWIST" ; fi
                 publish:
                     runpanel: "<% task(get_runpanel).result.stdout %>"
                 on-success:
@@ -144,7 +154,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2 ; done
+                    cmd: for sample in $(grep ",TE$" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.transfer_to_location %><% $.runpanel %>/INBOX/<% $.TE_folder %>/<% $.runfolder_name %>/Alignment_1/dummy/Fastq/" -u <% $.transfer_to_user %> -i <% $.transfer_to_key %> -r <% $.transfer_to_host %> -p 2 ; done
                     timeout: 99999
                 on-success:
                     - transfer_SampleSheet
@@ -208,7 +218,7 @@ workflows:
                 action: core.local
                 input:
                     cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: for sample in $(grep ",TE" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
+                    cmd: for sample in $(grep ",TE$" <% $.runfolder %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% $.runfolder %>/Alignment_1/*/Fastq/${sample}*" -t "<% $.retrieve_result_to_archive_location %>/TWIST/Resultat/<% $.run_year %>/<% $.TE_folder %>/Fastq/" -l; done
                     timeout: 36000
                 on-success:
                     - transfer_runfolder_to_archive
