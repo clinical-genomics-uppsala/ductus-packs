@@ -32,7 +32,7 @@ workflows:
                 on-success:
                     - dos2unix
                 on-error:
-                    - mark_as_failed
+                    - mark_as_finished
 
             dos2unix:
                 action: core.local
