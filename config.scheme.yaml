@@ -39,6 +39,16 @@
     type: integer
     required: true
     default: 300
+  wp1_num_check_runfolder_exist:
+    description: Number of times stackstorm should retry to validate that a runfolder have been created inside the root runfolder
+    type: integer
+    required: true
+    default: 24
+  wp1_check_runfolder_exist_retry_delay:
+    description: Delay times (seconds) between retrying to check for runfolder.
+    type: integer
+    required: true
+    default: 300
 
   wp1_process_local_prefix_location:
     description: Local folder-prefix used during processing.

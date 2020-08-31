@@ -50,6 +50,9 @@ workflows:
                 input:
                     cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
                     cwd: <% $.runfolder %>
+                retry:
+                    count: <% $.wp1_num_check_runfolder_exist %>
+                    delay: <% $.wp1_check_runfolder_exist_retry_delay %>
                 publish:
                     runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
                 on-success:
