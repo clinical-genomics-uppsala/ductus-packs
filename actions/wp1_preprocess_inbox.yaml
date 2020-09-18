@@ -3,7 +3,7 @@ name: wp1_preprocess_inbox
 description: >
   This workflow will perform pre-processing of wp1 data, mainly uploading needed data to a processing server.
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp1_preprocess_inbox.yaml
 pack: ductus
 parameters:

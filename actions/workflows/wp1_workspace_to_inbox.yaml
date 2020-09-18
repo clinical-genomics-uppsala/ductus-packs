@@ -1,39 +1,39 @@
-version: "2.0" # mistral version
-name: ductus.wp1_workspace_to_inbox
+version: "1.0" # mistral version
+
 description: Will rsync new sequence data to moriarty for processing
 
-workflows:
-    main:
-        type: direct
-        input:
-            - runfolder
-            - runfolder_host
-            - runfolder_host_port
-            - api_version
-            - project_type
-            - preprocessing_storage_path
-            - mail_lab
-            - mail_bioinfo
-            - wp1_check_demultiplexing_completed_delay
-            - wp1_num_check_demultiplexing_completed
-            - wp1_check_demultiplexing_retry_delay
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - api_version
+  - project_type
+  - preprocessing_storage_path
+  - mail_lab
+  - mail_bioinfo
+  - wp1_check_demultiplexing_completed_delay
+  - wp1_num_check_demultiplexing_completed
+  - wp1_check_demultiplexing_retry_delay
+
+
         task-defaults:
             on-error:
                 - mark_as_failed
                 - molpat_error_notifier
                 - bioinfo_error_notifier
-        tasks:
-            get_csv_file_name:
-                action: core.local
-                input:
-                    cmd: ls *_index.csv | grep -E '^[0-9]+'
-                    cwd: <% $.runfolder %>
-                publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
-                on-success:
-                    - get_experiment_name
-                on-error:
-                    - missing_csv_file
+tasks:
+  get_csv_file_name:
+    action: core.local
+    input:
+      cmd: ls *_index.csv | grep -E '^[0-9]+'
+      cwd: <% ctx().runfolder %>
+     next:
+       - when:: <% succeeded() %>
+        publish:
+          - csv_file_name: <% result().stdout %>
+        do: get_experiment_name
+       - when: <% failed() %>
+         do: missing_csv_file
 
             get_experiment_name:
                 action: core.local

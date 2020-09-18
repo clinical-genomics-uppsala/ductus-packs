@@ -3,7 +3,7 @@ name: wp1_fetch_outbox
 description: >
   Retrieve processed data for wp1......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp1_fetch_outbox.yaml
 pack: ductus
 parameters:

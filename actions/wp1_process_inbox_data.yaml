@@ -3,7 +3,7 @@ name: wp1_process_inbox
 description: >
   Initialize processing of wp1 data using sera. Will move data to appropriate locations and then submit cluster jobs.
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp1_process_inbox.yaml
 pack: ductus
 parameters:

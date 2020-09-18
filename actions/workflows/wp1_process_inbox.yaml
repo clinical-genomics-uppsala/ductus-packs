@@ -1,25 +1,21 @@
-version: "2.0" # mistral version
-name: ductus.wp1_process_inbox
+version: "1.0" # Orquesta version
 description: Will analyse data found in the inbox folder using SERA
 
-workflows:
-    main:
-        type: direct
-        input:
-            - runfolder
-            - runfolder_host
-            - runfolder_host_port
-            - runfolder_api_version
-            - local_folder_prefix
-            - project_type
-            - processing_host
-            - processing_key
-            - processing_user
-            - ref_files
-            - sera_version
-            - slurm_version
-            - mail_lab
-            - mail_bioinfo
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - runfolder_api_version
+  - local_folder_prefix
+  - project_type
+  - processing_host
+  - processing_key
+  - processing_user
+  - ref_files
+  - sera_version
+  - slurm_version
+  - mail_lab
+  - mail_bioinfo
         task-defaults:
             on-error:
                 - mark_as_failed

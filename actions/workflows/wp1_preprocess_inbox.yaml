@@ -1,275 +1,335 @@
-version: "2.0" # mistral version
-name: ductus.wp1_preprocess_inbox
+version: "1.0" # Orquest version
+
 description: Will rsync new sequence data to moriarty for processing
 
-workflows:
-    main:
-        type: direct
-        input:
-            - runfolder
-            - runfolder_host
-            - runfolder_host_port
-            - api_version
-            - transfer_to_host
-            - transfer_location
-            - transfer_key
-            - transfer_user
-            - project_type
-            - mail_lab
-            - mail_bioinfo
-        task-defaults:
-            on-error:
-                - mark_as_failed
-                - molpat_error_notifier
-                - bioinfo_error_notifier
-        tasks:
-            get_experiment_name:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
-                publish:
-                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
-                on-success:
-                    - get_runfolder_name
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - api_version
+  - transfer_to_host
+  - transfer_location
+  - transfer_key
+  - transfer_user
+  - project_type
+  - mail_lab
+  - mail_bioinfo
+#        task-defaults:
+#            on-error:
+#                - mark_as_failed
+#                - molpat_error_notifier
+#                - bioinfo_error_notifier
 
-            get_runfolder_name:
-                action: core.local
-                input:
-                    cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
-                    cwd: <% $.runfolder %>
-                publish:
-                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
-                on-success:
-                    - get_csv_file_name
+vars:
+  - experiment_name: null
+  - runfolder_name: null
+  - csv_file_name: null
+  - machine_type: null
 
-            get_csv_file_name:
-                action: core.local
-                input:
-                    cmd: ls *.csv
-                    cwd: <% $.runfolder %>
-                publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
-                on-success:
-                    - validate_csv_file
-                on-error:
-                    - missing_csv_file
-                    - mark_as_failed
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python -c "import sys; sys.stdout.write(<% ctx(runfolder) %>.split('/')[-1])"
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name = <% result().stdout %>
+        do:
+          - get_runfolder_name
 
-            validate_csv_file:
-                action: core.local
-                input:
-                    cmd: echo '<% $.csv_file_name %>' | awk '!/^.*\.csv$/ {exit(1)}'
-                on-success:
-                    - validate_folder_name
-                on-error:
-                    - missing_csv_file
-                    - mark_as_failed
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name = <% result().stdout %>
+        do:
+          - get_csv_file_name
 
-            validate_folder_name:
-                action: core.local
-                input:
-                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
-                on-success:
-                    - get_machine_type
-                on-error:
-                    - missing_runfolder
-                    - mark_as_failed
+  get_csv_file_name:
+    action: core.local
+    input:
+      cmd: ls *.csv
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_file_name = <% result().stdout %>
+        do:
+          - validate_csv_file
+      - when: <% failed() %>
+        do:
+          - missing_csv_file
+          - mark_as_failed
 
-            get_machine_type:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
-                publish:
-                    machine_type: "<% task(get_machine_type).result.stdout %>"
-                on-success:
-                    - mark_as_started
-                on-error:
-                    - unexpected_machine_type
-                    - mark_as_failed
+  validate_csv_file:
+    action: core.local
+    input:
+      cmd: echo '<% ctx(csv_file_name) %>' | awk '!/^.*\.csv$/ {exit(1)}'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - validate_folder_name
+      - when: <% failed() %>
+        do:
+          - missing_csv_file
+          - mark_as_failed
 
-            mark_as_started:
-                action: core.http
-                input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
-                on-success:
-                    - create_runfolder_on_moriarty
+  validate_folder_name:
+    action: core.local
+    input:
+      cmd: echo <% ctx(runfolder_name') %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - get_machine_type
+      - when: <% failed() %>
+        do:
+          - missing_runfolder
+          - mark_as_failed
 
-            create_runfolder_on_moriarty:
-                action: core.remote
-                input:
-                    username: <% $.transfer_user %>
-                    private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX
-                    cmd: mkdir -p <% $.experiment_name %>
-                    timeout: 10
-                    hosts: <% $.transfer_to_host %>
-                on-success:
-                    - create_raw_folder_on_moriarty
+  get_machine_type:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: machine_type = <% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        do:
+          - unexpected_machine_type
+          - mark_as_failed
 
-            create_raw_folder_on_moriarty:
-                action: core.remote
-                input:
-                    username: <% $.transfer_user %>
-                    private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
-                    cmd: mkdir -p raw
-                    timeout: 10
-                    hosts: <% $.transfer_to_host %>
-                on-success:
-                    - transfer_runinfo_files: "{{ _.machine_type == 'MN' }}"
-                    - transfer_runinfo_files: "{{ _.machine_type == 'M0' }}"
-                    - transfer_nextseq_runinfo_files: "{{ _.machine_type == 'NDX' }}"
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: {"state": "started"}
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_runfolder_on_moriarty
 
-            transfer_runinfo_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 3600
-                on-success:
-                    - transfer_interop_files
+  create_runfolder_on_moriarty:
+    action: core.remote
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(transfer_location) %>/ngs/<% $.project_type %>/INBOX
+      cmd: mkdir -p <% ctx(experiment_name) %>
+      timeout: 10
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_raw_folder_on_moriarty
 
-            transfer_interop_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 3600
-                on-success:
-                    - transfer_csv_file
+  create_raw_folder_on_moriarty:
+    action: core.remote
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>
+      cmd: mkdir -p raw
+      timeout: 10
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %> and ctx(machine_type) == 'MN'
+        do:
+          - transfer_runinfo_files
+      - when: <% succeeded() %> and ctx(machine_type) == 'M0'
+        do:
+          - transfer_runinfo_files
+      - when: <% succeeded() %> and ctx(machine_type) == 'NDX'
+        do:
+          - transfer_nextseq_runinfo_files
 
-            transfer_nextseq_runinfo_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Run*" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 3600
-                on-success:
-                    - transfer_nextseq_interop_files
+  transfer_runinfo_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*" -t "<% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw" -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_interop_files
 
-            transfer_nextseq_interop_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/InterOp" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 3600
-                on-success:
-                    - transfer_csv_file
+  transfer_interop_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_csv_file
 
-            transfer_csv_file:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 3600
-                on-success:
-                    - transfer_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
-                    - transfer_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
-                    - transfer_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
+  transfer_nextseq_runinfo_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_nextseq_interop_files
 
-            transfer_miseq_fastq_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 86400
-                on-success:
-                    - create_transfer_complete_file
+  transfer_nextseq_interop_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded %>
+        do:
+          - transfer_csv_file
 
-            transfer_miniseq_fastq_files:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                    timeout: 86400
-                on-success:
-                    - create_transfer_complete_file
+  transfer_csv_file:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded %> and ctx(machine_type) == 'MN'
+        do:
+          - transfer_miniseq_fastq_files
+      - when: <% succeeded %> and ctx(machine_type) == 'M0'
+        do:
+          - transfer_miseq_fastq_files
+      - when: <% succeeded %> and ctx(machine_type) == 'NDX'
+        do:
+          - transfer_nextseq_fastq_files
 
-            transfer_nextseq_fastq_files:
-                 action: core.local
-                 input:
-                     cwd: /opt/src/ductus-core/ductus/scripts
-                     cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/raw" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
-                     timeout: 86400
-                 on-success:
-                     - create_transfer_complete_file
+  transfer_miseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
 
-            create_transfer_complete_file:
-                action: core.remote
-                input:
-                    username: <% $.transfer_user %>
-                    private_key: <% $.transfer_key %>
-                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
-                    cmd: echo "`date`" > Done.txt
-                    timeout: 10
-                    hosts: <% $.transfer_to_host %>
-                on-success:
-                    - mark_as_finished
+  transfer_miniseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
 
-            missing_runfolder:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Runfolder not found for <% $.experiment_name %>'"
-                    body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
-                on-complete:
-                    - fail
+  transfer_nextseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
 
-            unexpected_machine_type:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
-                    body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
-                on-complete:
-                    - fail
+  create_transfer_complete_file:
+    action: core.remote
+    input:
+      username: <% ctc(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>
+      cmd: echo "`date`" > Done.txt
+      timeout: 10
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
 
-            missing_csv_file:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
-                    body: "Couldn't locate a csv file in folder <% $.experiment_name %>"
-                on-complete:
-                    - fail
+  missing_runfolder:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Runfolder not found for <% ctx(experiment_name) %>"
+      body: Couldn't find the Illumina runfolder that is supposed to be located inside <% ctx(experiment_name) %>, the folder name may have been changed to not follow the Illumina naming scheme.."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            molpat_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Transfer failure, <% $.experiment_name %>'"
-                    body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
-                on-complete:
-                    - fail
+  unexpected_machine_type:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>"
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Incorrect machine typ <% ctx(experiment_name) %>"
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            bioinfo_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
-                    body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
-                on-complete:
-                    - fail
+  missing_csv_file:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Missing csv file, <% ctx(experiment_name) %>"
+      body: Couldn't locate a csv file in folder <% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            mark_as_finished:
-              action: core.http
-              input:
-                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "done"}'
-                  method: "POST"
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Transfer failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during the transfer of data from <% ctx(experiment_name) %> to Moriarty. A Bioinformatician has been notified.
+    next:
+    - when: <% succeeded() %>
+      do:
+        - fail
 
-            mark_as_failed:
-              action: core.http
-              input:
-                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "error"}'
-                  method: "POST"
-              on-complete:
-                  - fail
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: {"state": "done"}
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: {"state": "error"}
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
