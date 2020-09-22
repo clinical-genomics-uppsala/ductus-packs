@@ -1,0 +1,20 @@
+---
+name: "wp1_TSO500_clinic_workspace_to_inbox"
+pack: "ductus"
+description: "Rule that triggers move action, will move clincal wp1 data to the inbox folder"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "wp1/ngs/workspace/INBOX_TSO500"
+
+action:
+    ref: "ductus.wp1_TSO500_workspace_to_inbox"
+    parameters:
+        runfolder: "{{trigger.runfolder}}"
+        runfolder_host: "{{trigger.host }}"
+        project_type: "klinik"

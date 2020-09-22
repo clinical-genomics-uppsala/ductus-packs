@@ -1,0 +1,176 @@
+version: "2.0" # mistral version
+name: ductus.wp1_preprocess_inbox_TSO500
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - runfolder_host
+            - runfolder_host_port
+            - api_version
+            - transfer_to_host
+            - transfer_location
+            - transfer_key
+            - transfer_user
+            - project_type
+            - mail_lab
+            - mail_bioinfo
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - molpat_error_notifier
+                - bioinfo_error_notifier
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_runfolder_name
+
+            get_runfolder_name:
+                action: core.local
+                input:
+                    cmd: pwd | sed 's#.*/##'
+                    cwd: <% $.runfolder %>
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - get_csv_file_name
+
+            get_csv_file_name:
+                action: core.local
+                input:
+                    cmd: ls *.csv
+                    cwd: <% $.runfolder %>
+                publish:
+                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
+                on-success:
+                    - validate_csv_file
+                on-error:
+                    - validate_folder_name
+                    - mark_as_failed
+
+            validate_folder_name:
+                action: core.local
+                input:
+                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+                on-success:
+                    - get_machine_type
+                on-error:
+                    - missing_runfolder
+                    - mark_as_failed
+
+            get_machine_type:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("\d*_(NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
+                publish:
+                    machine_type: "<% task(get_machine_type).result.stdout %>"
+                on-success:
+                    - mark_as_started
+                on-error:
+                    - unexpected_machine_type
+                    - mark_as_failed
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_runfolder_on_moriarty
+
+            create_runfolder_on_moriarty:
+                action: core.remote
+                input:
+                    username: <% $.transfer_user %>
+                    private_key: <% $.transfer_key %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX_TSO500
+                    cmd: mkdir -p <% $.experiment_name %>
+                    timeout: 10
+                    hosts: <% $.transfer_to_host %>
+                on-success:
+                    - transfer_runfolder
+
+            transfer_runfolder:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.runfolder_name %>/" -t "<% $.transfer_location %>/ngs/<% $.project_type %>/INBOX_TSO500/<% $.experiment_name %>" -u <% $.transfer_user %> -i <% $.transfer_key %> -r <% $.transfer_to_host %> -p 2
+                    timeout: 3600
+                on-success:
+                    - create_transfer_complete_file
+
+            create_transfer_complete_file:
+                action: core.remote
+                input:
+                    username: <% $.transfer_user %>
+                    private_key: <% $.transfer_key %>
+                    cwd: <% $.transfer_location %>/ngs/<% $.project_type %>/INBOX_TSO500/<% $.experiment_name %>
+                    cmd: echo "`date`" > Done.txt
+                    timeout: 10
+                    hosts: <% $.transfer_to_host %>
+                on-success:
+                    - mark_as_finished
+
+            missing_runfolder:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Runfolder not found for <% $.experiment_name %>'"
+                    body: "Couldn't find the Illumina runfolder that is supposed to be located inside <% $.experiment_name %>, the folder name may have been changed to not follow the Illumina naming scheme.."
+                on-complete:
+                    - fail
+
+            unexpected_machine_type:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Incorrect machine typ <% $.experiment_name %>'"
+                    body: "Couldn't parse the machine type from the runfolder name, <% $.runfolder_name %>. New machine or have the folder name been changed?"
+                on-complete:
+                    - fail
+
+            molpat_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Transfer failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during the transfer of data from <% $.experiment_name %> to Moriarty. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Pre-processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the pre-processing of <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail

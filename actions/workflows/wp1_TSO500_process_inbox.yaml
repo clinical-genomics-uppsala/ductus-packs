@@ -1,0 +1,182 @@
+version: "2.0" # mistral version
+name: ductus.wp1_TSO500_process_inbox
+description: Will analyse data found in the inbox folder using TSO500 pipeline (Snakemake, Bcbio, Illumina docker)
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - runfolder_host
+            - runfolder_host_port
+            - runfolder_api_version
+            #- local_folder_prefix
+            - project_type
+            - processing_host
+            - processing_key
+            - processing_user
+            #- ref_files
+            - TSO500_version
+            #- slurm_version
+            - mail_lab
+            - mail_bioinfo
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - molpat_error_notifier
+                - bioinfo_error_notifier
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_run_year
+
+            get_run_year:
+                action: core.local
+                input:
+                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
+                publish:
+                    run_year: "<% task(get_run_year).result.stdout %>"
+                on-success:
+                    - get_csv_file_name
+
+            get_csv_file_name:
+                action: core.local
+                input:
+                    cmd: ls *.csv
+                    cwd: <% $.runfolder %>
+                publish:
+                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    #- create_rawdata_folder
+                    #- create_csv_folder
+                    - run_TSO500
+
+            #create_rawdata_folder:
+            #    action: core.local
+            #    input:
+            #        cwd: <% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer
+            #        cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
+            #    publish:
+            #        raw_data_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
+            #    on-success:
+            #        - copy_rawdata
+
+            #copy_rawdata:
+            #    action: core.local
+            #    input:
+            #      cwd: <% $.runfolder %>
+            #      cmd: cp raw/*.fastq.gz <% $.raw_data_folder %>/
+            #      timeout: 3600
+            #    on-success:
+            #      - run_sera
+
+            #create_csv_folder:
+            #    action: core.local
+            #    input:
+            #        cmd: mkdir -p <% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>
+            #    publish:
+            #        csv_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>"
+            #    on-success:
+            #        - copy_csv_file
+
+            #copy_csv_file:
+            #    action: core.local
+            #    input:
+            #      cwd: <% $.runfolder %>
+            #      cmd: cp <% $.csv_file_name %> <% $.csv_folder %>/
+            #    on-success:
+            #       - run_sera
+
+
+            run_TSO500:
+              join: all
+              action: ductus.start_TSO500_analys
+              input:
+                  #What are these three for???
+                  #username: <% $.processing_user %>
+                  #private_key: <% $.processing_key %>
+                  #hosts: <% $.processing_host %>
+                  experiment_name: <% $.experiment_name %>
+                  year: <% $.run_year %>
+                  TSO500_version: <% $.TSO500_version %>
+                  #slurm_version: <% $.slurm_version %>
+                  #input_file_name: <% $.csv_file_name %>
+                  #analysis: <% $.project_type %>
+                  #globals: "MORIARTY"
+                  #normal: "annovar"
+                  #project: "wp1"
+                  project_type: <% $.project_type %>
+                  #ref_dir: <% $.ref_files %>
+              on-success:
+                - mark_as_finished
+
+            #run_sera:
+            #  join: all
+            #  action: ductus.start_sera_analys
+            #  input:
+            #      username: <% $.processing_user %>
+            #      private_key: <% $.processing_key %>
+            #      hosts: <% $.processing_host %>
+            #      experiment_name: <% $.experiment_name %>
+            #      year: <% $.run_year %>
+            #      sera_version: <% $.sera_version %>
+            #      slurm_version: <% $.slurm_version %>
+            #      input_file_name: <% $.csv_file_name %>
+            #      analysis: <% $.project_type %>
+            #      globals: "MORIARTY"
+            #      normal: "annovar"
+            #      project: "wp1"
+            #      project_type: <% $.project_type %>
+            #      ref_dir: <% $.ref_files %>
+            #  on-success:TSO500
+            #    - mark_as_finished
+
+            molpat_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-uu.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - TSO500 processing failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during TSO500 processing of folder <% $.experiment_name %>. A Bioinformatician [TSO500]has been nTSO500ied."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-uu.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - TSO500 processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the TSO500 processing of <% $.experiment_name %>, please investigate!!!"
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfoTSO500 %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail

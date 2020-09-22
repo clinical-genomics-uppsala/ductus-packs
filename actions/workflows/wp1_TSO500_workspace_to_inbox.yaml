@@ -1,0 +1,141 @@
+version: "2.0" # mistral version
+name: ductus.wp1_workspace_to_inbox_TSO500
+description: Will rsync new sequence data to moriarty for processing
+
+workflows:
+    main:
+        type: direct
+        input:
+            - runfolder
+            - runfolder_host
+            - runfolder_host_port
+            - api_version
+            - project_type
+            - preprocessing_storage_path
+            - mail_lab
+            - mail_bioinfo
+            - csv_file_name
+        task-defaults:
+            on-error:
+                - mark_as_failed
+                - molpat_error_notifier
+                - bioinfo_error_notifier
+        tasks:
+            get_experiment_name:
+                action: core.local
+                input:
+                    cmd: echo '<% $.csv_file_name %>' | sed 's/_samplesheet\.csv//'
+                publish:
+                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
+                on-success:
+                    - get_runfolder_name
+
+            get_runfolder_name:
+                action: core.local
+                input:
+                    cmd: pwd | sed 's#.*/##'
+                    cwd: <% $.runfolder %>
+                publish:
+                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
+                on-success:
+                    - validate_folder_name
+
+            validate_folder_name:
+                action: core.local
+                input:
+                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+                on-success:
+                    - mark_as_started
+
+            mark_as_started:
+                action: core.http
+                input:
+                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                    body: '{"state": "started"}'
+                    method: "POST"
+                on-success:
+                    - create_inbox_folder
+
+            create_inbox_folder:
+                action: core.local
+                input:
+                  cwd: <% $.preprocessing_storage_path %>/ngs/<% $.project_type %>/INBOX_TSO500
+                  cmd: mkdir -p <% $.experiment_name %>
+                publish:
+                  inbox_folder : "<% $.preprocessing_storage_path %>/ngs/<% $.project_type %>/INBOX_TSO500/<% $.experiment_name %>/"
+                on-success:
+                  - transfer_runfolder
+
+            transfer_runfolder:
+                action: core.local
+                input:
+                    cwd: /opt/src/ductus-core/ductus/scripts
+                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.inbox_folder %>/" -l
+                    timeout: 36000
+                on-success:
+                    - create_tansfer_complete
+
+            create_tansfer_complete:
+                action: core.local
+                input:
+                    cwd: <% $.inbox_folder %>
+                    cmd: touch TransferComplete.txt
+                    timeout: 3600
+                on-success:
+                   - nextex_moved
+
+            nextex_moved:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][SUCCESS] - Runfolder, <% $.runfolder %>, moved to inbox'"
+                    body: "Rufolder moved to inbox."
+                on-complete:
+                    - mark_as_finished
+
+            missing_csv_file:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_lab %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Missing csv file, <% $.experiment_name %>'"
+                    body: "Couldn't locate a csv file in nextseq folder <% $.experiment_name %>"
+                on-complete:
+                    - fail
+
+            molpat_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Move failure, <% $.experiment_name %>'"
+                    body: "Something went wrong during the move of data from workspace to inbox, <% $.runfolder %>, <% $.experiment_name %>. A Bioinformatician has been notified."
+                on-complete:
+                    - fail
+
+            bioinfo_error_notifier:
+                action: core.sendmail
+                input:
+                    to: "<% $.mail_bioinfo %>"
+                    from: "stanley@clinicalgenomics-as.se"
+                    subject: "'[DUCTUS][WP1][TSO500][ERROR] - Pre-processing, <% $.experiment_name %>'"
+                    body: "Something went wrong during the move of data from workspace to inbox, <% $.runfolder %>, <% $.experiment_name %>."
+                on-complete:
+                    - fail
+
+            mark_as_finished:
+              action: core.http
+              input:
+                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  body: '{"state": "done"}'
+                  method: "POST"
+
+            mark_as_failed:
+              action: core.http
+              input:
+                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
+                  body: '{"state": "error"}'
+                  method: "POST"
+              on-complete:
+                  - fail
