@@ -14,11 +14,6 @@ input:
   - project_type
   - mail_lab
   - mail_bioinfo
-#        task-defaults:
-#            on-error:
-#                - mark_as_failed
-#                - molpat_error_notifier
-#                - bioinfo_error_notifier
 
 vars:
   - experiment_name: null
@@ -30,10 +25,10 @@ tasks:
   get_experiment_name:
     action: core.local
     input:
-      cmd: python -c "import sys; sys.stdout.write(<% ctx(runfolder) %>.split('/')[-1])"
+      cmd: python -c "import sys; sys.stdout.write('<% ctx(runfolder) %>'.split('/')[-1])"
     next:
       - when: <% succeeded() %>
-        publish: experiment_name = <% result().stdout %>
+        publish: experiment_name=<% result().stdout %>
         do:
           - get_runfolder_name
 
@@ -44,7 +39,7 @@ tasks:
       cwd: <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
-        publish: runfolder_name = <% result().stdout %>
+        publish: runfolder_name=<% result().stdout %>
         do:
           - get_csv_file_name
 
@@ -55,7 +50,7 @@ tasks:
       cwd: <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
-        publish: csv_file_name = <% result().stdout %>
+        publish: csv_file_name=<% result().stdout %>
         do:
           - validate_csv_file
       - when: <% failed() %>
@@ -66,7 +61,7 @@ tasks:
   validate_csv_file:
     action: core.local
     input:
-      cmd: echo '<% ctx(csv_file_name) %>' | awk '!/^.*\.csv$/ {exit(1)}'
+      cmd: echo <% ctx(csv_file_name) %> | awk '!/^.*\.csv$/ {exit(1)}'
     next:
       - when: <% succeeded() %>
         do:
@@ -79,7 +74,7 @@ tasks:
   validate_folder_name:
     action: core.local
     input:
-      cmd: echo <% ctx(runfolder_name') %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+      cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
     next:
       - when: <% succeeded() %>
         do:
@@ -107,7 +102,7 @@ tasks:
     action: core.http
     input:
       url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
-      body: {"state": "started"}
+      body: '{"state": "started"}'
       method: "POST"
     next:
       - when: <% succeeded() %>
@@ -119,7 +114,7 @@ tasks:
     input:
       username: <% ctx(transfer_user) %>
       private_key: <% ctx(transfer_key) %>
-      cwd: <% ctx(transfer_location) %>/ngs/<% $.project_type %>/INBOX
+      cwd: <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX
       cmd: mkdir -p <% ctx(experiment_name) %>
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
@@ -152,7 +147,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*" -t "<% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw" -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
