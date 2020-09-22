@@ -33,7 +33,7 @@ workflows:
                 on-success:
                     - get_experiment_name
                 on-error:
-                    - get_csv_file_name2
+                    - get_csv_file_name_TSO500
 
             get_csv_file_name_TSO500:
                 action: core.local
