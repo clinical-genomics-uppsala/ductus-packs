@@ -130,6 +130,11 @@ tasks:
       - when: <% succeeded() %>
         do:
           - create_runfolder_on_moriarty
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   create_runfolder_on_moriarty:
     action: core.remote

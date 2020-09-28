@@ -26,15 +26,18 @@ tasks:
     action: core.local
     input:
       cmd: ls *_index.csv | grep -E '^[0-9]+'
-      cwd: <% ctx().runfolder %>
-     next:
-       - when:: <% succeeded() %>
-         publish: csv_file_name=<% result().stdout %>
-         do:
-           - get_experiment_name
-       - when: <% failed() %>
-         do:
-           - missing_csv_file
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_file_name=<% result().stdout %>
+        do:
+          - get_experiment_name
+      - when: <% failed() %>
+        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - missing_csv_file
+          - mark_as_failed
 
   get_experiment_name:
     action: core.local
@@ -46,6 +49,12 @@ tasks:
         publish: experiment_name=<% result().stdout %>
         do:
           - get_runfolder_name
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   get_runfolder_name:
     action: core.local
@@ -57,6 +66,12 @@ tasks:
         publish: runfolder_name=<% result().stdout %>
         do:
           - validate_folder_name
+      - when: <% failed() %>
+        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   validate_folder_name:
     action: core.local
@@ -66,6 +81,12 @@ tasks:
       - when: <% succeeded() %>
         do:
           - look_for_complete_file
+      - when: <% failed() %>
+        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   look_for_complete_file:
     action: core.local
@@ -93,6 +114,11 @@ tasks:
       - when: <% succeeded() %>
         do:
           - create_inbox_folder
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   create_inbox_folder:
     action: core.local
@@ -101,9 +127,14 @@ tasks:
       cmd: mkdir -p <% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: inbox_folder=<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/
+        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/"
         do:
           - transfer_runfolder
+      - when: <% failed() %>
+        publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   transfer_runfolder:
     action: core.local
@@ -115,6 +146,11 @@ tasks:
       - when: <% succeeded() %>
         do:
           - transfer_csv_file
+      - when: <% failed() %>
+        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   transfer_csv_file:
     action: core.local
@@ -137,6 +173,11 @@ tasks:
       - when: <% succeeded() %>
         do:
           - nextex_moved
+      - when: <% failed() %>
+        publish: failed_step="create_tansfer_complete -- Couldn't create TransferComplete file -- <% ctx(inbox_folder) %>!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   completed_job_file_missing:
     action: core.sendmail
@@ -161,6 +202,7 @@ tasks:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
+
 
   missing_csv_file:
     action: core.sendmail
@@ -192,7 +234,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the move of data from workspace to inbox, <% ctx(runfolder) %>, <% ctx(experiment_name) %>.
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!! \N Failure message -- <% failed_step  %>
     next:
       - when: <% succeeded() %>
         do:
