@@ -19,43 +19,54 @@ vars:
   - experiment_name: null
   - run_year: null
 
-#        task-defaults:
-#            on-error:
-#                - mark_as_failed
-#                - molpat_error_notifier
-#                - bioinfo_error_notifier
-
 tasks:
   get_experiment_name:
     action: core.local
     input:
-      cmd: python -c "import sys; sys.stdout.write(<% ctx(runfolder) %>.split('/')[-1])"
+      cmd: python -c "import sys; sys.stdout.write(\"<% ctx(runfolder) %>\".split('/')[-1])"
     next:
       - when: <% succeeded() %>
-        publish: experiment_name = <% result().stdout %>
+        publish: experiment_name=<% result().stdout %>
         do:
           - get_run_year
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   get_run_year:
     action: core.local
     input:
-      cmd: python -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z]{2});sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
+      cmd: python -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z]{2}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
     next:
       - when: <% succeeded() %>
-        publish: run_year = <% result().stdout %>
+        publish: run_year=<% result().stdout %>
         do:
           - mark_as_started
+      - when: <% failed() %>
+        publish: failed_step='get_run_year  -- Couldn't extract run year from \"<% ctx(experiment_name) %>\", <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   mark_as_started:
     action: core.http
     input:
       url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
-      body: {"state": "started"}
+      body: '{"state": "started"}'
       method: "POST"
     next:
       - when: <% succeeded() %>
         do:
           - create_year_folder
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
   create_year_folder:
     action: core.local
@@ -66,6 +77,12 @@ tasks:
       - when: <% succeeded() %>
         do:
           - transfer_result
+      - when: <% failed() %>
+        publish: failed_step='create_year_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   transfer_result:
     action: core.local
@@ -81,6 +98,12 @@ tasks:
       - when: <% succeeded() %> and ctx(project_type) == 'klinik'
         do:
           - archive_data
+      - when: <% failed() %>
+        publish: failed_step='transfer_result  -- Couldn't fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   molpat_error_notifier:
     action: core.sendmail
@@ -99,8 +122,8 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "'[DUCTUS][WP1][ERROR] - SERA Processing, <% $.experiment_name %>'"
-      body: Something went wrong when retrieving sera result for <% ctx(experiment_name) %>, please investigate!!!
+      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!! \N Failure message -- <% failed_step  %>
     next:
       - when: <% succeeded() %>
         do:
@@ -140,3 +163,9 @@ tasks:
       project_type: <% ctx(project_type) %>
       raw_inbox_storage_path: <% ctx(preprocessing_storage_path) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% failed() %>
+        publish: failed_step='archive_data  -- Couldn't archive <% ctx(experiment_name), <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
