@@ -16,139 +16,203 @@ input:
   - slurm_version
   - mail_lab
   - mail_bioinfo
-        task-defaults:
-            on-error:
-                - mark_as_failed
-                - molpat_error_notifier
-                - bioinfo_error_notifier
-        tasks:
-            get_experiment_name:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
-                publish:
-                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
-                on-success:
-                    - get_run_year
 
-            get_run_year:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
-                publish:
-                    run_year: "<% task(get_run_year).result.stdout %>"
-                on-success:
-                    - get_csv_file_name
+vars:
+  - experiment_name: null
+  - run_year: null
+  - csv_file_name: null
 
-            get_csv_file_name:
-                action: core.local
-                input:
-                    cmd: ls *.csv
-                    cwd: <% $.runfolder %>
-                publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
-                on-success:
-                    - mark_as_started
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            mark_as_started:
-                action: core.http
-                input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
-                on-success:
-                    - create_rawdata_folder
-                    - create_csv_folder
+  get_run_year:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - get_csv_file_name
+      - when: <% failed() %>
+        publish: failed_step='get_run_year  -- Couldn't extract run year from \"<% ctx(experiment_name) %>\", <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            create_rawdata_folder:
-                action: core.local
-                input:
-                    cwd: <% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer
-                    cmd: mkdir -p "<% $.run_year %>/<% $.experiment_name %>_rawdata"
-                publish:
-                    raw_data_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/fastq_filer/<% $.run_year %>/<% $.experiment_name %>_rawdata"
-                on-success:
-                    - copy_rawdata
+  get_csv_file_name:
+    action: core.local
+    input:
+      cmd: ls *.csv
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_file_name=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            copy_rawdata:
-                action: core.local
-                input:
-                  cwd: <% $.runfolder %>
-                  cmd: cp raw/*.fastq.gz <% $.raw_data_folder %>/
-                  timeout: 3600
-                on-success:
-                  - run_sera
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_rawdata_folder
+          - create_csv_folder
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
 
-            create_csv_folder:
-                action: core.local
-                input:
-                    cmd: mkdir -p <% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>
-                publish:
-                    csv_folder: "<% $.local_folder_prefix %>/ngs/<% $.project_type %>/sample_files/<% $.run_year %>"
-                on-success:
-                    - copy_csv_file
+  create_rawdata_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/fastq_filer
+      cmd: mkdir -p "<% ctx(run_year) %>/<% ctx(experiment_name) %>_rawdata"
+    next:
+      - when: <% succeeded() %>
+        publish: raw_data_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/fastq_filer/<% ctx(run_year) %>/<% ctx(experiment_name) %>_rawdata"
+        do:
+          - copy_rawdata
+      - when: <% failed() %>
+        publish: failed_step="create_runfolder_on_moriarty  -- Couldn't create fastq folder  <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/fastq_filer<% ctx(run_year) %>/<% ctx(experiment_name) %>_rawdata, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            copy_csv_file:
-                action: core.local
-                input:
-                  cwd: <% $.runfolder %>
-                  cmd: cp <% $.csv_file_name %> <% $.csv_folder %>/
-                on-success:
-                   - run_sera
+  copy_rawdata:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: cp raw/*.fastq.gz <% ctx(raw_data_folder) %>/
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+         - run_sera
+      - when: <% failed() %>
+        publish: failed_step="copy_rawdata  -- Couldn't copy raw data to <% ctx(raw_data_folder) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            run_sera:
-              join: all
-              action: ductus.start_sera_analys
-              input:
-                  username: <% $.processing_user %>
-                  private_key: <% $.processing_key %>
-                  hosts: <% $.processing_host %>
-                  experiment_name: <% $.experiment_name %>
-                  year: <% $.run_year %>
-                  sera_version: <% $.sera_version %>
-                  slurm_version: <% $.slurm_version %>
-                  input_file_name: <% $.csv_file_name %>
-                  analysis: <% $.project_type %>
-                  globals: "MORIARTY"
-                  normal: "annovar"
-                  project: "wp1"
-                  project_type: <% $.project_type %>
-                  ref_dir: <% $.ref_files %>
-              on-success:
-                - mark_as_finished
+  create_csv_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/sample_files/<% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/sample_files/<% ctx(run_year) %>"
+        do:
+          - copy_csv_file
+      - when: <% failed() %>
+        publish: failed_step="create_csv_folder  -- Couldn't create csv folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/sample_files/<% ctx(run_year) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            molpat_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing failure, <% $.experiment_name %>'"
-                    body: "Something went wrong during SERA processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
-                on-complete:
-                    - fail
+  copy_csv_file:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: cp <% ctx(csv_file_name) %> <% ctx(csv_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - run_sera
+      - when: <% failed() %>
+        publish: failed_step="copy_csv_file  -- Couldn't copy csv file <% ctx(csv_file_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            bioinfo_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - SERA processing, <% $.experiment_name %>'"
-                    body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
-                on-complete:
-                    - fail
+  run_sera:
+    join: all
+    action: ductus.start_sera_analys
+    input:
+      username: <% ctx(processing_user) %>
+      private_key: <% ctx(processing_key) %>
+      hosts: <% ctx(processing_host) %>
+      experiment_name: <% ctx(experiment_name) %>
+      year: <% ctx(run_year) %>
+      sera_version: <% ctx(sera_version) %>
+      slurm_version: <% ctx(slurm_version) %>
+      input_file_name: <% ctx(csv_file_name) %>
+      analysis: <% ctx(project_type) %>
+      globals: "MORIARTY"
+      normal: "annovar"
+      project: "wp1"
+      project_type: <% ctx(project_type) %>
+      ref_dir: <% ctx(ref_files) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish: failed_step="run_sera  -- Couldn't start sera <% ctx(sera_version) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
-            mark_as_finished:
-              action: core.http
-              input:
-                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "done"}'
-                  method: "POST"
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP1][ERROR] - SERA processing failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during SERA processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            mark_as_failed:
-              action: core.http
-              input:
-                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "error"}'
-                  method: "POST"
-              on-complete:
-                  - fail
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP1][ERROR] - SERA processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the sera processing of <% ctx(experiment_name) %>, please investigate!!!
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
