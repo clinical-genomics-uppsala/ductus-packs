@@ -1,132 +1,198 @@
-version: "2.0" # mistral version
-name: ductus.process_wp2_inbox_data
+version: "1.0" # Orquest version
+
 description: Will analyse data found in the inbox folder using ...
 
-workflows:
-    main:
-        type: direct
-        input:
-            - runfolder
-            - host
-            - project_type
-            - runfolder_host
-            - runfolder_host_port
-            - runfolder_api_version
-            - processing_host
-            - processing_key
-            - processing_user
-            - local_folder_prefix
-            - slurm_version
-            - mail_lab
-            - mail_bioinfo
-        output:
-            output_the_whole_workflow_context: <% $ %>
-        task-defaults:
-            on-error:
-                - mark_as_failed
-                - wp2_error_notifier
-                - bioinfo_error_notifier
-        tasks:
-            get_experiment_name:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.runfolder %>".split("/")[-1])'
-                publish:
-                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
-                on-success:
-                    - get_run_year
+input:
+    - runfolder
+    - host
+    - project_type
+    - runfolder_host
+    - runfolder_host_port
+    - runfolder_api_version
+    - processing_host
+    - processing_key
+    - processing_user
+    - local_folder_prefix
+    - slurm_version
+    - mail_lab
+    - mail_bioinfo
 
-            get_run_year:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% $.experiment_name %>").group(1))'
-                publish:
-                    run_year: "<% task(get_run_year).result.stdout %>"
-                on-success:
-                    - get_run_date
+vars:
+  - experiment_name: null
+  - run_year: null
+  - run_date: null
+  - failed_step: null
+  - analysis_folder: null
 
-            get_run_date:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{6})_M[0-9A-Z]+$");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
-                publish:
-                    run_date:  "<% task(get_run_date).result.stdout %>"
-                on-success:
-                    - mark_as_started
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
 
-            mark_as_started:
-                action: core.http
-                input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
-                on-success:
-                    - create_rawdata_folder
+  get_run_year:
+      action: core.local
+      input:
+        cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{2})\d{4}_M[0-9A-Z]+$");sys.stdout.write("20" + p.search("<% ctx(experiment_name) %>").group(1))'
+      next:
+        - when: <% succeeded() %>
+          publish: run_year=<% result().stdout %>
+          do:
+            - get_run_date
+        - when: <% failed() %>
+          publish: failed_step='get_run_year  -- Couldn't extract run year, <% result().stdout %>, <% result().stderr %>'
+          do:
+            - bioinfo_error_notifier
+            - wp2_error_notifier
+            - mark_as_failed
 
-            create_rawdata_folder:
-                action: core.local
-                input:
-                    cmd: mkdir -m 770 -p "<% $.local_folder_prefix %>/<% $.project_type %>/analysis/<% $.run_year %>/<% $.experiment_name %>"
-                publish:
-                    analysis_folder : "<% $.local_folder_prefix %>/<% $.project_type %>/analysis/<% $.run_year %>/<% $.experiment_name %>"
-                on-success:
-                    - copy_inbox_data
+  get_run_date:
+      action: core.local
+      input:
+        cmd: python -c 'import sys;import re; p = re.compile("^.+_(\d{6})_M[0-9A-Z]+$");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+      next:
+        - when: <% succeeded() %>
+          publish: run_date=<% result().stdout %>
+          do:
+            - mark_as_started
+        - when: <% failed() %>
+          publish: failed_step='get_run_date  -- Couldn't extract date, <% result().stdout %>, <% result().stderr %>'
+          do:
+            - bioinfo_error_notifier
+            - wp2_error_notifier
+            - mark_as_failed
 
-            copy_inbox_data:
-                action: core.local
-                input:
-                    cwd: <% $.local_folder_prefix %>/<% $.project_type %>/INBOX
-                    cmd: cp -rp <% $.experiment_name %>/* <% $.analysis_folder %>/
-                    timeout: 86400
-                on-success:
-                    - run_analysis
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_rawdata_folder
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
 
-            run_analysis:
-              action: ductus.start_wp2_truesight_myeloid_analysis
-              input:
-                  username: <% $.processing_user %>
-                  private_key: <% $.processing_key %>
-                  hosts: <% $.processing_host %>
-                  experiment_name: <% $.experiment_name %>
-                  run_year: <% $.run_year %>
-                  current_date: <% $.run_date %>
-                  wp2_trusight_myelod_script_version: "1.0"
-                  slurm_version: <% $.slurm_version %>
-              on-success:
-               - mark_as_finished
+  create_rawdata_folder:
+    action: core.local
+    input:
+      cmd: mkdir -m 770 -p <% ctx(local_folder_prefix) %>/<% ctx(project_type) %>/analysis/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder=<% ctx(local_folder_prefix) %>/<% ctx(project_type) %>/analysis/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+        do:
+          - copy_inbox_data
+      - when: <% failed() %>
+        publish: failed_step='create_rawdata_folder  -- Couldn't create raw data folder, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
 
-            wp2_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% $.experiment_name %>'"
-                    body: "Something went wrong during TrueSight processing of folder <% $.experiment_name %>. A Bioinformatician has been notified."
-                on-complete:
-                    - fail
+  copy_inbox_data:
+    action: core.local
+    input:
+      cwd: <% ctx(local_folder_prefix) %>/<% ctx(project_type) %>/INBOX
+      cmd: cp -rp <% ctx(experiment_name) %>/* <% ctx(analysis_folder) %>/
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - run_analysis
+      - when: <% failed() %>
+        publish: failed_step='copy_inbox_data  -- Couldn't copy inbox data, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
 
-            bioinfo_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-uu.se"
-                    subject: "'[DUCTUS][WP2][ERROR] - TrueSight processing, <% $.experiment_name %>'"
-                    body: "Something went wrong during the sera processing of <% $.experiment_name %>, please investigate!!!"
-                on-complete:
-                    - fail
+  run_analysis:
+    action: ductus.start_wp2_truesight_myeloid_analysis
+    input:
+      username: <% ctx(processing_user) %>
+      private_key: <% ctx(processing_key) %>
+      hosts: <% ctx(processing_host) %>
+      experiment_name: <% ctx(experiment_name) %>
+      run_year: <% ctx(run_year) %>
+      current_date: <% ctx(run_date) %>
+      wp2_trusight_myelod_script_version: "1.0"
+      slurm_version: <% ctx(slurm_version) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish: failed_step='run_analysis  -- Couldn't start TrueSight analysis, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
 
-            mark_as_finished:
-              action: core.http
-              input:
-                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "done"}'
-                  method: "POST"
+  wp2_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during TrueSight processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            mark_as_failed:
-              action: core.http
-              input:
-                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "error"}'
-                  method: "POST"
-              on-complete:
-                  - fail
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the TrueSight processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+    next:
+      - when: <% failed() %>
+        publish: failed_step="mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+      - when: <% failed() %>
+        publish: failed_step="mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
