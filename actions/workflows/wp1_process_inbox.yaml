@@ -193,7 +193,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][WP1][ERROR] - SERA processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the sera processing of <% ctx(experiment_name) %>, please investigate!!!
+      body: Something went wrong during the sera processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
     next:
       - when: <% succeeded() %>
         do:

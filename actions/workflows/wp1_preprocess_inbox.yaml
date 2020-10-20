@@ -398,7 +398,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!! \N Failure message -- <% failed_step  %>
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
     next:
       - when: <% succeeded() %>
         do:
