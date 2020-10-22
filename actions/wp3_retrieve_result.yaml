@@ -3,7 +3,7 @@ name: wp3_retrieve_result
 description: >
   Retrieve processed data for wp3......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp3_retrieve_result.yaml
 pack: ductus
 parameters:

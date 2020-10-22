@@ -3,7 +3,7 @@ name: wp3_preprocessing_inbox
 description: >
   Transfer runfolder to cluster.....
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp3_preprocessing_inbox.yaml
 pack: ductus
 parameters:
@@ -49,18 +49,18 @@ parameters:
         required: true
         type: string
         default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
-    wp3_check_demultiplexing_completed_delay:
+    demultiplexing_completed_delay:
         required: true
         type: integer
-        default: 3600
-    wp3_num_check_demultiplexing_completed:
+        default: "{{ config_context.wp3_check_demultiplexing_completed_delay }}"
+    num_check_completed:
         required: true
         type: integer
-        default: 99
-    wp3_check_demultiplexing_retry_delay:
+        default: "{{ config_context.wp3_num_check_demultiplexing_completed }}"
+    check_retry_delay:
         required: true
         type: integer
-        default: 300
+        default: "{{ config_context.wp3_check_demultiplexing_retry_delay }}"
     retrieve_result_to_archive_location:
         required: true
         type: string
