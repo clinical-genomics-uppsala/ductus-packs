@@ -59,13 +59,12 @@ tasks:
   get_runfolder_name:
     action: core.local
     input:
-      cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
-      cwd: <% ctx(runfolder) %>
+      cmd: basename <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
         do:
-          - validate_folder_name
+          - get_machine_type
       - when: <% failed() %>
         publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
         do:
@@ -73,12 +72,37 @@ tasks:
           - molpat_error_notifier
           - mark_as_failed
 
+  get_machine_type:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: machine_type=<% result().stdout %>
+        do:
+          - validate_folder_name
+      - when: <% failed() %>
+        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - unexpected_machine_type
+          - mark_as_failed
+
   validate_folder_name:
     action: core.local
     input:
       cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
     next:
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx().machine_type = 'MN' %>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/Alignment_*/*/CompletedJobInfo.xml"
+        do:
+          - look_for_complete_file
+      - when: <% succeeded() and ctx().machine_type = 'M0'%>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/CompletedJobInfo.xml"
+        do:
+          - look_for_complete_file
+      - when: <% succeeded() and ctx().machine_type = 'NDX' %>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
         do:
           - look_for_complete_file
       - when: <% failed() %>
@@ -91,7 +115,7 @@ tasks:
   look_for_complete_file:
     action: core.local
     input:
-      cmd: ls <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml
+      cmd: ls <% ctx(complete_job_file_path) %>
     retry:
       count: <% ctx(wp1_num_check_demultiplexing_completed) %>
       delay: <% ctx(wp1_check_demultiplexing_retry_delay) %>
@@ -172,7 +196,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - nextex_moved
+          - runfolder_moved
       - when: <% failed() %>
         publish: failed_step="create_tansfer_complete -- Couldn't create TransferComplete file -- <% ctx(inbox_folder) %>!"
         do:
@@ -191,7 +215,7 @@ tasks:
         do:
           - fail
 
-  nextex_moved:
+  runfolder_moved:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
@@ -235,6 +259,18 @@ tasks:
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
       body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  unexpected_machine_type:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>"
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Incorrect machine typ <% ctx(experiment_name) %>"
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
     next:
       - when: <% succeeded() %>
         do:
