@@ -334,3 +334,8 @@
     type: integer
     required: true
     default: 60
+  wp3_notification_mail_bioinfo:
+    description: Email address where notifications to bioinformatic will be sent.
+    type: string
+    required: true
+    default: "bioinfo-clinical-genomics-uu@googlegroups.com"

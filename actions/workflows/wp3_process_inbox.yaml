@@ -1,80 +1,97 @@
-version: "2.0" # mistral version
-name: ductus.wp3_process_inbox
+version: "1.0" # Orquesta version
+
 description: Start analyze data on facility cluster
 
-workflows:
-    main:
-        type: direct
-        input:
-            - TE_folder
-            - host
-            - runpanel
-            - bcbio_version
-            - processing_user
-            - processing_key
-            - processing_host
-            - mail_lab
-            - host_port
-            - runfolder_api_version
-        task-defaults:
-            on-error:
-                - mark_as_failed
-        tasks:
-            runfolder_directory:
-                action: core.local
-                input:
-                    cwd: <% $.TE_folder %>
-                    cmd: ls -d */ | sed 's/\///'
-                publish:
-                    runfolder_name: "<% task(runfolder_directory).result.stdout %>"
-                on-success:
-                    - TE_basename_get
+input:
+  - TE_folder
+  - host
+  - runpanel
+  - bcbio_version
+  - processing_user
+  - processing_key
+  - processing_host
+  - mail_lab
+  - host_port
+  - runfolder_api_version
 
-            TE_basename_get:
-                action: core.local
-                input:
-                    cwd: <% $.TE_folder %>
-                    cmd: basename <% $.TE_folder %>
-                publish:
-                    TE_basename: "<% task(TE_basename_get).result.stdout %>"
-                on-success:
-                    - send_start_notifier
+vars:
+  - runfolder_name: null
+  - TE_basename: null
 
-            send_start_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: Starting analysis of <% $.TE_basename %>"
-                    body: "<% $.TE_basename %> analysis has been started!"
-                on-success:
-                    - start_script
+tasks:
+  runfolder_directory:
+    action: core.local
+    input:
+      cwd: <% ctx(TE_folder) %>
+      cmd: ls -d */ | sed 's/\///'
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - TE_basename_get
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            start_script:
-                action: ductus.start_bcbio_analysis
-                input:
-                    username: <% $.processing_user %>
-                    private_key: <% $.processing_key %>
-                    hosts: <% $.processing_host %>
-                    panel_name: <% $.runpanel %>
-                    runfolder_directory: <% $.TE_folder %>/<% $.runfolder_name %>
-                    bcbio_version: <% $.bcbio_version %>
-                    timeout: 999999
-                on-success:
-                    - mark_as_finished
+  TE_basename_get:
+    action: core.local
+    input:
+      cwd: <% ctx(TE_folder) %>
+      cmd: basename <% ctx(TE_folder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: TE_basename=<% result().stdout %>
+        do:
+          - start_script
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            mark_as_failed:
-                action: core.http
-                input:
-                    url:  http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
-                    body: '{"state": "error"}'
-                    method: "POST"
-                on-complete:
-                    - fail
+  start_script:
+    action: ductus.start_bcbio_analysis
+    input:
+      username: <% ctx(processing_user) %>
+      private_key: <% ctx(processing_key) %>
+      hosts: <% ctx(processing_host) %>
+      panel_name: <% ctx(runpanel) %>
+      runfolder_directory: <% ctx(TE_folder) %>/<% ctx(runfolder_name) %>
+      bcbio_version: <% ctx(bcbio_version) %>
+      timeout: 999999
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+          - send_start_notifier
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            mark_as_finished:
-                action: core.http
-                input:
-                    url: http://<% $.host %>:<% $.host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
-                    body: '{"state": "done"}'
-                    method: "POST"
+  send_start_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: WP3 -- Starting analysis of <% ctx(TE_basename) %>
+      body: <% ctx(TE_basename) %> analysis has been started!
+    next:
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  mark_as_failed:
+    action: core.http
+    input:
+        url:  http://<% ctx(host) %>:<% ctx(host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
+        body: '{"state": "error"}'
+        method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(host) %>:<% ctx(host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
+      body: '{"state": "done"}'
+      method: "POST"

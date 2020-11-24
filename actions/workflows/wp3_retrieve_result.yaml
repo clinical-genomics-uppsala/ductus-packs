@@ -1,92 +1,112 @@
-version: "2.0" # mistral version
-name: ductus.wp3_retrieve_result
+version: "1.0" # Orquesta version
+
 description: Will rsync result back from cluster
 
-workflows:
-    main:
-        type: direct
-        input:
-            - TE_folder
-            - host
-            - runpanel
-            - mail_lab
-            - transfer_from_host
-            - transfer_from_host_port
-            - transfer_from_user
-            - transfer_from_key
-            - runfolder_api_version
-            - retrieve_result_to_result_location
-        output:
-            output_the_whole_workflow_context: <% $ %>
-        task-defaults:
-            on-error:
-                - mark_as_failed
-        tasks:
-            get_run_year:
-                action: core.local
-                input:
-                    cmd: date "+%Y"
-                publish:
-                    run_year: "<% task(get_run_year).result.stdout %>"
-                on-success:
-                    - TE_basename_get
 
-            TE_basename_get:
-                action: core.local
-                input:
-                    cmd: python -c 'import sys; sys.stdout.write("<% $.TE_folder %>".split("/")[-1])'
-                publish:
-                    TE_basename: "<% task(TE_basename_get).result.stdout %>"
-                on-success:
-                    - mark_as_started
+input:
+  - TE_folder
+  - host
+  - runpanel
+  - mail_lab
+  - transfer_from_host
+  - transfer_from_host_port
+  - transfer_from_user
+  - transfer_from_key
+  - runfolder_api_version
+  - retrieve_result_to_result_location
 
-            mark_as_started:
-                action: core.http
-                input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
-                on-success:
-                    - create_year_folder
+vars:
+  - run_year: null
+  - TE_basename: null
 
-            create_year_folder:
-                action: core.local
-                input:
-                    cwd: <% $.retrieve_result_to_result_location %>/<% $.runpanel %>/Resultat/
-                    cmd: mkdir -p <% $.run_year %>
-                on-success:
-                    - transfer_result
+tasks:
+  get_run_year:
+    action: core.local
+    input:
+      cmd: date "+%Y"
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - TE_basename_get
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            transfer_result:
-                action: core.local
-                input:
-                    timeout: 86400
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.TE_folder %>" -t "<% $.retrieve_result_to_result_location %>/<% $.runpanel %>/Resultat/<% $.run_year %>/" -u <% $.transfer_from_user %> -i <% $.transfer_from_key %> -r <% $.transfer_from_host %> -p 1
-                on-success:
-                    - result_retrieved
-                    - mark_as_finished
+  TE_basename_get:
+    action: core.local
+    input:
+      cmd: python -c 'import sys; sys.stdout.write("<% ctx(TE_folder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: TE_basename=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            mark_as_finished:
-                action: core.http
-                input:
-                    url: http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
-                    body: '{"state": "done"}'
-                    method: "POST"
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(transfer_from_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_year_folder
 
-            mark_as_failed:
-                action: core.http
-                input:
-                    url:  http://<% $.transfer_from_host %>:<% $.transfer_from_host_port %>/api/<% $.runfolder_api_version %>/runfolders/path<% $.TE_folder %>
-                    body: '{"state": "error"}'
-                    method: "POST"
-                on-complete:
-                    - fail
+  create_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
 
-            result_retrieved:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "WP3: <% $.TE_basename %> results transferred"
-                    body: "<% $.TE_basename %> analysis has been finished and transferred to <% $.retrieve_result_to_result_location %>/<% $.runpanel %>/Resultat/<% $.run_year %>/<% $.TE_basename %>!"
+  transfer_result:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(TE_folder) %> -t <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - result_retrieved
+          - mark_as_finished
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(transfer_from_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(transfer_from_host) %>:<% ctx(transfer_from_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  result_retrieved:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: WP3 -- <% ctx(TE_basename) %> results transferred
+      body: <% ctx(TE_basename) %> analysis has been finished and transferred to <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/<% ctx(run_year) %>/<% ctx(TE_basename) %>!

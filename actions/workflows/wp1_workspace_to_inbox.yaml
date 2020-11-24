@@ -1,188 +1,295 @@
-version: "2.0" # mistral version
-name: ductus.wp1_workspace_to_inbox
+version: "1.0" # Orquest version
+
 description: Will rsync new sequence data to moriarty for processing
 
-workflows:
-    main:
-        type: direct
-        input:
-            - runfolder
-            - runfolder_host
-            - runfolder_host_port
-            - api_version
-            - project_type
-            - preprocessing_storage_path
-            - mail_lab
-            - mail_bioinfo
-            - wp1_check_demultiplexing_completed_delay
-            - wp1_num_check_demultiplexing_completed
-            - wp1_check_demultiplexing_retry_delay
-        task-defaults:
-            on-error:
-                - mark_as_failed
-                - molpat_error_notifier
-                - bioinfo_error_notifier
-        tasks:
-            get_csv_file_name:
-                action: core.local
-                input:
-                    cmd: ls *_index.csv | grep -E '^[0-9]+'
-                    cwd: <% $.runfolder %>
-                publish:
-                    csv_file_name: "<% task(get_csv_file_name).result.stdout %>"
-                on-success:
-                    - get_experiment_name
-                on-error:
-                    - missing_csv_file
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - api_version
+  - project_type
+  - preprocessing_storage_path
+  - mail_lab
+  - mail_bioinfo
+  - wp1_check_demultiplexing_completed_delay
+  - wp1_num_check_demultiplexing_completed
+  - wp1_check_demultiplexing_retry_delay
 
-            get_experiment_name:
-                action: core.local
-                wait-before: <% $.wp1_check_demultiplexing_completed_delay %>
-                input:
-                    cmd: echo '<% $.csv_file_name %>' | sed 's/_index\.csv//'
-                publish:
-                    experiment_name: "<% task(get_experiment_name).result.stdout %>"
-                on-success:
-                    - get_runfolder_name
+vars:
+  - csv_file_name: null
+  - experiment_name: null
+  - runfolder_name: null
+  - inbox_folder: null
 
-            get_runfolder_name:
-                action: core.local
-                input:
-                    cmd: ls -d */ | sed 's/\///' | grep -E '^[0-9]+'
-                    cwd: <% $.runfolder %>
-                publish:
-                    runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
-                on-success:
-                    - validate_folder_name
+tasks:
+  get_csv_file_name:
+    action: core.local
+    input:
+      cmd: ls *_index.csv | grep -E '^[0-9]+'
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_file_name=<% result().stdout %>
+        do:
+          - get_experiment_name
+      - when: <% failed() %>
+        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - missing_csv_file
+          - mark_as_failed
 
-            validate_folder_name:
-                action: core.local
-                input:
-                    cmd: echo <% $.runfolder_name %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
-                on-success:
-                    - look_for_complete_file
+  get_experiment_name:
+    action: core.local
+    delay: <% ctx(wp1_check_demultiplexing_completed_delay) %>
+    input:
+      cmd: echo <% ctx(csv_file_name) %> | sed 's/_index\.csv//'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_runfolder_name
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
-            look_for_complete_file:
-                action: core.local
-                input:
-                    cmd: ls <% $.runfolder %>/<% $.runfolder_name %>/Alignment_1/*/CompletedJobInfo.xml
-                retry:
-                    count: <% $.wp1_num_check_demultiplexing_completed %>
-                    delay: <% $.wp1_check_demultiplexing_retry_delay %>
-                on-success:
-                    - mark_as_started
-                on-error:
-                    - completed_job_file_missing
-                    - molpat_error_notifier
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: basename <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - get_machine_type
+      - when: <% failed() %>
+        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
-            mark_as_started:
-                action: core.http
-                input:
-                    url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                    body: '{"state": "started"}'
-                    method: "POST"
-                on-success:
-                    - create_inbox_folder
+  get_machine_type:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: machine_type=<% result().stdout %>
+        do:
+          - validate_folder_name
+      - when: <% failed() %>
+        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - unexpected_machine_type
+          - mark_as_failed
 
-            create_inbox_folder:
-                action: core.local
-                input:
-                  cwd: <% $.preprocessing_storage_path %>/ngs/<% $.project_type %>/INBOX
-                  cmd: mkdir -p <% $.experiment_name %>
-                publish:
-                  inbox_folder : "<% $.preprocessing_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/"
-                on-success:
-                  - transfer_runfolder
+  validate_folder_name:
+    action: core.local
+    input:
+      cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+    next:
+      - when: <% succeeded() and ctx().machine_type = 'MN' %>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/Alignment_*/*/CompletedJobInfo.xml"
+        do:
+          - look_for_complete_file
+      - when: <% succeeded() and ctx().machine_type = 'M0'%>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/CompletedJobInfo.xml"
+        do:
+          - look_for_complete_file
+      - when: <% succeeded() and ctx().machine_type = 'NDX' %>
+        publish: complete_job_file_path="<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
+        do:
+          - look_for_complete_file
+      - when: <% failed() %>
+        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
-            transfer_runfolder:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>" -t "<% $.inbox_folder %>/" -l
-                    timeout: 36000
-                on-success:
-                    - transfer_csv_file
+  look_for_complete_file:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    retry:
+      count: <% ctx(wp1_num_check_demultiplexing_completed) %>
+      delay: <% ctx(wp1_check_demultiplexing_retry_delay) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        do:
+          - completed_job_file_missing
+          - molpat_error_notifier
 
-            transfer_csv_file:
-                action: core.local
-                input:
-                    cwd: /opt/src/ductus-core/ductus/scripts
-                    cmd: python rsync.py -c -f "<% $.runfolder %>/<% $.csv_file_name %>" -t "<% $.inbox_folder %>/" -l
-                    timeout: 3600
-                on-success:
-                    - create_tansfer_complete
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_inbox_folder
+      - when: <% failed() %>
+        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
-            create_tansfer_complete:
-                action: core.local
-                input:
-                    cwd: <% $.inbox_folder %>
-                    cmd: touch TransferComplete.txt
-                    timeout: 3600
-                on-success:
-                   - nextex_moved
+  create_inbox_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX
+      cmd: mkdir -p <% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/"
+        do:
+          - transfer_runfolder
+      - when: <% failed() %>
+        publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
-            completed_job_file_missing:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] -  <% $.runfolder_name %>'"
-                    body: "Couldn't find CompletedJobInfo.xml for <% $.runfolder_name %>"
-                on-complete:
-                    - fail
+  transfer_runfolder:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(inbox_folder) %>/ -l
+      timeout: 36000
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_csv_file
+      - when: <% failed() %>
+        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
-            nextex_moved:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][SUCCESS] - Runfolder, <% $.runfolder %>, moved to inbox'"
-                    body: "Rufolder moved to inbox."
-                on-complete:
-                    - mark_as_finished
+  transfer_csv_file:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(inbox_folder) %>/ -l
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_tansfer_complete
 
-            missing_csv_file:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_lab %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Missing csv file, <% $.experiment_name %>'"
-                    body: "Couldn't locate a csv file in nextseq folder <% $.experiment_name %>"
-                on-complete:
-                    - fail
+  create_tansfer_complete:
+    action: core.local
+    input:
+      cwd: <% ctx(inbox_folder) %>
+      cmd: touch TransferComplete.txt
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - runfolder_moved
+      - when: <% failed() %>
+        publish: failed_step="create_tansfer_complete -- Couldn't create TransferComplete file -- <% ctx(inbox_folder) %>!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
 
-            molpat_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Move failure, <% $.experiment_name %>'"
-                    body: "Something went wrong during the move of data from workspace to inbox, <% $.runfolder %>, <% $.experiment_name %>. A Bioinformatician has been notified."
-                on-complete:
-                    - fail
+  completed_job_file_missing:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] -  <% ctx(runfolder_name) %>"
+      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
-            bioinfo_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Pre-processing, <% $.experiment_name %>'"
-                    body: "Something went wrong during the move of data from workspace to inbox, <% $.runfolder %>, <% $.experiment_name %>."
-                on-complete:
-                    - fail
+  runfolder_moved:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][SUCCESS] - Runfolder, <% ctx(runfolder) %>, moved to inbox"
+      body: Rufolder moved to inbox.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
 
-            mark_as_finished:
-              action: core.http
-              input:
-                  url: http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "done"}'
-                  method: "POST"
 
-            mark_as_failed:
-              action: core.http
-              input:
-                  url:  http://<% $.runfolder_host %>:<% $.runfolder_host_port %>/api/<% $.api_version %>/runfolders/path<% $.runfolder %>
-                  body: '{"state": "error"}'
-                  method: "POST"
-              on-complete:
-                  - fail
+  missing_csv_file:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Missing csv file, <% ctx(experiment_name) %>"
+      body: Couldn't locate a csv file in nextseq folder <% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Move failure, <% ctx(experiment_name) %>"
+      body: "Something went wrong during the move of data from workspace to inbox, <% $.runfolder %>, <% $.experiment_name %>. A Bioinformatician has been notified."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  unexpected_machine_type:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>"
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Incorrect machine typ <% ctx(experiment_name) %>"
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail

@@ -3,7 +3,7 @@ name: pre_process_wp3_data
 description: >
   Pre-process data for wp3......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/pre_process_wp3_data.yaml
 pack: ductus
 parameters:
@@ -21,3 +21,47 @@ parameters:
   host:
     required: true
     type: string
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_runfolder_service_port }}"
+  api_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_runfolder_api_version }}"
+  transfer_to_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_preprocess_transfer_ip }}"
+  transfer_location:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
+  transfer_key:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_preprocess_transfer_key }}"
+  transfer_user:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_preprocess_transfer_user }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
+  wp3_check_demultiplexing_completed_delay:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_check_demultiplexing_completed_delay }}"
+  wp3_num_check_demultiplexing_completed:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_num_check_demultiplexing_completed }}"
+  wp3_check_demultiplexing_retry_delay:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_check_demultiplexing_retry_delay }}"
+  retrieve_result_to_archive_location:
+    required: true
+    type: string
+    default: "{{ config_context.retrieve_result_to_archive_location }}"
