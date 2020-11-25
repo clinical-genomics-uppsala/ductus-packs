@@ -3,7 +3,7 @@ name: process_wp2_inbox_data
 description: >
   Process data for wp2......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/process_wp2_inbox_data.yaml
 pack: ductus
 parameters:

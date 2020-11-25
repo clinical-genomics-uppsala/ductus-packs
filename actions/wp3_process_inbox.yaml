@@ -3,7 +3,7 @@ name: wp3_process_inbox
 description: >
   Start analyze data on facility cluster
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp3_process_inbox.yaml
 pack: ductus
 parameters:

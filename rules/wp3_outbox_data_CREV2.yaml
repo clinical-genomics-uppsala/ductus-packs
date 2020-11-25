@@ -16,5 +16,5 @@ action:
     ref: "ductus.wp3_retrieve_result"
     parameters:
         host: "{{trigger.host}}"
-        SS_folder: "{{trigger.runfolder}}"
+        TE_folder: "{{trigger.runfolder}}"
         runpanel: "CREV2"

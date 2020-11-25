@@ -1,177 +1,267 @@
-version: "2.0" # mistral version
-name: ductus.wp1_archive_data
+version: "1.0" # mistral version
+
 description: Will archive WP1 data, when processing has finished.
 
-workflows:
-    main:
-        type: direct
-        input:
-            - experiment_name
-            - storage_path
-            - project_type
-            - raw_inbox_storage_path
-            - mail_bioinfo
-        task-defaults:
-            on-error:
-                - bioinfo_error_notifier
-        tasks:
-            get_runfolder_name:
-                action: core.local
-                input:
-                  cmd: ls -d */ | sed 's/\///'
-                  cwd: <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>
-                publish:
-                  runfolder_name: "<% task(get_runfolder_name).result.stdout %>"
-                on-success:
-                  - get_run_year
+input:
+    - experiment_name
+    - storage_path
+    - project_type
+    - raw_inbox_storage_path
+    - mail_bioinfo
 
-            get_run_year:
-                action: core.local
-                input:
-                  cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% $.experiment_name %>").group(1))'
-                publish:
-                  run_year: "<% task(get_run_year).result.stdout %>"
-                on-success:
-                  - get_machine_type
-                  - create_year_index_folder
-                  - create_year_runfolder_folder
+vars:
+  - run_year: null
+  - runfolder_name: null
+  - index_folder: null
+  - fastq_folder: null
 
-            get_machine_type:
-                action: core.local
-                input:
-                  cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% $.runfolder_name %>").group(1))'
-                publish:
-                    machine_type: "<% task(get_machine_type).result.stdout %>"
-                on-success:
-                    - create_fastq_sample_folder
+tasks:
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: ls -d */ | sed 's/\///'
+      cwd: <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            create_fastq_sample_folder:
-                action: core.local
-                input:
-                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/fastq
-                  cmd: mkdir -p <% $.run_year %>/<% $.experiment_name %>
-                publish:
-                  fastq_folder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/fastq/<% $.run_year %>/<% $.experiment_name %>/"
-                on-success:
-                  - sync_run_info
+  get_run_year:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - get_machine_type
+          - create_year_index_folder
+          - create_year_runfolder_folder
+      - when: <% failed() %>
+        publish: failed_step='get_run_year  -- Couldn't extract run year from \"<% ctx(experiment_name) %>\", <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            sync_run_info:
-                action: core.local
-                input:
-                  timeout: 86400
-                  cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Run*" -t <% $.fastq_folder %> -l
-                on-success:
-                  - sync_interop
+  get_machine_type:
+    action: core.local
+    input:
+      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: machine_type=<% result().stdout %>
+        do:
+          - create_fastq_sample_folder
+      - when: <% failed() %>
+        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            sync_interop:
-                action: core.local
-                input:
-                  timeout: 86400
-                  cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/InterOp" -t <% $.fastq_folder %> -l
-                on-success:
-                  - sync_miniseq_fastq_files: "{{ _.machine_type == 'MN' }}"
-                  - sync_miseq_fastq_files: "{{ _.machine_type == 'M0' }}"
-                  - sync_nextseq_fastq_files: "{{ _.machine_type == 'NDX' }}"
+  create_fastq_sample_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq
+      cmd: mkdir -p <% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: fastq_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>/"
+        do:
+          - sync_run_info
+      - when: <% failed() %>
+        publish: failed_step="create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            sync_miseq_fastq_files:
-                action: core.local
-                input:
-                  cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% $.fastq_folder %> -l
-                  timeout: 86400
-                on-success:
-                  - archive_done_notifier
+  sync_run_info:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(fastq_folder) %> -l
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_interop
+      - when: <% failed() %>
+        publish: failed_step="sync_run_info  -- Couldn't sync RunInfo, ) , <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            sync_miniseq_fastq_files:
-                action: core.local
-                input:
-                  cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
-                  timeout: 86400
-                on-success:
-                   - archive_done_notifier
+  sync_interop:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/InterOp" -t <% ctx(fastq_folder) %> -l
+    next:
+      - when: <% succeeded() and ctx(machine_type) = 'MN' %>
+        do:
+          - sync_miniseq_fastq_files
+      - when: <% succeeded() and ctx(machine_type) = 'M0' %>
+        do:
+          - sync_miseq_fastq_files
+      - when: <% succeeded() and ctx(machine_type) = 'NDX' %>
+        do:
+          - sync_nextseq_fastq_files
+      - when: <% failed() %>
+        publish: failed_step="sync_interop  -- Couldn't sync InterOp, ) , <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            sync_nextseq_fastq_files:
-                 action: core.local
-                 input:
-                     cwd: /opt/src/ductus-core/ductus/scripts
-                     cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/<% $.runfolder_name %>/<% $.runfolder_name %>/Alignment_*/*/Fastq/*fastq.gz" -t <% $.fastq_folder %> -l
-                     timeout: 86400
-                 on-success:
-                     - archive_done_notifier
+  sync_miseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz" -t <% ctx(fastq_folder) %> -l
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish: failed_step="sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            create_year_index_folder:
-                action: core.local
-                input:
-                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/indexfiles
-                  cmd: mkdir -p <% $.run_year %>
-                publish:
-                  index_folder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/indexfiles/<% $.run_year %>/"
-                on-success:
-                  - sync_index_file
+  sync_miniseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz" -t <% ctx(fastq_folder) %> -l
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish: failed_step="sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            sync_index_file:
-                action: core.local
-                input:
-                  cwd: /opt/src/ductus-core/ductus/scripts
-                  cmd: python rsync.py -c -f "<% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX/<% $.experiment_name %>/*index.csv" -t "<% $.index_folder %>" -l
-                  timeout: 86400
-                on-success:
-                  - archive_done_notifier
+  sync_nextseq_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz" -t <% ctx(fastq_folder) %> -l
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish: failed_step="sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
 
-            create_year_runfolder_folder:
-                action: core.local
-                input:
-                  cwd: <% $.storage_path %>/ngs/<% $.project_type %>/archive/runfolders
-                  cmd: mkdir -p <% $.run_year %>
-                publish:
-                  archive_runfolder: "<% $.storage_path %>/ngs/<% $.project_type %>/archive/runfolders/<% $.run_year %>/"
-                on-success:
-                  - compress_runfolder_folder
+  create_year_index_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: index_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/"
+        do:
+          - sync_index_file
+      - when: <% failed() %>
+        publish: failed_step='create_year_index_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            compress_runfolder_folder:
-                action: core.local
-                input:
-                  cwd: <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX
-                  cmd: tar -zcf <% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz <% $.experiment_name %>
-                  timeout: 86400
-                on-success:
-                  - validate_runfolder_archive
+  sync_index_file:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/*index.csv" -t "<% ctx(index_folder) %>" -l
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish: failed_step='sync_index_file  -- Couldn't sync index file <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/*index.csv, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            validate_runfolder_archive:
-                action: core.local
-                input:
-                  cmd: tar --compare --file=<% $.archive_runfolder %>/<% $.experiment_name %>.tar.gz -C <% $.raw_inbox_storage_path %>/ngs/<% $.project_type %>/INBOX
-                  timeout: 86400
-                on-success:
-                  - create_checksum_for_archive
+  create_year_runfolder_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: archive_runfolder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
+        do:
+          - compress_runfolder_folder
+      - when: <% failed() %>
+        publish: failed_step='create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            create_checksum_for_archive:
-                action: core.local
-                input:
-                  cmd: sha256sum <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz > <% $.archive_runfolder%>/<% $.experiment_name %>.tar.gz.sha256
-                  timeout: 86400
-                on-success:
-                  - archive_done_notifier
+  compress_runfolder_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX
+      cmd: tar -zcf <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz <% ctx(experiment_name) %>
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - validate_runfolder_archive
+      - when: <% failed() %>
+        publish: failed_step='compress_runfolder_folder  -- Couldn't compress folder ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name), <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            archive_done_notifier:
-                join: 3
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][SUCCESS] - Archiving, <% $.experiment_name %>'"
-                    body: "<% $.experiment_name %> has been archived!!!"
+  validate_runfolder_archive:
+    action: core.local
+    input:
+      cmd: tar --compare --file=<% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz -C <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_checksum_for_archive
+      - when: <% failed() %>
+        publish: failed_step='validate_runfolder_archive  -- Couldn't validate compressed folder <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
-            bioinfo_error_notifier:
-                action: core.sendmail
-                input:
-                    to: "<% $.mail_bioinfo %>"
-                    from: "stanley@clinicalgenomics-as.se"
-                    subject: "'[DUCTUS][WP1][ERROR] - Archiving, <% $.runfolder_name %>'"
-                    body: "Something went wrong during the archiving of <% $.runfolder_name %>, please investigate!!!"
-                on-complete:
-                    - fail
+  create_checksum_for_archive:
+    action: core.local
+    input:
+      cmd: sha256sum <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz > <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz.sha256
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish: failed_step='create_checksum_for_archive  -- Couldn't create checksum for compressed folder <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>.tar.gz, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
 
+  archive_done_notifier:
+    join: 3
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][SUCCESS] - Archiving, <% ctx(experiment_name) %>"
+      body: <% ctx(experiment_name) %> has been archived!!!
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: "stanley@clinicalgenomics-as.se"
+      subject: "'[DUCTUS][WP1][ERROR] - Archiving, <% ctx(runfolder_name) %>'"
+      body: Something went wrong during the archiving of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail

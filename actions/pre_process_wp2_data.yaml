@@ -3,7 +3,7 @@ name: pre_process_wp2_data
 description: >
   Pre-process data for wp2......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/pre_process_wp2_data.yaml
 pack: ductus
 parameters:

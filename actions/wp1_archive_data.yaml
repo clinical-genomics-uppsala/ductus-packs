@@ -3,7 +3,7 @@ name: wp1_archive_data
 description: >
   Archive data for wp1......
 enabled: true
-runner_type: mistral-v2
+runner_type: orquesta
 entry_point: workflows/wp1_archive_data.yaml
 pack: ductus
 parameters:
