@@ -57,10 +57,6 @@ parameters:
       required: true
       type: string
       default: TruSight_Myeloid
-  slurm_version:
-    required: true
-    type: string
-    default: "{{ config_context.wp2_slurm_version }}"
   mail_lab:
     required: true
     type: string

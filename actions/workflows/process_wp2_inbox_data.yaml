@@ -13,7 +13,6 @@ input:
     - processing_key
     - processing_user
     - local_folder_prefix
-    - slurm_version
     - mail_lab
     - mail_bioinfo
 
@@ -132,7 +131,6 @@ tasks:
       run_year: <% ctx(run_year) %>
       current_date: <% ctx(run_date) %>
       wp2_trusight_myelod_script_version: "1.0"
-      slurm_version: <% ctx(slurm_version) %>
     next:
       - when: <% succeeded() %>
         do:
