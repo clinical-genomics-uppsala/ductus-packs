@@ -21,50 +21,44 @@
             description: 'SERA version that will be used'
             required: true
             position: 2
-        slurm_version:
-            default: "16.05.2"
-            type: 'string'
-            description: 'slurm version that will be used'
-            required: true
-            position: 3
         input_file_name:
             type: 'string'
             description: 'name of the input file'
             required: true
-            position: 4
+            position: 3
         analysis:
             default: "klinik"
             type: 'string'
             description: 'the analysis type that will be performed'
             required: true
-            position: 5
+            position: 4
         globals:
             default: "MORIARTY"
             type: 'string'
             description: 'config version that will be used'
             required: true
-            position: 6
+            position: 5
         normal:
             default: "annovar"
             type: 'string'
             description: 'normal sample that will be used'
             required: true
-            position: 7
+            position: 6
         project:
             default: "wp1"
             type: 'string'
             description: 'Project that the analysis belong to'
             required: true
-            position: 8
+            position: 7
         project_type:
             default: "klinik"
             type: 'string'
             description: 'Type of project, ex klinik or utveckling'
             required: true
-            position: 9
+            position: 8
         ref_dir:
             default: "/projects/wp1/refFiles_current/refFiles/"
             type: 'string'
             description: 'ref_dir that will be used'
             required: true
-            position: 10
+            position: 9

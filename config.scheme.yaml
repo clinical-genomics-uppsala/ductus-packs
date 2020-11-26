@@ -118,11 +118,6 @@
     type: string
     required: true
     default: "18.0.2"
-  wp1_slurm_version:
-    description: Slurm version that will be loaded.
-    type: string
-    required: true
-    default: "16.05.11"
   wp1_ref_files_location:
     description: The key that will be used transfer data.
     type: string
@@ -196,16 +191,6 @@
       type: string
       required: true
       default: "stanley"
-  wp2_slurm_version:
-    description: Slurm version that will be loaded.
-    type: string
-    required: true
-    default: "16.05.11"
-  wp2_slurm_version:
-    description: Slurm version that will be loaded.
-    type: string
-    required: true
-    default: "16.05.11"
 
   wp2_transfer_from_host_ip:
     description: The host where outbox data will be retrieved.

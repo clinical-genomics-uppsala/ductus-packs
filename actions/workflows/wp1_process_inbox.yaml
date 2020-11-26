@@ -13,7 +13,6 @@ input:
   - processing_user
   - ref_files
   - sera_version
-  - slurm_version
   - mail_lab
   - mail_bioinfo
 
@@ -157,7 +156,6 @@ tasks:
       experiment_name: <% ctx(experiment_name) %>
       year: <% ctx(run_year) %>
       sera_version: <% ctx(sera_version) %>
-      slurm_version: <% ctx(slurm_version) %>
       input_file_name: <% ctx(csv_file_name) %>
       analysis: <% ctx(project_type) %>
       globals: "MORIARTY"

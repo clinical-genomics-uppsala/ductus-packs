@@ -24,9 +24,3 @@
             description: 'version of wp2 truesight myelod script that will be used.'
             required: true
             position: 3
-        slurm_version:
-            default: "16.05.2"
-            type: 'string'
-            description: 'slurm version that will be used'
-            required: true
-            position: 4
