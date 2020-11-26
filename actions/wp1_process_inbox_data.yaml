@@ -53,10 +53,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_sera_version }}"
-  slurm_version:
-    required: true
-    type: string
-    default: "{{ config_context.wp1_slurm_version }}"
   ref_files:
     required: true
     type: string
