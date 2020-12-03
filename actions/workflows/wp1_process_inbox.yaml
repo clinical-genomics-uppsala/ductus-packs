@@ -175,17 +175,7 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  molpat_error_notifier:
-    action: core.sendmail
-    input:
-      to: <% ctx(mail_lab) %>
-      from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP1][ERROR] - SERA processing failure, <% ctx(experiment_name) %>"
-      body: Something went wrong during SERA processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
-    next:
-      - when: <% succeeded() %>
-        do:
-          - fail
+
 
   bioinfo_error_notifier:
     action: core.sendmail
@@ -212,6 +202,19 @@ tasks:
       url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "error"}'
       method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+          - molpat_error_notifier
+
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP1][ERROR] - SERA processing failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during SERA processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
