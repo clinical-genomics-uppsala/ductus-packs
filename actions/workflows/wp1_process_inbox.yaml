@@ -158,7 +158,7 @@ tasks:
       sera_version: <% ctx(sera_version) %>
       input_file_name: <% ctx(csv_file_name) %>
       analysis: <% ctx(project_type) %>
-      globals: "MORIARTY"
+      globals: "MARVIN"
       normal: "annovar"
       project: "wp1"
       project_type: <% ctx(project_type) %>
@@ -172,8 +172,6 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
-
-
 
   bioinfo_error_notifier:
     action: core.sendmail
