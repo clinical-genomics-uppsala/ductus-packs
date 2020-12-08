@@ -186,7 +186,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -220,7 +220,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -277,7 +277,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -294,7 +294,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -311,7 +311,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>

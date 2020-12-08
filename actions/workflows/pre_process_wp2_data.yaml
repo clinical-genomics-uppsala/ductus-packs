@@ -163,7 +163,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(alignment_folder) %>/*.bam* -t <% ctx(transfer_to_location) %>/<% ctx(project_type) %>/INBOX/<% ctx(analysis_folder_name) %>/bam/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(alignment_folder) %>/*.bam*' -t <% ctx(transfer_to_location) %>/<% ctx(project_type) %>/INBOX/<% ctx(analysis_folder_name) %>/bam/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -179,7 +179,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(alignment_folder) %>/*.vcf* -t <% ctx(transfer_to_location) %>/<% ctx(project_type) %>/INBOX/<% ctx(analysis_folder_name) %>/bam/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python rsync.py -c -f '<% ctx(alignment_folder) %>/*.vcf*' -t <% ctx(transfer_to_location) %>/<% ctx(project_type) %>/INBOX/<% ctx(analysis_folder_name) %>/bam/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
