@@ -81,7 +81,7 @@ tasks:
     input:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Run* -t <% ctx(fastq_folder) %> -l
+      cmd: python rsync.py -c -f '<% ctx(raw_inbox_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(fastq_folder) %> -l
     next:
       - when: <% succeeded() %>
         do:
