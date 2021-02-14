@@ -24,11 +24,11 @@ parameters:
   runfolder_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_address }}"
+    default: "{{ config_context.wp1_preprocess_runfolder_service_address }}"
   runfolder_host_port:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_port }}"
+    default: "{{ config_context.wp1_preprocess_runfolder_service_port }}"
   api_version:
     required: true
     type: string

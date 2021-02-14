@@ -10,11 +10,11 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "/wp1/ngs/klinik/INBOX"
+      pattern: "/wp1/ngs/preprocessing/klinik/INBOX"
 
 action:
     ref: "ductus.wp1_preprocess_inbox"
     parameters:
         runfolder: "{{trigger.runfolder}}"
-        runfolder_host: "{{trigger.host }}"
+        runfolder_host: "{{trigger.host}}"
         project_type: "klinik"

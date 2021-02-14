@@ -75,7 +75,7 @@ tasks:
   get_machine_type:
     action: core.local
     input:
-      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: machine_type=<% result().stdout %>
@@ -147,15 +147,15 @@ tasks:
   create_inbox_folder:
     action: core.local
     input:
-      cwd: <% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX
+      cwd: <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX
       cmd: mkdir -p <% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/"
+        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/"
         do:
           - transfer_runfolder
       - when: <% failed() %>
-        publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -164,14 +164,14 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(inbox_folder) %>/ -l
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(inbox_folder) %>/ -l
       timeout: 36000
     next:
       - when: <% succeeded() %>
         do:
           - transfer_csv_file
       - when: <% failed() %>
-        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -180,7 +180,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(inbox_folder) %>/ -l
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(inbox_folder) %>/ -l
       timeout: 3600
     next:
       - when: <% succeeded() %>

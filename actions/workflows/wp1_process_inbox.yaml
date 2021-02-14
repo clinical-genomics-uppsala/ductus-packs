@@ -25,7 +25,7 @@ tasks:
   get_experiment_name:
     action: core.local
     input:
-      cmd: python -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
     next:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
@@ -40,7 +40,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>

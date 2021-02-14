@@ -23,7 +23,7 @@ tasks:
   get_experiment_name:
     action: core.local
     input:
-      cmd: python -c "import sys; sys.stdout.write(\"<% ctx(runfolder) %>\".split('/')[-1])"
+      cmd: python3 -c "import sys; sys.stdout.write(\"<% ctx(runfolder) %>\".split('/')[-1])"
     next:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
@@ -39,7 +39,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z]{2}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
+      cmd: python3 -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z]{2}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
@@ -89,7 +89,7 @@ tasks:
     input:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
     next:
       - when: <% succeeded() %>
         do:

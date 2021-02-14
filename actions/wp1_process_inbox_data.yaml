@@ -24,11 +24,11 @@ parameters:
   runfolder_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_address }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_service_address }}"
   runfolder_host_port:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_port }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_service_port }}"
   runfolder_api_version:
     required: true
     type: string
@@ -44,7 +44,7 @@ parameters:
   processing_key:
     required: true
     type: string
-    default: "{{ config_context.wp1_processing_key }}"
+    default: "{{ config_context.wp1_processing_host_key }}"
   processing_user:
     required: true
     type: string
