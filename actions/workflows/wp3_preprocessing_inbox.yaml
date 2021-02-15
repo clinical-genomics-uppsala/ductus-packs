@@ -7,6 +7,8 @@ input:
     - host
     - host_port
     - runfolder_api_version
+    - preprocessing_runfolder_ip
+    - preprocessing_runfolder_port
     - transfer_to_host
     - transfer_to_location
     - transfer_to_key
@@ -184,8 +186,8 @@ tasks:
       action: core.local
       input:
         cwd: /opt/src/ductus-core/ductus/scripts
-        cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq/" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2 ; done
-        timeout: 99999
+        cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq/" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2 ; done
+        #timeout: 99999
       next:
         - when: <% succeeded() %>
           do:
@@ -198,7 +200,7 @@ tasks:
     action: core.local
     input:
         cwd: /opt/src/ductus-core/ductus/scripts
-        cmd: python rsync.py -c -f "<% ctx(runfolder) %>/SampleSheet_TE.csv" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+        cmd: python3 rsync.py -c -f "<% ctx(runfolder) %>/SampleSheet_TE.csv" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
         timeout: 99999
     next:
       - when: <% succeeded() %>
@@ -265,7 +267,7 @@ tasks:
       action: core.local
       input:
           cwd: /opt/src/ductus-core/ductus/scripts
-          cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
+          cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
           timeout: 36000
       next:
         - when: <% succeeded() %>
@@ -305,14 +307,14 @@ tasks:
   mark_as_finished:
     action: core.http
     input:
-      url: http://inbox:<% ctx(host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(preprocessing_runfolder_ip) %>:<% ctx(preprocessing_runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "done"}'
       method: "POST"
 
   mark_as_failed:
     action: core.http
     input:
-      url:  http://inbox:<% ctx(host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url:  http://<% ctx(preprocessing_runfolder_ip) %>:<% ctx(preprocessing_runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "error"}'
       method: "POST"
     next:

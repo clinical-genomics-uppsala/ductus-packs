@@ -264,6 +264,16 @@
       type: string
       required: true
       default: "klinsek-sureselect-analysis@googlegroups.com"
+  wp3_preprocessing_runfolder_port:
+      description: Post used send requests to the runfolder service, for wp3
+      type: string
+      required: true
+      default: "10812"
+  wp3_preprocessing_runfolder_ip:
+      description: Address used send requests to the runfolder service, for wp3
+      type: string
+      required: true
+      default: "inbox"
   wp3_runfolder_service_port:
       description: Port that will be used to send requests to the runfolder service, for wp1
       type: string
