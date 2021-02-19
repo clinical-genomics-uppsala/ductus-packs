@@ -29,26 +29,34 @@ parameters:
         required: true
         type: string
         default: "{{ config_context.wp3_runfolder_service_port }}"
-    mail_lab:
+    preprocessing_runfolder_ip:
         required: true
         type: string
-        default: "{{ config_context.wp3_notification_mail_lab }}"
+        default: "{{ config_context.wp3_preprocessing_runfolder_ip }}"
+    preprocessing_runfolder_port:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocessing_runfolder_port }}"
     transfer_to_host:
         required: true
         type: string
         default: "{{ config_context.wp3_preprocess_transfer_ip }}"
-    transfer_to_user:
-        required: true
-        type: string
-        default: "{{ config_context.wp3_preprocess_transfer_user}}"
-    transfer_to_key:
-        required: true
-        type: string
-        default: "{{ config_context.wp3_preprocess_transfer_key }}"
     transfer_to_location:
         required: true
         type: string
         default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
+    transfer_to_key:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_key }}"
+    transfer_to_user:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_preprocess_transfer_user}}"
+    mail_lab:
+        required: true
+        type: string
+        default: "{{ config_context.wp3_notification_mail_lab }}"
     demultiplexing_completed_delay:
         required: true
         type: integer

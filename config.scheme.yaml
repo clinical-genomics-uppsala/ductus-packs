@@ -40,6 +40,16 @@
     required: true
     default: 300
 
+  wp1_process_inbox_runfolder_service_address:
+    description: Location on transfer host where data will be stored.
+    type: string
+    required: true
+    default: "/projects/wp1/nobackup"
+  wp1_process_inbox_runfolder_service_port:
+    description: The host where pre-process data should be pushed to.
+    type: string
+    required: true
+    default: "10800"
   wp1_process_local_prefix_location:
     description: Local folder-prefix used during processing.
     type: string
@@ -103,13 +113,23 @@
     type: string
     required: true
     default: "bio@googlegroups.com"
-  wp1_runfolder_service_port:
+  wp1_preprocess_runfolder_service_port:
     description: Port that will be used to send requests to the runfolder service, for wp1
     type: string
     required: true
     default: "10800"
-  wp1_runfolder_service_address:
+  wp1_workspace_runfolder_service_port:
+    description: Port that will be used to send requests to the preprocess runfolder service, for wp1
+    type: string
+    required: true
+    default: "10810"
+  wp1_preprocess_runfolder_service_address:
     description: Address that will be used to send requests to the runfolder service, for wp1
+    type: string
+    required: true
+    default: "wp1runfolder"
+  wp1_workspace_runfolder_service_address:
+    description: Address that will be used to send requests to the preprocessing runfolder service, for wp1
     type: string
     required: true
     default: "wp1runfolder"
@@ -244,6 +264,16 @@
       type: string
       required: true
       default: "klinsek-sureselect-analysis@googlegroups.com"
+  wp3_preprocessing_runfolder_port:
+      description: Post used send requests to the runfolder service, for wp3
+      type: string
+      required: true
+      default: "10812"
+  wp3_preprocessing_runfolder_ip:
+      description: Address used send requests to the runfolder service, for wp3
+      type: string
+      required: true
+      default: "inbox"
   wp3_runfolder_service_port:
       description: Port that will be used to send requests to the runfolder service, for wp1
       type: string
