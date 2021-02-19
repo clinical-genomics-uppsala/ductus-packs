@@ -1,0 +1,99 @@
+version: "1.0" # Orquest version
+
+description: Will process data written to Workarea by Illumina machines
+
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - api_version
+  - project_type
+  - preprocessing_storage_path
+  - mail_lab
+  - mail_bioinfo
+  - wp1_check_demultiplexing_completed_delay
+  - wp1_num_check_demultiplexing_completed
+  - wp1_check_demultiplexing_retry_delay
+
+vars:
+  - csv_file_name: null
+  - experiment_name: null
+  - runfolder_name: null
+  - inbox_folder: null
+
+tasks:
+  get_csv_file_name:
+    action: core.local
+    input:
+      cmd: ls *_index.csv | grep -E '^[0-9]+'
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: csv_file_name=<% result().stdout %>
+        do:
+          - get_runfolder_name
+      - when: <% failed() %>
+        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  parse_samplesheet:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python -c 'from ductuscore.tools.utils import  extract_analysis_information; extract_analysis_information(<% ctx(csv_file_name) %>)'
+    #next:
+    #  - when: <% succeeded() %>
+    #    do:
+    #      - result_retrieved
+    #      - mark_as_finished
+    #  - when: <% failed() %>
+    #    publish: failed_step='transfer_result  -- Couldn't transfer result, <% result().stdout %>, <% result().stderr %>'
+    #    do:
+    #      - bioinfo_error_notifier
+    #      - mark_as_failed
+    #      - wp2_error_notifier
+
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  unexpected_machine_type:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>"
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Incorrect machine typ <% ctx(experiment_name) %>"
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
