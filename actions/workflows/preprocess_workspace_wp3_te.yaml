@@ -1,0 +1,307 @@
+version: "1.0" # Orquest version
+
+description: Will rsync new sequence data to compute for processing
+
+input:
+  - runfolder
+  - runfolder_name
+  - samplesheet_file
+  - fastq_files_path
+  - machine_type
+  - preprocessing_storage_path
+  - transfer_to_host
+  - transfer_to_location
+  - transfer_to_key
+  - transfer_to_user
+  - runfolder_host
+  - runfolder_host_port
+  - runfolder_api_version
+  - mail_lab
+  - mail_bioinfo
+  - retrieve_result_to_archive_location
+
+vars:
+  - TE_name: null
+  - TE_folder: null
+  - runpanel: null
+  - runfolder_name: null
+  - run_year: null
+
+tasks:
+  dos2unix:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: dos2unix -n <% ctx(samplesheet_file)%> SampleSheet.temp.csv && mv -f SampleSheet.temp.csv SampleSheet.csv
+    next:
+      - when: <% succeeded %>
+        do:
+          - extract_TE_header_SampleSheet
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  extract_TE_header_SampleSheet:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: sed '/Sample_ID/q' SampleSheet.csv > SampleSheet_TE.csv
+    next:
+      - when: <% succeeded %>
+        do:
+          - extract_TE_samples_SampleSheet
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  extract_TE_samples_SampleSheet:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: grep ",TE$" SampleSheet.csv >> SampleSheet_TE.csv
+    next:
+      - when: <% succeeded %>
+        do:
+          - get_TE_number
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  get_TE_number:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ '{print $4}' | tail -1
+    next:
+      - when: <% succeeded %>
+        publish: TE_name="TE<% result().stdout %>_"
+        do:
+          - concatenate_TE_name_and_date
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  concatenate_TE_name_and_date:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: pwd | xargs basename | awk -F_ '{print $1}'
+    next:
+      - when: <% succeeded() %>
+        publish: TE_folder="<% ctx(TE_name) %><% result().stdout %>"
+        do:
+          - get_runpanel
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  get_runpanel:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: if grep -i -q ",TE$" SampleSheet_TE.csv ; then echo "TWIST" ; fi
+    next:
+      - when: <% succeeded() %>
+        publish: runpanel=<% result().stdout %>
+        do:
+          - get_runfolder_name
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  get_runfolder_name:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: pwd | xargs basename
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - create_TE_folder_on_moriarty
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  create_TE_folder_on_moriarty:
+    action: core.remote
+    input:
+      username: <% ctx(transfer_to_user) %>
+      private_key: <% ctx(transfer_to_key) %>
+      cwd: <% ctx(transfer_to_location) %>/<% ctx(runpanel) %>/INBOX
+      cmd: mkdir -p <% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - send_mail
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  send_mail:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: WP3 -- Start transfer of <% ctx(TE_folder) %> to Moriarty
+      body: Transfer of <% ctx(TE_folder) %> has been executed!
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_fastq
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  transfer_fastq:
+      action: core.local
+      input:
+        cwd: /opt/src/ductus-core/ductus/scripts
+        cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq/" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2 ; done
+        timeout: 99999
+      next:
+        - when: <% succeeded() %>
+          do:
+            - transfer_SampleSheet
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  transfer_SampleSheet:
+    action: core.local
+    input:
+        cwd: /opt/src/ductus-core/ductus/scripts
+        cmd: python3 rsync.py -c -f "<% ctx(runfolder) %>/SampleSheet_TE.csv" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+        timeout: 99999
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  create_transfer_complete_file:
+      action: core.remote
+      input:
+        username: <% ctx(transfer_to_user) %>
+        private_key: <% ctx(transfer_to_key) %>
+        cwd: <% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/
+        cmd: touch Done.txt
+        hosts: <% ctx(transfer_to_host) %>
+      next:
+        - when: <% succeeded() %>
+          do:
+            - get_run_year
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  get_run_year:
+      action: core.local
+      input:
+        cmd: date "+%Y"
+      next:
+        - when: <% succeeded() %>
+          publish: run_year=<% result().stdout %>
+          do:
+            - prepare_transfer_of_fastq_to_archive
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  prepare_transfer_of_fastq_to_archive:
+      action: core.local
+      input:
+        cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq
+      next:
+        - when: <% succeeded() %>
+          do:
+            - prepare_transfer_of_runfolder_to_archive
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  prepare_transfer_of_runfolder_to_archive:
+      action: core.local
+      input:
+          cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>
+      next:
+        - when: <% succeeded() %>
+          do:
+            - transfer_fastq_to_archive
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  transfer_fastq_to_archive:
+      action: core.local
+      input:
+          cwd: /opt/src/ductus-core/ductus/scripts
+          cmd: for sample in $(grep ",TE$" <% ctx(runfolder) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
+          timeout: 36000
+      next:
+        - when: <% succeeded() %>
+          do:
+            - transfer_runfolder_to_archive
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  transfer_runfolder_to_archive:
+      action: core.local
+      input:
+        cmd: ls -1 -IAlignment_1 <% ctx(runfolder) %>/ | while read file ; do rsync -azh "<% ctx(runfolder) %>/${file}" "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>/" ; done
+        timeout: 36000
+      next:
+        - when: <% succeeded() %>
+          do:
+            - compress_runfolder
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  compress_runfolder:
+      action: core.local
+      input:
+        cwd: <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/
+        cmd: tar -czf <% ctx(runfolder_name) %>.tar.gz --remove-files <% ctx(runfolder_name) %>
+        timeout: 36000
+      next:
+        - when: <% succeeded() %>
+          do:
+            - mark_as_finished
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - wp3_error_notifier
+
+  wp3_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "WP3 ERROR (<% ctx(runfolder) %>): Transfer stopped."
+      body: "Transfer of  <% ctx(runfolder) %> has been stopped. Please consult bioinformaticians."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail

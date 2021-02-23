@@ -58,7 +58,7 @@ tasks:
   get_machine_type:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX|NB).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: machine_type=<% result().stdout %>
@@ -74,7 +74,7 @@ tasks:
   validate_folder_name:
     action: core.local
     input:
-      cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_[0-9]*_[A-Z0-9-]*$/ {exit(1)}'
+      cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_([0-9]*|RUO_[0-9]*)_[A-Z0-9-]*$/ {exit(1)}'
     next:
       - when: <% succeeded() and ctx().machine_type = 'MN' %>
         publish:
@@ -92,19 +92,35 @@ tasks:
           #- interop_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp"
         do:
           - look_for_complete_file
-      - when: <% succeeded() and ctx().machine_type = 'NDX' %>
+      - when: <% succeeded() and (ctx().machine_type = 'NDX' or ctx().machine_type = 'NB') %>
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq"
           #- run_info_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>"
           #- interop_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp"
         do:
-          - look_for_complete_file
+          - test_complete_jobininfo_location_nextseq
       - when: <% failed() %>
         publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+
+
+  test_complete_jobininfo_location_nextseq:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    next:
+      - when:  <% failed() %>
+        publish:
+          - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
+          - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
+        do:
+          - look_for_complete_file
+      - when: <% succeeded() %>
+        do:
+          - look_for_complete_file
 
   look_for_complete_file:
     action: core.local
@@ -160,7 +176,7 @@ tasks:
       machine_type: <% ctx(machine_type) %>
       runfolder_host: <% ctx(runfolder_host) %>
       runfolder_host_port: <% ctx(runfolder_host_port) %>
-      api_version: <% ctx(api_version) %>
+      runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
 
   wp2_tm:
@@ -184,10 +200,23 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - bioinfo_error_notifier
+          - wp3_preprocess_data
           - runfolder_found
       - when: <% failed() %>
         do: noop
+
+  wp3_preprocess_data:
+    action: ductus.preprocess_workspace_wp3_te
+    input:
+      runfolder: <% ctx(runfolder) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      samplesheet_file: <% ctx(csv_file_name) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
+      machine_type: <% ctx(machine_type) %>
+      runfolder_host: <% ctx(runfolder_host) %>
+      runfolder_host_port: <% ctx(runfolder_host_port) %>
+      runfolder_api_version: <% ctx(api_version) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
 
   runfolder_found:
     join: 1

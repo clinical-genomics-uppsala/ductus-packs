@@ -1,6 +1,6 @@
 version: "1.0" # Orquest version
 
-description: Will rsync new sequence data to moriarty for sera processing
+description: Will rsync new sequence data to compute for sera processing
 
 input:
   - runfolder
@@ -10,12 +10,12 @@ input:
   - machine_type
   - preprocessing_storage_path
   - transfer_to_host
-  - transfer_location
-  - transfer_key
-  - transfer_user
+  - transfer_to_location
+  - transfer_to_key
+  - transfer_to_user
   - runfolder_host
   - runfolder_host_port
-  - api_version
+  - runfolder_api_version
   - mail_lab
   - mail_bioinfo
 
@@ -91,9 +91,9 @@ tasks:
   create_raw_folder_on_compute:
     action: core.remote
     input:
-      username: <% ctx(transfer_user) %>
-      private_key: <% ctx(transfer_key) %>
-      cwd: <% ctx(transfer_location) %>/ngs/
+      username: <% ctx(transfer_to_user) %>
+      private_key: <% ctx(transfer_to_key) %>
+      cwd: <% ctx(transfer_to_location) %>/ngs/
       cmd: for type in <% ctx(project_types) %>; do mkdir -p $type/INBOX/<% ctx(experiment_name) %>/raw; done
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
@@ -116,7 +116,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f '<% ctx(runfolder) %>/Run*' -t <% ctx(transfer_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f '<% ctx(runfolder) %>/Run*' -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -133,7 +133,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/InterOp -t <% ctx(transfer_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/InterOp -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
       timeout: 60
     next:
       - when: <% succeeded() %>
@@ -150,7 +150,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(sample_index_file) %> -t <% ctx(transfer_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(sample_index_file) %> -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -167,7 +167,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -188,12 +188,12 @@ tasks:
           python3 -c 'from ductus.tools.wrappers import Rsync;
           from ductus.tools.utils import get_samples_and_project;
           [Rsync(from_path="<% ctx(fastq_files_path) %>/" + sample + "*fastq.gz",
-          to_path="<% ctx(transfer_location) %>/ngs/" + project_type + "/INBOX/<% ctx(experiment_name) %>/raw",
+          to_path="<% ctx(transfer_to_location) %>/ngs/" + project_type + "/INBOX/<% ctx(experiment_name) %>/raw",
           remote_address="<% ctx(transfer_to_host) %>",
-          user="<% ctx(transfer_user) %>",
+          user="<% ctx(transfer_to_user) %>",
           from_is_remote=2,
           repeat=20,
-          identity_file="<% ctx(transfer_key) %>",
+          identity_file="<% ctx(transfer_to_key) %>",
           checksum_validate=True,
           preserve_permissions=False,
           local_sync=False).execute()
@@ -204,7 +204,7 @@ tasks:
         do:
           - create_transfer_complete_file
       - when: <% failed() %>
-        publish: failed_step="transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish: failed_step="transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -214,9 +214,9 @@ tasks:
     action: core.remote
     join: all
     input:
-      username: <% ctx(transfer_user) %>
-      private_key: <% ctx(transfer_key) %>
-      cwd: <% ctx(transfer_location) %>/ngs/
+      username: <% ctx(transfer_to_user) %>
+      private_key: <% ctx(transfer_to_key) %>
+      cwd: <% ctx(transfer_to_location) %>/ngs/
       cmd: for project_type in <% ctx(project_types) %>; do echo "`date`" > ${project_type}/INBOX/<% ctx(experiment_name) %>/Done.txt; done
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
