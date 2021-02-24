@@ -187,10 +187,23 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - bioinfo_error_notifier
           - runfolder_found
+          - wp2_preprocess_data
       - when: <% failed() %>
         do: noop
+
+  wp2_preprocess_data:
+    action: ductus.preprocess_workspace_wp2_tm
+    input:
+      runfolder: <% ctx(runfolder) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      samplesheet_file: <% ctx(csv_file_name) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
+      machine_type: <% ctx(machine_type) %>
+      runfolder_host: <% ctx(runfolder_host) %>
+      runfolder_host_port: <% ctx(runfolder_host_port) %>
+      runfolder_api_version: <% ctx(api_version) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
 
   wp3_te:
     action: core.local

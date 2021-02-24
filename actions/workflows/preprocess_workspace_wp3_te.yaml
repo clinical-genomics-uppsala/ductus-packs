@@ -8,7 +8,6 @@ input:
   - samplesheet_file
   - fastq_files_path
   - machine_type
-  - preprocessing_storage_path
   - transfer_to_host
   - transfer_to_location
   - transfer_to_key

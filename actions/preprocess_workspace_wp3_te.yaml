@@ -30,10 +30,6 @@ parameters:
   machine_type:
     required: true
     type: string
-  preprocessing_storage_path:
-    required: true
-    type: string
-    default: "{{ config_context.wp1_preprocess_storage_path }}"
   runfolder_host:
     required: true
     type: string
