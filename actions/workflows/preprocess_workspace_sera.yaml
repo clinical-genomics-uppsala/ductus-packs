@@ -238,11 +238,11 @@ tasks:
   old_create_inbox_folder:
     action: core.local
     input:
-      cwd: <% ctx(preprocessing_storage_path) %>/klinik/INBOX
+      cwd: <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX
       cmd: mkdir -p <% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/klinik/INBOX/<% ctx(experiment_name) %>/"
+        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX/<% ctx(experiment_name) %>/"
         do:
           - old_transfer_runfolder
       - when: <% failed() %>
