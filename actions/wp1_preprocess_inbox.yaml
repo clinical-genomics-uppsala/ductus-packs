@@ -32,7 +32,7 @@ parameters:
   api_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_api_version }}"
+    default: "{{ config_context.wp1_preprocess_runfolder_api_version }}"
   transfer_to_host:
     required: true
     type: string
