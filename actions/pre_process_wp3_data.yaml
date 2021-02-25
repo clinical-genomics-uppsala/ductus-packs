@@ -64,4 +64,4 @@ parameters:
   retrieve_result_to_archive_location:
     required: true
     type: string
-    default: "{{ config_context.retrieve_result_to_archive_location }}"
+    default: "{{ config_context.wp3_retrieve_result_to_archive_location }}"

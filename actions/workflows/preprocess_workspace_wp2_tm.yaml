@@ -1,0 +1,201 @@
+version: "1.0" # Orquest version
+
+description: Will rsync new sequence data to compute for processing
+
+input:
+  - runfolder
+  - runfolder_name
+  - samplesheet_file
+  - fastq_files_path
+  - machine_type
+  - transfer_to_host
+  - transfer_to_location
+  - transfer_to_key
+  - transfer_to_user
+  - runfolder_host
+  - runfolder_host_port
+  - runfolder_api_version
+  - mail_lab
+  - mail_bioinfo
+  - retrieve_result_to_archive_location
+
+vars:
+  - transfer_folder: null
+  - mod_sameplsheet_name: null
+
+tasks:
+  dos2unix:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: dos2unix -n <% ctx(samplesheet_file)%> SampleSheet.dos2unix.csv
+    next:
+      - when: <% succeeded %>
+        do:
+          - extract_TM_header_SampleSheet
+      - when: <% failed() %>
+        do:
+          - mark_as_failed
+
+  extract_TM_header_SampleSheet:
+     action: core.local
+     input:
+       cwd: <% ctx(runfolder) %>
+       cmd: sed '/Sample_ID/q' SampleSheet.dos2unix.csv > SampleSheet_TM.csv
+     next:
+       - when: <% succeeded %>
+         do:
+           - extract_TM_samples_SampleSheet
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  extract_TM_samples_SampleSheet:
+     action: core.local
+     input:
+       cwd: <% ctx(runfolder) %>
+       cmd: grep ",TM$" SampleSheet.dos2unix.csv >> SampleSheet_TM.csv
+     next:
+       - when: <% succeeded %>
+         publish: mod_sameplsheet_name="SampleSheet_TM.csv"
+         do:
+           - create_folder_on_compute
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  create_folder_on_compute:
+     action: core.remote
+     input:
+       username: <% ctx(transfer_to_user) %>
+       private_key: <% ctx(transfer_to_key) %>
+       cwd: <% ctx(transfer_to_location) %>/Twist_Myeloid/Workarea
+       cmd: mkdir -p <% ctx(runfolder_name) %>/fastq
+       hosts: <% ctx(transfer_to_host) %>
+     next:
+       - when: <% succeeded() %>
+         publish: transfer_folder="<% ctx(transfer_to_location) %>/Twist_Myeloid/Workarea/<% ctx(runfolder_name) %>"
+         do:
+           - send_mail
+           - transfer_fastq_files
+           - transfer_SampleSheet
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  send_mail:
+     action: core.sendmail
+     input:
+       to: <% ctx(mail_lab) %>
+       from: stanley@clinicalgenomics-as.se
+       subject: WP2 -- Start transfer of <% ctx(runfolder_name) %> to Compute
+       body: Transfer of <% ctx(runfolder_name) %> has been executed!
+     next:
+       - when: <% succeeded() %>
+         do:
+           - create_transfer_complete_file
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  transfer_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core
+      cmd: >
+          python3 -c 'from ductus.tools.wrappers import Rsync;
+          from ductus.tools.utils import get_samples_and_project;
+          [Rsync(from_path="<% ctx(fastq_files_path) %>/" + sample + "*fastq.gz",
+          to_path="<% ctx(transfer_folder) %>/fastq",
+          remote_address="<% ctx(transfer_to_host) %>",
+          user="<% ctx(transfer_to_user) %>",
+          from_is_remote=2,
+          repeat=20,
+          identity_file="<% ctx(transfer_to_key) %>",
+          checksum_validate=True,
+          preserve_permissions=False,
+          local_sync=False).execute()
+           for sample, project_type in get_samples_and_project("wp2","tm", "<% ctx(runfolder) %>/<% ctx(mod_sameplsheet_name) %>")]'
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        publish: failed_step="transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  transfer_SampleSheet:
+     action: core.local
+     input:
+         cwd: /opt/src/ductus-core/ductus/scripts
+         cmd: python3 rsync.py -c -f "<% ctx(runfolder) %>/<% ctx(mod_sameplsheet_name) %>" -t "<% ctx(transfer_folder) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+         timeout: 99999
+     next:
+       - when: <% succeeded() %>
+         do:
+           - create_transfer_complete_file
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  create_transfer_complete_file:
+       action: core.remote
+       input:
+         username: <% ctx(transfer_to_user) %>
+         private_key: <% ctx(transfer_to_key) %>
+         cwd: <% ctx(transfer_folder) %>/
+         cmd: touch Done.txt
+         hosts: <% ctx(transfer_to_host) %>
+       next:
+         - when: <% succeeded() %>
+           do:
+             - mark_as_finished
+         - when: <% failed() %>
+           do:
+             - mark_as_failed
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - wp2_error_notifier
+
+  wp2_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "WP2 ERROR (<% ctx(runfolder) %>): Transfer stopped."
+      body: "Transfer of  <% ctx(runfolder) %> has been stopped. Please consult bioinformaticians."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ERROR] - Pre-processing, <% ctx(runfolder) %>"
+      body: Something went wrong during the pre-processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail

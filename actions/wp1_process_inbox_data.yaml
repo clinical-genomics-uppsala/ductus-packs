@@ -32,7 +32,7 @@ parameters:
   runfolder_api_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_api_version }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_api_version }}"
   local_folder_prefix:
     required: true
     type: string
