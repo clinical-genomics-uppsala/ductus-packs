@@ -14,7 +14,9 @@ input:
 
 vars:
   - csv_file_name: null
+  - run_year: null
   - experiment_name: null
+  - runfolder_path: null
   - runfolder_name: null
   - inbox_folder: null
   - failed_step: null
@@ -48,9 +50,24 @@ tasks:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
         do:
-          - get_machine_type
+          - get_runfolder_path
       - when: <% failed() %>
         publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  get_runfolder_path:
+    action: core.local
+    input:
+      cmd: dirname <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_path=<% result().stdout %>
+        do:
+          - get_machine_type
+      - when: <% failed() %>
+        publish: failed_step="get_runfolder_name  -- Couldn't get dir name for <% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -169,7 +186,7 @@ tasks:
   wp1_preprocess_sera_data:
     action: ductus.preprocess_workspace_sera
     input:
-      runfolder: <% ctx(runfolder) %>
+      runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
       samplesheet_file: <% ctx(csv_file_name) %>
       fastq_files_path: <% ctx(fastq_files_path) %>
@@ -178,6 +195,7 @@ tasks:
       runfolder_host_port: <% ctx(runfolder_host_port) %>
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
+
 
   wp2_tm:
     action: core.local
@@ -195,7 +213,7 @@ tasks:
   wp2_preprocess_data:
     action: ductus.preprocess_workspace_wp2_tm
     input:
-      runfolder: <% ctx(runfolder) %>
+      runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
       samplesheet_file: <% ctx(csv_file_name) %>
       fastq_files_path: <% ctx(fastq_files_path) %>
@@ -221,7 +239,7 @@ tasks:
   wp3_preprocess_data:
     action: ductus.preprocess_workspace_wp3_te
     input:
-      runfolder: <% ctx(runfolder) %>
+      runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
       samplesheet_file: <% ctx(csv_file_name) %>
       fastq_files_path: <% ctx(fastq_files_path) %>

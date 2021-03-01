@@ -1,0 +1,38 @@
+---
+name: archive_runfolder_and_fastq
+description: >
+  Archive runfolder and fastq
+enabled: true
+runner_type: orquesta
+entry_point: workflows/archive_runfolder_and_fastq.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.archive_runfolder_and_fastq
+    immutable: true
+    type: string
+  runfolder_path:
+    required: true
+    type: string
+  runfolder_name:
+    required: true
+    type: string
+  project_type:
+    required: true
+    type: string
+  storage_path_runfolder:
+    required: true
+    type: string
+  fastq_path:
+    required: true
+    type: string
+  storage_path_fastq:
+    required: true
+    type: string
+  mail_bioinfo:
+    required: true
+    type: string

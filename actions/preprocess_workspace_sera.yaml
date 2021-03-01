@@ -15,7 +15,7 @@ parameters:
     default: ductus.preprocess_workspace_sera
     immutable: true
     type: string
-  runfolder:
+  runfolder_path:
     required: true
     type: string
   runfolder_name:

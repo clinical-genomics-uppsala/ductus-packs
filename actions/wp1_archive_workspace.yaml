@@ -1,0 +1,39 @@
+---
+name: wp1_archive_workspace
+description: >
+  Archive WP1 workspace data
+enabled: true
+runner_type: orquesta
+entry_point: workflows/wp1_archive_workspace.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.wp1_archive_workspace
+    immutable: true
+    type: string
+  runfolder_name:
+    required: true
+    type: string
+  runfolder_path:
+    required: true
+    type: string
+  storage_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_fetch_to_prefix }}"
+  run_year:
+    required: true
+    type: integer
+  project_type:
+    required: true
+    type: string
+  mail_bioinfo:
+    required: true
+    type: string
+  mail_bioinfo:
+    required: true
+    type: string

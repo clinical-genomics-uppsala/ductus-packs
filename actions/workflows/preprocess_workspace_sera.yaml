@@ -3,12 +3,12 @@ version: "1.0" # Orquest version
 description: Will rsync new sequence data to compute for sera processing
 
 input:
-  - runfolder
+  - runfolder_path
   - runfolder_name
   - samplesheet_file
   - fastq_files_path
   - machine_type
-  - preprocessing_storage_path
+  - storage_path
   - transfer_to_host
   - transfer_to_location
   - transfer_to_key
@@ -24,20 +24,21 @@ vars:
   - experiment_name: null
   - inbox_folder: null
   - project_types: null
+  - run_year: null
 
 tasks:
   get_sample_index_file_name:
     action: core.local
     input:
       cmd: ls *_index.csv | grep -E '^[0-9]+'
-      cwd: <% ctx(runfolder) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
     next:
       - when: <% succeeded() %>
         publish: sample_index_file=<% result().stdout %>
         do:
           - get_experiment_name
       - when: <% failed() %>
-        publish: failed_step="get_sample_index_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish: failed_step="get_sample_index_file_name  -- Couldn't locate a csv file in folder <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -75,26 +76,28 @@ tasks:
   get_project_types:
     action: core.local
     input:
-      cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import print_project_types; print_project_types("wp1", "sera", "<% ctx(samplesheet_file) %>")'
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      cmd: python3 -c 'from ductus.tools.utils import get_project_types; import json; print(json.dumps(list(get_project_types("wp1", "sera", "<% ctx(samplesheet_file) %>"))))'
     next:
       - when: <% succeeded() %>
         publish: project_types=<% result().stdout %>
         do:
           - create_raw_folder_on_compute
       - when: <% failed() %>
-        publish: failed_step='get_project_types  -- Couldn't extract project types \"<% ctx(experiment_name) %>\", <% result().stdout %>, <% result().stderr %>'
+        publish: failed_step='get_project_types  -- Couldn't extract project types \"<% ctx(runfolder_name) %>\", <% result().stdout %>, <% result().stderr %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
 
   create_raw_folder_on_compute:
+    with:
+      items: <% ctx(project_types) %>
     action: core.remote
     input:
       username: <% ctx(transfer_to_user) %>
       private_key: <% ctx(transfer_to_key) %>
       cwd: <% ctx(transfer_to_location) %>/ngs/
-      cmd: for type in <% ctx(project_types) %>; do mkdir -p $type/INBOX/<% ctx(experiment_name) %>/raw; done
+      cmd: mkdir -p <% item() %>/INBOX/<% ctx(experiment_name) %>/raw
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
     next:
@@ -113,10 +116,12 @@ tasks:
          - mark_as_failed
 
   transfer_runinfo_files:
+    with:
+      items: <% ctx(project_types) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f '<% ctx(runfolder) %>/Run*' -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_to_location) %>/ngs/<% item() %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -130,10 +135,12 @@ tasks:
           - mark_as_failed
 
   transfer_interop_files:
+    with:
+      items: <% ctx(project_types) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/InterOp -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_to_location) %>/ngs/<% item() %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
       timeout: 60
     next:
       - when: <% succeeded() %>
@@ -147,10 +154,12 @@ tasks:
           - mark_as_failed
 
   transfer_sample_index_file:
+    with:
+      items: <% ctx(project_types) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(sample_index_file) %> -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(sample_index_file) %> -t <% ctx(transfer_to_location) %>/ngs/<% item() %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -164,10 +173,12 @@ tasks:
           - mark_as_failed
 
   transfer_samplesheet_file:
+    with:
+      items: <% ctx(project_types) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: for project_type in <% ctx(project_types) %>; do python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_to_location) %>/ngs/${project_type}/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2; done
+      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_to_location) %>/ngs/<% item() %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -197,7 +208,7 @@ tasks:
           checksum_validate=True,
           preserve_permissions=False,
           local_sync=False).execute()
-           for sample, project_type in get_samples_and_project("wp1","sera", "<% ctx(runfolder) %>/<% ctx(samplesheet_file) %>")]'
+           for sample, project_type in get_samples_and_project("wp1","sera", "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %>")]'
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -211,20 +222,22 @@ tasks:
           - mark_as_failed
 
   create_transfer_complete_file:
+    with:
+      items: <% ctx(project_types) %>
     action: core.remote
     join: all
     input:
       username: <% ctx(transfer_to_user) %>
       private_key: <% ctx(transfer_to_key) %>
       cwd: <% ctx(transfer_to_location) %>/ngs/
-      cmd: for project_type in <% ctx(project_types) %>; do echo "`date`" > ${project_type}/INBOX/<% ctx(experiment_name) %>/Done.txt; done
+      cmd: echo "`date`" > <% item() %>/INBOX/<% ctx(experiment_name) %>/Done.txt;
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
     next:
       - when: <% succeeded() %>
         do:
           #- mark_as_finished
-          - old_create_inbox_folder
+          - archive_runfolder_data
       - when: <% failed() %>
         publish: failed_step="create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
         do:
@@ -232,61 +245,84 @@ tasks:
           - molpat_error_notifier
           - mark_as_failed
 
-#######################################################
-# Can be removed when archive steps have been updated, only works for klinik
-#######################################################
-  old_create_inbox_folder:
-    action: core.local
+  archive_runfolder_data:
+    with:
+      items: <% ctx(project_types) %>
+    action: ductus.wp1_archive_workspace
     input:
-      cwd: <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX
-      cmd: mkdir -p <% ctx(experiment_name) %>
-    next:
-      - when: <% succeeded() %>
-        publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX/<% ctx(experiment_name) %>/"
-        do:
-          - old_transfer_runfolder
-      - when: <% failed() %>
-        publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/klinik/INBOX/<% ctx(experiment_name) %>/!"
-        do:
-          - bioinfo_error_notifier
-          - molpat_error_notifier
-
-  old_transfer_runfolder:
-    action: core.local
-    input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(inbox_folder) %>/ -l
-      timeout: 36000
-    next:
-      - when: <% succeeded() %>
-        do:
-          - old_transfer_csv_file
-      - when: <% failed() %>
-        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/klinik/INBOX/<% ctx(experiment_name) %>/!"
-        do:
-          - bioinfo_error_notifier
-          - molpat_error_notifier
-
-  old_transfer_csv_file:
-    action: core.local
-    input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(sample_index_file) %> -t <% ctx(inbox_folder) %>/ -l
-      timeout: 3600
+      runfolder_name: <% ctx(runfolder_path) %>
+      runfolder_path: <% ctx(runfolder_name) %>
+      storage_path: <% item() %>
+      run_year: <% ctx(run_year) %>
+      project_type: <% item() %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
-
-##################################################################3
-
+        #- old_create_inbox_folder
+      - when: <% failed() %>
+        publish: failed_step="archive_runfolder_data -- Couldn't couldn't archive runfolder <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+#
+# #######################################################
+# # Can be removed when archive steps have been updated, only works for klinik
+# #######################################################
+#   old_create_inbox_folder:
+#     action: core.local
+#     input:
+#       cwd: <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX
+#       cmd: mkdir -p <% ctx(experiment_name) %>
+#     next:
+#       - when: <% succeeded() %>
+#         publish: inbox_folder="<% ctx(preprocessing_storage_path) %>/ngs/preprocessing/klinik/INBOX/<% ctx(experiment_name) %>/"
+#         do:
+#           - old_transfer_runfolder
+#       - when: <% failed() %>
+#         publish: failed_step="create_inbox_folder -- Couldn't create experiment folder:<% ctx(preprocessing_storage_path) %>/klinik/INBOX/<% ctx(experiment_name) %>/!"
+#         do:
+#           - bioinfo_error_notifier
+#           - molpat_error_notifier
+#
+#   old_transfer_runfolder:
+#     action: core.local
+#     input:
+#       cwd: /opt/src/ductus-core/ductus/scripts
+#       cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %><% ctx(runfolder_name) %> -t <% ctx(inbox_folder) %>/ -l
+#       timeout: 36000
+#     next:
+#       - when: <% succeeded() %>
+#         do:
+#           - old_transfer_csv_file
+#       - when: <% failed() %>
+#         publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/klinik/INBOX/<% ctx(experiment_name) %>/!"
+#         do:
+#           - bioinfo_error_notifier
+#           - molpat_error_notifier
+#
+#   old_transfer_csv_file:
+#     action: core.local
+#     input:
+#       cwd: /opt/src/ductus-core/ductus/scripts
+#       cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %><% ctx(runfolder_name) %>/<% ctx(sample_index_file) %> -t <% ctx(inbox_folder) %>/ -l
+#       timeout: 3600
+#     next:
+#       - when: <% succeeded() %>
+#         do:
+#           - mark_as_finished
+#
+# ##################################################################3
+#
   molpat_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Move failure, <% ctx(experiment_name) %>"
-      body: "Something went wrong during the move of data from workspace to inbox, <% ctx(runfolder) %>, <% ctx(experiment_name) %>. A Bioinformatician has been notified."
+      body: "Something went wrong during the move of data from workspace to inbox, <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>, <% ctx(experiment_name) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
         do:
@@ -307,14 +343,14 @@ tasks:
   mark_as_finished:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %><% ctx(runfolder_name) %>
       body: '{"state": "done"}'
       method: "POST"
 
   mark_as_failed:
     action: core.http
     input:
-      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       body: '{"state": "error"}'
       method: "POST"
     next:
