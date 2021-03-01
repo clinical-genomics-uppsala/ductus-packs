@@ -15,10 +15,19 @@ parameters:
     default: ductus.wp1_archive_workspace
     immutable: true
     type: string
+  samplesheet_file:
+    required: true
+    type: string
+  experiment_name:
+    required: true
+    type: string
   runfolder_name:
     required: true
     type: string
   runfolder_path:
+    required: true
+    type: string
+  fastq_files_path:
     required: true
     type: string
   storage_path:

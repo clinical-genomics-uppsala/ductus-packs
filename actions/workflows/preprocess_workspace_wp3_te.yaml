@@ -23,14 +23,13 @@ vars:
   - TE_name: null
   - TE_folder: null
   - runpanel: null
-  - runfolder_name: null
   - run_year: null
 
 tasks:
   dos2unix:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: dos2unix -n <% ctx(samplesheet_file)%> SampleSheet.temp.csv && mv -f SampleSheet.temp.csv SampleSheet.csv
     next:
       - when: <% succeeded %>
@@ -43,7 +42,7 @@ tasks:
   extract_TE_header_SampleSheet:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: sed '/Sample_ID/q' SampleSheet.csv > SampleSheet_TE.csv
     next:
       - when: <% succeeded %>
@@ -56,7 +55,7 @@ tasks:
   extract_TE_samples_SampleSheet:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: grep ",TE$" SampleSheet.csv >> SampleSheet_TE.csv
     next:
       - when: <% succeeded %>
@@ -69,7 +68,7 @@ tasks:
   get_TE_number:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: sed -n '/Sample_ID/{ :a; n; p; ba; }' SampleSheet_TE.csv | awk -F, '{print $3}' | awk -F_ '{print $4}' | tail -1
     next:
       - when: <% succeeded %>
@@ -83,7 +82,7 @@ tasks:
   concatenate_TE_name_and_date:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: pwd | xargs basename | awk -F_ '{print $1}'
     next:
       - when: <% succeeded() %>
@@ -97,7 +96,7 @@ tasks:
   get_runpanel:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: if grep -i -q ",TE$" SampleSheet_TE.csv ; then echo "TWIST" ; fi
     next:
       - when: <% succeeded() %>
@@ -111,7 +110,7 @@ tasks:
   get_runfolder_name:
     action: core.local
     input:
-      cwd: <% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       cmd: pwd | xargs basename
     next:
       - when: <% succeeded() %>
@@ -157,7 +156,7 @@ tasks:
       action: core.local
       input:
         cwd: /opt/src/ductus-core/ductus/scripts
-        cmd: for sample in $(grep ",TE$" <% ctx(runfolder_path) %><% ctx(runfolder_name) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder_path) %><% ctx(runfolder_name) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq/" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2 ; done
+        cmd: for sample in $(grep ",TE$" <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/Alignment_1/dummy/Fastq/" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2 ; done
         timeout: 99999
       next:
         - when: <% succeeded() %>
@@ -171,7 +170,7 @@ tasks:
     action: core.local
     input:
         cwd: /opt/src/ductus-core/ductus/scripts
-        cmd: python3 rsync.py -c -f "<% ctx(runfolder_path) %><% ctx(runfolder_name) %>/SampleSheet_TE.csv" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+        cmd: python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/SampleSheet_TE.csv" -t "<% ctx(transfer_to_location) %><% ctx(runpanel) %>/INBOX/<% ctx(TE_folder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
         timeout: 99999
     next:
       - when: <% succeeded() %>
@@ -238,7 +237,7 @@ tasks:
       action: core.local
       input:
           cwd: /opt/src/ductus-core/ductus/scripts
-          cmd: for sample in $(grep ",TE$" <% ctx(runfolder_path) %><% ctx(runfolder_name) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder_path) %><% ctx(runfolder_name) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
+          cmd: for sample in $(grep ",TE$" <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
           timeout: 36000
       next:
         - when: <% succeeded() %>
@@ -251,7 +250,7 @@ tasks:
   transfer_runfolder_to_archive:
       action: core.local
       input:
-        cmd: ls -1 -IAlignment_1 <% ctx(runfolder_path) %><% ctx(runfolder_name) %>/ | while read file ; do rsync -azh "<% ctx(runfolder_path) %><% ctx(runfolder_name) %>/${file}" "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>/" ; done
+        cmd: ls -1 -IAlignment_1 <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/ | while read file ; do rsync -azh "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/${file}" "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>/" ; done
         timeout: 36000
       next:
         - when: <% succeeded() %>
@@ -278,14 +277,14 @@ tasks:
   mark_as_finished:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       body: '{"state": "done"}'
       method: "POST"
 
   mark_as_failed:
     action: core.http
     input:
-      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       body: '{"state": "error"}'
       method: "POST"
     next:
@@ -298,8 +297,8 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "WP3 ERROR (<% ctx(runfolder_path) %><% ctx(runfolder_name) %>): Transfer stopped."
-      body: "Transfer of  <% ctx(runfolder_path) %><% ctx(runfolder_name) %> has been stopped. Please consult bioinformaticians."
+      subject: "WP3 ERROR (<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>): Transfer stopped."
+      body: "Transfer of  <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %> has been stopped. Please consult bioinformaticians."
     next:
       - when: <% succeeded() %>
         do:

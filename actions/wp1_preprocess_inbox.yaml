@@ -49,6 +49,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_preprocess_transfer_user }}"
+  storage_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_fetch_to_prefix }}"
   mail_lab:
     required: true
     type: string

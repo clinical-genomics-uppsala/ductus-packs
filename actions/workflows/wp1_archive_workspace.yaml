@@ -3,9 +3,11 @@ version: "1.0" # mistral version
 description: Will Wp1 workspace data
 
 input:
+    - samplesheet_file
+    - experiment_name
     - runfolder_name
     - runfolder_path
-    - fastq_file_path
+    - fastq_files_path
     - storage_path
     - run_year
     - project_type
@@ -14,20 +16,26 @@ input:
 vars:
   - index_folder: null
   - fastq_folder: null
+  - stderr: null
 
 tasks:
   create_fastq_sample_folder:
     action: core.local
     input:
       cwd: <% ctx(storage_path) %>/ngs/
-      cmd: mkdir -p <% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %>
+      cmd: mkdir -p <% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: fastq_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>
-        #do:
-        #  - sync_run_info
+        publish: fastq_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - sync_run_info
+          - sync_interop
+          - create_year_index_folder
+          - create_year_runfolder_folder
       - when: <% failed() %>
-        publish: failed_step="create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
 
@@ -40,9 +48,11 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - sync_interop
+          - archive_done_notifier
       - when: <% failed() %>
-        publish: failed_step="sync_run_info  -- Couldn't sync RunInfo, ) , <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "sync_run_info  -- Couldn't sync RunInfo, ) , <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
 
@@ -53,11 +63,13 @@ tasks:
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/InterOp" -t <% ctx(fastq_folder) %> -l
     next:
-      - when:
+      - when: <% succeeded() %>
         do:
-          - create_year_index_folder
+          - archive_done_notifier
       - when: <% failed() %>
-        publish: failed_step="sync_interop  -- Couldn't sync InterOp, ) , <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %> %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "sync_interop  -- Couldn't sync InterOp, ) , <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
 
@@ -72,7 +84,9 @@ tasks:
         do:
           - sync_index_file
       - when: <% failed() %>
-        publish: failed_step='create_year_index_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/, <% result().stdout %>, <% result().stderr %>'
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_year_index_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/"
         do:
           - bioinfo_error_notifier
 
@@ -85,9 +99,11 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_year_runfolder_folder
+          - archive_done_notifier
       - when: <% failed() %>
-        publish: failed_step='sync_index_file  -- Couldn't sync index file <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/*index.csv, <% result().stdout %>, <% result().stderr %>'
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "sync_index_file  -- Couldn't sync index file <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/*index.csv"
         do:
           - bioinfo_error_notifier
 
@@ -98,22 +114,25 @@ tasks:
       cmd: mkdir -p <% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
-        publish: archive_runfolder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
+        publish: archive_runfolder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>"
         do:
           - archive_fastq_and_runfolder
       - when: <% failed() %>
-        publish: failed_step='create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/, <% result().stdout %>, <% result().stderr %>'
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
         do:
           - bioinfo_error_notifier
 
   archive_fastq_and_runfolder:
     action: ductus.archive_runfolder_and_fastq
     input:
-      runfolder_path: <% ctx(runfolder) %>
+      samplesheet_file: <% ctx(samplesheet_file) %>
+      runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
       project_type: <% ctx(project_type) %>
       storage_path_runfolder: <% ctx(archive_runfolder) %>
-      fastq_path: <% ctx(fastq_file_path) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
       storage_path_fastq: <% ctx(fastq_folder) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
@@ -121,12 +140,14 @@ tasks:
         do:
           - archive_done_notifier
       - when: <% failed() %>
-        publish: failed_step='archive_fastq_and_runfolder  -- Couldn't archive fastq and runfolder <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>'
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "archive_fastq_and_runfolder  -- Couldn't archive fastq and runfolder <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
 
   archive_done_notifier:
-    join: 3
+    join: all
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
@@ -140,8 +161,11 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: "stanley@clinicalgenomics-as.se"
       subject: "'[DUCTUS][WP1][ERROR] - Archiving, <% ctx(runfolder_name) %>'"
-      body: Something went wrong during the archiving of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+      body: Something went wrong during the archiving of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
           - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
