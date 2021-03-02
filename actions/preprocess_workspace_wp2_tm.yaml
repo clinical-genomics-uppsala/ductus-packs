@@ -66,3 +66,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_notification_mail_bioinfo }}"
+  archive_location:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_archive_location }}"

@@ -18,6 +18,9 @@ parameters:
   samplesheet_file:
     required: true
     type: string
+  compress_runfolder_name:
+    required: true
+    type: string
   runfolder_path:
     required: true
     type: string

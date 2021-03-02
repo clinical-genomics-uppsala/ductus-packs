@@ -4,6 +4,7 @@ description: Will archive data runfolders and fastq files
 
 input:
     - samplesheet_file
+    - compress_runfolder_name
     - runfolder_path
     - runfolder_name
     - project_type
@@ -30,7 +31,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_project_types  -- Couldn't extract samples <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/"
+          - failed_step: "get_project_types  -- Could not extract samples <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/"
         do:
           - bioinfo_error_notifier
 
@@ -49,7 +50,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "sync_miseq_fastq_files -- Couldn't archive fastq files <% ctx(fastq_files_path) %>"
+          - failed_step: "sync_miseq_fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
         do:
           - bioinfo_error_notifier
 
@@ -57,7 +58,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder_path) %>/
-      cmd: tar --exclude="*.fastq.gz" -zcf  <% ctx(storage_path_runfolder) %>/<% ctx(runfolder_name) %>.tar.gz <% ctx(runfolder_name) %>
+      cmd: tar --exclude="*.fastq.gz" -zcf  <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz <% ctx(runfolder_name) %>
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -73,7 +74,7 @@ tasks:
   validate_runfolder_archive:
     action: core.local
     input:
-      cmd: tar --compare --file=<% ctx(storage_path_runfolder) %>/<% ctx(runfolder_name) %>.tar.gz -C <% ctx(runfolder_path) %>
+      cmd: tar --compare --file=<% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz -C <% ctx(runfolder_path) %>
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -82,7 +83,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "validate_runfolder_archive  -- Couldn't validate compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(runfolder_name) %>.tar.gz"
+          - failed_step: "validate_runfolder_archive  -- Could not validate compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz"
         do:
           - bioinfo_error_notifier
 
@@ -90,7 +91,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(storage_path_runfolder) %>
-      cmd: sha256sum <% ctx(runfolder_name) %>.tar.gz > <% ctx(runfolder_name) %>.tar.gz.sha256
+      cmd: sha256sum <% ctx(compress_runfolder_name) %>.tar.gz > <% ctx(compress_runfolder_name) %>.tar.gz.sha256
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -99,7 +100,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_checksum_for_archive  -- Couldn't create checksum for compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(runfolder_name) %>.tar.gz"
+          - failed_step: "create_checksum_for_archive  -- Could not create checksum for compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz"
         do:
           - bioinfo_error_notifier
 
@@ -115,7 +116,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_archived_folder  -- Couldn't create folder <% ctx(runfolder_path) %>/archived_runfolder"
+          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
         do:
           - bioinfo_error_notifier
 
@@ -128,7 +129,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_archived_folder  -- Couldn't create folder <% ctx(runfolder_path) %>/archived_runfolder"
+          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
         do:
           - bioinfo_error_notifier
 
@@ -145,4 +146,4 @@ tasks:
           - fail
 
 output:
-  - stderr: <% ctx(stderr) %
+  - stderr: <% ctx(stderr) %>

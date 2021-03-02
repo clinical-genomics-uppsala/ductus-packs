@@ -24,6 +24,7 @@ vars:
   - fastq_files_path: null
   - run_info_path: null
   - interop_path: null
+  - stderr: null
 
 tasks:
   check_for_samplesheet:
@@ -38,7 +39,7 @@ tasks:
           - get_runfolder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result().error %>
           - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -55,7 +56,7 @@ tasks:
           - get_runfolder_path
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result().error %>
           - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -72,7 +73,7 @@ tasks:
           - get_machine_type
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result().error %>
           - failed_step: "get_runfolder_name  -- Couldn't get dir name for <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -89,7 +90,7 @@ tasks:
           - validate_folder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result().error %>
           - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -121,7 +122,7 @@ tasks:
           - test_complete_jobininfo_location_nextseq
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result().error %>
           - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -200,13 +201,12 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
-      when: <% failed() %>
-      publish:
-        - stderr: <% result().output.stderr %>
-        - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
-      do:
-        - fail
-
+      - when: <% failed() %>
+        publish:
+         - stderr: <% result().output.stderr %>
+         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+        do:
+         - fail
 
   wp2_tm:
     action: core.local
@@ -234,12 +234,12 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
-      when: <% failed() %>
-      publish:
-        - stderr: <% result().output.stderr %>
-        - faild_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
-      do:
-        - fail
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - faild_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
+        do:
+          - fail
 
   wp3_te:
     action: core.local
@@ -267,12 +267,12 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
-      when: <% failed() %>
-      publish:
-        - stderr: <% result().output.stderr %>
-        - faild_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
-      do:
-        - fail
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - faild_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
+        do:
+          - fail
 
   runfolder_found:
     join: 1
@@ -327,4 +327,4 @@ tasks:
           - fail
 
 output:
-  - stderr: <% ctx(stderr) %
+  - stderr: <% ctx(stderr) %>

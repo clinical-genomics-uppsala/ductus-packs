@@ -41,7 +41,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_sample_index_file_name  -- Couldn't locate a csv file in folder <% ctx(runfolder_name) %>"
+          - failed_step: "get_sample_index_file_name  -- Could not locate a csv file in folder <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -58,7 +58,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'get_experiment_name  -- Couldn't get experiment name'
+          - failed_step: "get_experiment_name  -- Could not get experiment name"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -75,7 +75,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_run_year  -- Couldn't extract run year from \"<% ctx(experiment_name) %>\""
+          - failed_step: "get_run_year  -- Could not extract run year from \"<% ctx(experiment_name) %>\""
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -93,7 +93,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_project_types  -- Couldn't extract project types \"<% ctx(runfolder_name) %>\""
+          - failed_step: "get_project_types  -- Could not extract project types \"<% ctx(runfolder_name) %>\""
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -120,7 +120,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_raw_folder_on_compute  -- Couldn't create raw folder on <% ctx(transfer_to_host) %>"
+          - failed_step: "create_raw_folder_on_compute  -- Could not create raw folder on <% ctx(transfer_to_host) %>"
         do:
          - bioinfo_error_notifier
          - molpat_error_notifier
@@ -141,7 +141,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
+          - failed_step: "transfer_runinfo_files  -- Could not transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -162,7 +162,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "transfer_interop_files  -- Couldn't transfer interop_files to <% ctx(transfer_to_host) %>"
+          - failed_step: "transfer_interop_files  -- Could not transfer interop_files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -183,7 +183,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "transfer_csv_file -- Couldn't transfer csv to <% ctx(transfer_to_host) %>"
+          - failed_step: "transfer_csv_file -- Could not transfer csv to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -204,7 +204,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "transfer_csv_file -- Couldn't transfer csv to <% ctx(transfer_to_host) %>"
+          - failed_step: "transfer_csv_file -- Could not transfer csv to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -236,7 +236,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
+          - failed_step: "transfer_fastq_files -- Could not transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -257,12 +257,12 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          #- mark_as_finished
+          - mark_as_finished
           - archive_runfolder_data
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>"
+          - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -290,7 +290,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
-          - failed_step: "archive_runfolder_data -- Couldn't couldn't archive runfolder <% ctx(runfolder_name) %>"
+          - failed_step: "archive_runfolder_data -- Could not  archive runfolder <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -339,4 +339,4 @@ tasks:
           - fail
 
 output:
-  - stderr: <% ctx(stderr) %
+  - stderr: <% ctx(stderr) %>

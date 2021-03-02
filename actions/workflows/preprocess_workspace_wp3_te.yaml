@@ -24,6 +24,9 @@ vars:
   - TE_folder: null
   - runpanel: null
   - run_year: null
+  - archive_fastq_folder: null
+  - archive_runfolder: null
+  - stderr: null
 
 tasks:
   dos2unix:
@@ -215,6 +218,7 @@ tasks:
         cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq
       next:
         - when: <% succeeded() %>
+          publish: archive_fastq_folder="<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq"
           do:
             - prepare_transfer_of_runfolder_to_archive
         - when: <% failed() %>
@@ -227,52 +231,35 @@ tasks:
           cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>
       next:
         - when: <% succeeded() %>
+          publish: archive_runfolder="<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>"
           do:
-            - transfer_fastq_to_archive
+            - archive_fastq_and_runfolder
         - when: <% failed() %>
           do:
             - mark_as_failed
 
-  transfer_fastq_to_archive:
-      action: core.local
-      input:
-          cwd: /opt/src/ductus-core/ductus/scripts
-          cmd: for sample in $(grep ",TE$" <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/SampleSheet_TE.csv | awk -F, '{print $1}') ; do python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq/${sample}*" -t "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Fastq/" -l; done
-          timeout: 36000
-      next:
-        - when: <% succeeded() %>
-          do:
-            - transfer_runfolder_to_archive
-        - when: <% failed() %>
-          do:
-            - mark_as_failed
-
-  transfer_runfolder_to_archive:
-      action: core.local
-      input:
-        cmd: ls -1 -IAlignment_1 <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/ | while read file ; do rsync -azh "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/${file}" "<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>/" ; done
-        timeout: 36000
-      next:
-        - when: <% succeeded() %>
-          do:
-            - compress_runfolder
-        - when: <% failed() %>
-          do:
-            - mark_as_failed
-
-  compress_runfolder:
-      action: core.local
-      input:
-        cwd: <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/
-        cmd: tar -czf <% ctx(runfolder_name) %>.tar.gz --remove-files <% ctx(runfolder_name) %>
-        timeout: 36000
-      next:
-        - when: <% succeeded() %>
-          do:
-            - mark_as_finished
-        - when: <% failed() %>
-          do:
-            - mark_as_failed
+  archive_fastq_and_runfolder:
+    action: ductus.archive_runfolder_and_fastq
+    input:
+      samplesheet_file: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/SampleSheet_TE.csv
+      compress_runfolder_name: <% ctx(runfolder_name) %>
+      runfolder_path: <% ctx(runfolder_path) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      project_type: "klinik"
+      storage_path_runfolder: <% ctx(archive_runfolder) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
+      storage_path_fastq: <% ctx(archive_fastq_folder) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "archive_fastq_and_runfolder  -- Couldn't archive fastq and runfolder <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
 
   mark_as_finished:
     action: core.http
@@ -303,3 +290,27 @@ tasks:
       - when: <% succeeded() %>
         do:
           - fail
+
+  archive_done_notifier:
+    join: all
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP3][SUCCESS] - Archiving, <% ctx(runfolder_name) %>"
+      body: <% ctx(runfolder_name) %> has been archived!!!
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP3][ERROR] - Pre-processing, <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
