@@ -37,7 +37,9 @@ tasks:
         do:
           - get_runfolder_name
       - when: <% failed() %>
-        publish: failed_step="get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -52,7 +54,9 @@ tasks:
         do:
           - get_runfolder_path
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -67,7 +71,9 @@ tasks:
         do:
           - get_machine_type
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get dir name for <% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get dir name for <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -82,7 +88,9 @@ tasks:
         do:
           - validate_folder_name
       - when: <% failed() %>
-        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - unexpected_machine_type
@@ -97,28 +105,24 @@ tasks:
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
-          #- run_info_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>"
-          #- interop_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp"
         do:
           - look_for_complete_file
       - when: <% succeeded() and ctx().machine_type = 'M0'%>
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/Data/Intensities/BaseCalls"
-          #- run_info_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>"
-          #- interop_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp"
         do:
           - look_for_complete_file
       - when: <% succeeded() and (ctx().machine_type = 'NDX' or ctx().machine_type = 'NB') %>
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq"
-          #- run_info_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>"
-          #- interop_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp"
         do:
           - test_complete_jobininfo_location_nextseq
       - when: <% failed() %>
-        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -195,6 +199,13 @@ tasks:
       runfolder_host_port: <% ctx(runfolder_host_port) %>
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      when: <% failed() %>
+      publish:
+        - stderr: <% result().output.stderr %>
+        - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+      do:
+        - fail
 
 
   wp2_tm:
@@ -222,6 +233,13 @@ tasks:
       runfolder_host_port: <% ctx(runfolder_host_port) %>
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      when: <% failed() %>
+      publish:
+        - stderr: <% result().output.stderr %>
+        - faild_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
+      do:
+        - fail
 
   wp3_te:
     action: core.local
@@ -248,6 +266,13 @@ tasks:
       runfolder_host_port: <% ctx(runfolder_host_port) %>
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      when: <% failed() %>
+      publish:
+        - stderr: <% result().output.stderr %>
+        - faild_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
+      do:
+        - fail
 
   runfolder_found:
     join: 1
@@ -288,14 +313,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>
-
-  #mark_as_finished:
-  #  action: core.http
-  #  input:
-  #    url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
-  #    body: '{"state": "done"}'
-  #    method: "POST"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
 
   mark_as_failed:
     action: core.http
@@ -307,3 +325,6 @@ tasks:
       - when: <% succeeded() %>
         do:
           - fail
+
+output:
+  - stderr: <% ctx(stderr) %
