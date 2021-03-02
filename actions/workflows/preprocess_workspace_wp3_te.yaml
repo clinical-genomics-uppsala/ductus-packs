@@ -228,10 +228,10 @@ tasks:
   prepare_transfer_of_runfolder_to_archive:
       action: core.local
       input:
-          cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>
+          cmd: mkdir -p <% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder
       next:
         - when: <% succeeded() %>
-          publish: archive_runfolder="<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder/<% ctx(runfolder_name) %>"
+          publish: archive_runfolder="<% ctx(retrieve_result_to_archive_location) %>/TWIST/Resultat/<% ctx(run_year) %>/<% ctx(TE_folder) %>/Runfolder"
           do:
             - archive_fastq_and_runfolder
         - when: <% failed() %>
