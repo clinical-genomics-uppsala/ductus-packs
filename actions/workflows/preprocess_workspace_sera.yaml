@@ -281,6 +281,8 @@ tasks:
       storage_path: <% ctx(storage_path) %>
       run_year: <% ctx(run_year) %>
       project_type: <% item() %>
+      analysis: "sera"
+      wp: "wp1"
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
       - when: <% succeeded() %>

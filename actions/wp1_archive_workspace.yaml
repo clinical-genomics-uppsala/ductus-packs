@@ -40,7 +40,10 @@ parameters:
   project_type:
     required: true
     type: string
-  mail_bioinfo:
+  analysis:
+    required: true
+    type: string
+  wp:
     required: true
     type: string
   mail_bioinfo:

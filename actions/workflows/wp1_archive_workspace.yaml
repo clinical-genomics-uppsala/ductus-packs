@@ -11,6 +11,8 @@ input:
     - storage_path
     - run_year
     - project_type
+    - analysis
+    - wp
     - mail_bioinfo
 
 vars:
@@ -136,6 +138,8 @@ tasks:
       storage_path_runfolder: <% ctx(archive_runfolder) %>
       fastq_files_path: <% ctx(fastq_files_path) %>
       storage_path_fastq: <% ctx(archive_fastq_folder) %>
+      analysis: <% ctx(analysis) %>
+      wp: <% ctx(wp) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
       - when: <% succeeded() %>

@@ -249,6 +249,8 @@ tasks:
       storage_path_runfolder: <% ctx(archive_runfolder) %>
       fastq_files_path: <% ctx(fastq_files_path) %>
       storage_path_fastq: <% ctx(archive_fastq_folder) %>
+      analysis: "te"
+      wp: "wp3"
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
       - when: <% succeeded() %>

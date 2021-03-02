@@ -11,6 +11,8 @@ input:
     - storage_path_runfolder
     - fastq_files_path
     - storage_path_fastq
+    - analysis
+    - wp
     - mail_bioinfo
 
 vars:
@@ -22,7 +24,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/
-      cmd: python3 -c 'from ductus.tools.utils import get_samples; import json; print(json.dumps(list(get_samples("wp1", "<% ctx(project_type) %>", "sera", "<% ctx(samplesheet_file) %>"))))'
+      cmd: python3 -c 'from ductus.tools.utils import get_samples; import json; print(json.dumps(list(get_samples("<% ctx(wp) %>", "<% ctx(project_type) %>", "<% ctx(analysis) %>", "<% ctx(samplesheet_file) %>"))))'
     next:
       - when: <% succeeded() %>
         publish: samples=<% result().stdout %>

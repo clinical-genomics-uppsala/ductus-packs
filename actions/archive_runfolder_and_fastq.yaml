@@ -39,6 +39,12 @@ parameters:
   storage_path_fastq:
     required: true
     type: string
+  analysis:
+    required: true
+    type: string
+  wp:
+    required: true
+    type: string
   mail_bioinfo:
     required: true
     type: string
