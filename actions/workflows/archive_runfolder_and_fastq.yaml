@@ -1,0 +1,151 @@
+version: "1.0" # mistral version
+
+description: Will archive data runfolders and fastq files
+
+input:
+    - samplesheet_file
+    - compress_runfolder_name
+    - runfolder_path
+    - runfolder_name
+    - project_type
+    - storage_path_runfolder
+    - fastq_files_path
+    - storage_path_fastq
+    - analysis
+    - wp
+    - mail_bioinfo
+
+vars:
+  - samples: null
+  - stderr: null
+
+tasks:
+  get_samples_to_save:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/
+      cmd: python3 -c 'from ductus.tools.utils import get_samples; import json; print(json.dumps(list(get_samples("<% ctx(wp) %>", "<% ctx(project_type) %>", "<% ctx(analysis) %>", "<% ctx(samplesheet_file) %>"))))'
+    next:
+      - when: <% succeeded() %>
+        publish: samples=<% result().stdout %>
+        do:
+          - fastq_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_project_types  -- Could not extract samples <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/"
+        do:
+          - bioinfo_error_notifier
+
+  fastq_files:
+    with:
+      items: <% ctx(samples) %>
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - compress_runfolder_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "sync_miseq_fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  compress_runfolder_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>/
+      cmd: tar --exclude="*.fastq.gz" -zcf  <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz <% ctx(runfolder_name) %>
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - validate_runfolder_archive
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "compress_runfolder_folder  -- Could not compress folder <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+
+  validate_runfolder_archive:
+    action: core.local
+    input:
+      cmd: tar --compare --file=<% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz -C <% ctx(runfolder_path) %>
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_checksum_for_archive
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_runfolder_archive  -- Could not validate compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz"
+        do:
+          - bioinfo_error_notifier
+
+  create_checksum_for_archive:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path_runfolder) %>
+      cmd: sha256sum <% ctx(compress_runfolder_name) %>.tar.gz > <% ctx(compress_runfolder_name) %>.tar.gz.sha256
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_archived_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_checksum_for_archive  -- Could not create checksum for compressed folder <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz"
+        do:
+          - bioinfo_error_notifier
+
+  create_archived_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>
+      cmd: mkdir -p archived_runfolders
+    next:
+      - when: <% succeeded() %>
+        do:
+          - move_archived_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
+        do:
+          - bioinfo_error_notifier
+
+  move_archived_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>
+      cmd: mv <% ctx(runfolder_name) %> archived_runfolders/
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: "stanley@clinicalgenomics-as.se"
+      subject: "'[DUCTUS][WP][ERROR] - Archiving, <% ctx(runfolder_name) %>'"
+      body: Something went wrong during the archiving of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

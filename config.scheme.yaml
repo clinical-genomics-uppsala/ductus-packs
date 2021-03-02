@@ -242,6 +242,11 @@
     type: string
     required: true
     default: "/data/wp2"
+  wp2_archive_location:
+    description: Local folder-prefix used to archive data.
+    type: string
+    required: true
+    default: "/data/wp2"
 
 
   wp3_processing_host_ip:

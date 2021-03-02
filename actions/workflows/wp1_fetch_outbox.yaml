@@ -95,9 +95,6 @@ tasks:
         do:
           - mark_as_finished
           - result_retrieved
-      - when: <% succeeded() %> and ctx(project_type) == 'klinik'
-        do:
-          - archive_data
       - when: <% failed() %>
         publish: failed_step='transfer_result  -- Couldn't fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
         do:
@@ -154,18 +151,3 @@ tasks:
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
       body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
-
-  archive_data:
-    action: ductus.wp1_archive_data
-    input:
-      experiment_name: <% ctx(experiment_name) %>
-      storage_path: <% ctx(storage_path) %>
-      project_type: <% ctx(project_type) %>
-      raw_inbox_storage_path: <% ctx(preprocessing_storage_path) %>
-      mail_bioinfo: <% ctx(mail_bioinfo) %>
-    next:
-      - when: <% failed() %>
-        publish: failed_step='archive_data  -- Couldn't archive <% ctx(experiment_name), <% result().stdout %>, <% result().stderr %>'
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
