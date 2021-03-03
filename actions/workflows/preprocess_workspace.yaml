@@ -108,13 +108,19 @@ tasks:
           - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
         do:
-          - look_for_complete_file
+          - wp1_tso500
+          - wp1_sera
+          - wp2_tm
+          - wp3_te
       - when: <% succeeded() and ctx().machine_type = 'M0'%>
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/Data/Intensities/BaseCalls"
         do:
-          - look_for_complete_file
+          - wp1_tso500
+          - wp1_sera
+          - wp2_tm
+          - wp3_te
       - when: <% succeeded() and (ctx().machine_type = 'NDX' or ctx().machine_type = 'NB') %>
         publish:
           - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
