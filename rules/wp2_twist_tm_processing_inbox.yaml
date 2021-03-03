@@ -1,5 +1,5 @@
 ---
-name: "wp2_processing_inbox"
+name: "wp2_twist_tm_processing_inbox"
 pack: "ductus"
 description: "..."
 enabled: false
@@ -10,10 +10,10 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/TruSight_Myeloid/INBOX"
+      pattern: "wp2/Twist_Myeloid/Workarea"
 
 action:
-    ref: "ductus.process_wp2_inbox_data"
+    ref: "ductus.process_wp2_twist_tm_inbox_data"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"
