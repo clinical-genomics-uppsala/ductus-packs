@@ -28,8 +28,12 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: samples=<% result().stdout %>
+      - when: <% succeeded() and ctx(fastq_files_path) != null %>
         do:
           - fastq_files
+      - when: <% succeeded() %>
+        do:
+          - compress_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -46,9 +50,6 @@ tasks:
       cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
       timeout: 86400
     next:
-      - when: <% succeeded() %>
-        do:
-          - compress_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
