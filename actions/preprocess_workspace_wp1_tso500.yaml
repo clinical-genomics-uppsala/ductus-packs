@@ -1,10 +1,10 @@
 ---
-name: preprocess_workspace_sera
+name: preprocess_workspace_wp1_tso500
 description: >
-  This preprocess a sera analysis
+  Preprocess a tsoo50 analysis
 enabled: true
 runner_type: orquesta
-entry_point: workflows/preprocess_workspace_sera.yaml
+entry_point: workflows/preprocess_workspace_wp1_tso500.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.preprocess_workspace_sera
+    default: ductus.preprocess_workspace_wp1_tso500
     immutable: true
     type: string
   runfolder_path:
@@ -24,16 +24,13 @@ parameters:
   samplesheet_file:
     required: true
     type: string
-  fastq_files_path:
-    required: true
-    type: string
   machine_type:
     required: true
     type: string
-  preprocessing_storage_path:
+  storage_path:
     required: true
     type: string
-    default: "{{ config_context.wp1_preprocess_storage_path }}"
+    default: "{{ config_context.wp1_fetch_to_prefix }}"
   runfolder_host:
     required: true
     type: string

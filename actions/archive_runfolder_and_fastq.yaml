@@ -34,10 +34,8 @@ parameters:
     required: true
     type: string
   fastq_files_path:
-    required: true
     type: string
   storage_path_fastq:
-    required: true
     type: string
   analysis:
     required: true

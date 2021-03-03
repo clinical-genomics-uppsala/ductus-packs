@@ -25,6 +25,7 @@ vars:
   - run_info_path: null
   - interop_path: null
   - stderr: null
+  - analysis: null
 
 tasks:
   check_for_samplesheet:
@@ -139,38 +140,27 @@ tasks:
           - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
           - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
         do:
-          - look_for_complete_file
-      - when: <% succeeded() %>
-        do:
-          - look_for_complete_file
-
-  look_for_complete_file:
-    action: core.local
-    input:
-      cmd: ls <% ctx(complete_job_file_path) %>
-    retry:
-      count: <% ctx(num_check_demultiplexing_completed) %>
-      delay: <% ctx(check_demultiplexing_retry_delay) %>
-    next:
+          - wp1_tso500
+          - wp1_sera
+          - wp2_tm
+          - wp3_te
       - when: <% succeeded() %>
         do:
           - wp1_tso500
           - wp1_sera
           - wp2_tm
           - wp3_te
-      - when: <% failed() %>
-        do:
-          - completed_job_file_missing
 
   wp1_tso500:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp1", "TSO500","<% ctx(csv_file_name) %>") else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp1", "tso500","<% ctx(csv_file_name) %>") else exit(1)'
     next:
       - when: <% succeeded() %>
+        publish: analysis="wp1_tso500"
         do:
-          - bioinfo_error_notifier
+          - wp1_preprocess_tso500_data
           - runfolder_found
       - when: <% failed() %>
         do: noop
@@ -182,14 +172,61 @@ tasks:
       cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp1", "sera","<% ctx(csv_file_name) %>") else exit(1)'
     next:
       - when: <% succeeded() %>
+        publish: analysis="wp1_sera"
         do:
           - runfolder_found
-          - wp1_preprocess_sera_data
+          - look_for_complete_file
       - when: <% failed() %>
         do: noop
 
+  wp2_tm:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp2", "tm","<% ctx(csv_file_name) %>") else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        publish: analysis="wp2_tm"
+        do:
+          - runfolder_found
+          - look_for_complete_file
+      - when: <% failed() %>
+        do: noop
+
+  wp3_te:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp3", "te","<% ctx(csv_file_name) %>" ) else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        publish: analysis="wp3_te"
+        do:
+          - runfolder_found
+          - look_for_complete_file
+      - when: <% failed() %>
+        do: noop
+
+  look_for_complete_file:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    retry:
+      count: <% ctx(num_check_demultiplexing_completed) %>
+      delay: <% ctx(check_demultiplexing_retry_delay) %>
+    next:
+      - when: <% succeeded() and ctx().analysis = 'wp1_sera' %>
+        do: wp1_preprocess_sera_data
+      - when: <% succeeded() and ctx().analysis = 'wp2_tm' %>
+        do: wp2_preprocess_data
+      - when: <% succeeded() and ctx().analysis = 'wp3_te' %>
+        do: wp3_preprocess_data
+      - when: <% failed() %>
+        do:
+          - completed_job_file_missing
+
   wp1_preprocess_sera_data:
-    action: ductus.preprocess_workspace_sera
+    action: ductus.preprocess_workspace_wp1_sera
     input:
       runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
@@ -208,18 +245,24 @@ tasks:
         do:
          - fail
 
-  wp2_tm:
-    action: core.local
+  wp1_preprocess_tso500_data:
+    action: ductus.preprocess_workspace_wp1_tso500
     input:
-      cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp2", "tm","<% ctx(csv_file_name) %>") else exit(1)'
+      runfolder_path: <% ctx(runfolder_path) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      samplesheet_file: <% ctx(csv_file_name) %>
+      machine_type: <% ctx(machine_type) %>
+      runfolder_host: <% ctx(runfolder_host) %>
+      runfolder_host_port: <% ctx(runfolder_host_port) %>
+      runfolder_api_version: <% ctx(api_version) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
-      - when: <% succeeded() %>
-        do:
-          - runfolder_found
-          - wp2_preprocess_data
       - when: <% failed() %>
-        do: noop
+        publish:
+         - stderr: <% result().output.stderr %>
+         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+        do:
+         - fail
 
   wp2_preprocess_data:
     action: ductus.preprocess_workspace_wp2_tm
@@ -240,19 +283,6 @@ tasks:
           - faild_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
         do:
           - fail
-
-  wp3_te:
-    action: core.local
-    input:
-      cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp3", "te","<% ctx(csv_file_name) %>" ) else exit(1)'
-    next:
-      - when: <% succeeded() %>
-        do:
-          - wp3_preprocess_data
-          - runfolder_found
-      - when: <% failed() %>
-        do: noop
 
   wp3_preprocess_data:
     action: ductus.preprocess_workspace_wp3_te
@@ -275,7 +305,6 @@ tasks:
           - fail
 
   runfolder_found:
-    join: 1
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>

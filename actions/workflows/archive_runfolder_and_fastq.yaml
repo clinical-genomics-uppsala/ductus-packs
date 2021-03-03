@@ -26,10 +26,13 @@ tasks:
       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/
       cmd: python3 -c 'from ductus.tools.utils import get_samples; import json; print(json.dumps(list(get_samples("<% ctx(wp) %>", "<% ctx(project_type) %>", "<% ctx(analysis) %>", "<% ctx(samplesheet_file) %>"))))'
     next:
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx(fastq_files_path) != null %>
         publish: samples=<% result().stdout %>
         do:
           - fastq_files
+      - when: <% succeeded() %>
+        do:
+          - compress_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -46,9 +49,6 @@ tasks:
       cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
       timeout: 86400
     next:
-      - when: <% succeeded() %>
-        do:
-          - compress_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
