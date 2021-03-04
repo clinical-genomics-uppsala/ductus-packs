@@ -164,11 +164,30 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_raw_folder_on_moriarty
+          - transfer_SampleSheet
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "create_runfolder_on_moriarty  -- Couldn't create folder on <% ctx(transfer_to_host) %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  transfer_SampleSheet:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_raw_folder_on_moriarty
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -201,6 +220,7 @@ tasks:
           - bioinfo_error_notifier
           - molpat_error_notifier
           - mark_as_failed
+
 
   transfer_runinfo_files:
     action: core.local

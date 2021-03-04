@@ -161,7 +161,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp1", "tso500","<% ctx(csv_file_name) %>") else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp1", "tso500") else exit(1)'
     next:
       - when: <% succeeded() %>
         publish: analysis="wp1_tso500"
@@ -175,7 +175,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp1", "sera","<% ctx(csv_file_name) %>") else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp1", "sera") else exit(1)'
     next:
       - when: <% succeeded() %>
         publish: analysis="wp1_sera"
@@ -189,7 +189,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp2", "tm","<% ctx(csv_file_name) %>") else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp2", "tm") else exit(1)'
     next:
       - when: <% succeeded() %>
         publish: analysis="wp2_tm"
@@ -203,7 +203,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("wp3", "te","<% ctx(csv_file_name) %>" ) else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp3", "te") else exit(1)'
     next:
       - when: <% succeeded() %>
         publish: analysis="wp3_te"
