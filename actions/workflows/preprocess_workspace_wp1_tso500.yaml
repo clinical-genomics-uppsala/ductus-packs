@@ -85,11 +85,36 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_transfer_complete_file
+          - remove_arteria_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "transfer_fastq_files -- Could not transfer fastq files to <% ctx(transfer_to_host) %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  remove_arteria_folder:
+    with:
+      items: <% ctx(project_types) %>
+    action: core.remote
+    join: all
+    input:
+      username: <% ctx(transfer_to_user) %>
+      private_key: <% ctx(transfer_to_key) %>
+      cwd: <% ctx(transfer_to_location) %>/ngs/
+      cmd: rm -r <% item() %>/INBOX/<% ctx(runfolder_name) %>/.arteria;
+      timeout: 10
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
