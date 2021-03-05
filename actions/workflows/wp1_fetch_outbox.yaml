@@ -17,6 +17,9 @@ input:
 
 vars:
   - experiment_name: null
+  - result_storage_folder: null
+  - fastq_storage_folder: null
+  - samplesheet_storage_folder: null
   - run_year: null
 
 tasks:
@@ -75,10 +78,11 @@ tasks:
       cmd: mkdir -p <% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
+        publish: result_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>"
         do:
           - transfer_result
       - when: <% failed() %>
-        publish: failed_step='create_year_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result, <% result().stdout %>, <% result().stderr %>'
+        publish: failed_step='create_year_folder  -- Couldn't create folder <% ctx(result_storage_folder) %>'
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -89,14 +93,91 @@ tasks:
     input:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - wp1_tso500
+          - result_retrieved
+      - when: <% failed() %>
+        publish: failed_step='transfer_result  -- Couldn't fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  wp1_tso500:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("SampleSheet.csv", "wp1", "tso500", "<% ctx(project_type) %>") else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_fastq_folder
+      - when: <% failed() %>
+        do:
+          - mark_as_finished
+
+  create_fastq_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: fastq_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - sync_fastq_files
+      - when: <% failed() %>
+        publish: failed_step='create_fastq_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  sync_fastq_files:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: rsync -Prv fastq <% ctx(fastq_storage_folder)%>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_samplesheet_folder
+      - when: <% failed() %>
+        publish: failed_step='sync_fastq_files  -- Could not sync fastq files to <% ctx(fastq_storage_folder) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  create_samplesheet_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p  <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: samplesheet_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - sync_samplehseet_files
+      - when: <% failed() %>
+        publish: failed_step='create_samplesheet_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  sync_samplehseet_files:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: rsync -Prv SampleSheet.csv <% ctx(samplesheet_storage_folder)%>/
     next:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
-          - result_retrieved
       - when: <% failed() %>
-        publish: failed_step='transfer_result  -- Couldn't fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
+        publish: failed_step='sync_fastq_files  -- Could not sync SampleSheet.csv to <% ctx(samplesheet_storage_folder) %>'
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier

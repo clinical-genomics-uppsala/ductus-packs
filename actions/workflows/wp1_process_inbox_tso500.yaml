@@ -158,11 +158,27 @@ tasks:
       - when: <% succeeded() %>
         publish: outbox_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
-          - sync_result_to_outbox
+          - copy_sampleseheet
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
           - failed_step: "create_OUTBOX_TSO500_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  copy_sampleseheet:
+    action: core.local
+    input:
+      cmd: cp <% ctx(runfolder) %>/SampleSheet.csv  <% ctx(outbox_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_result_to_outbox
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed

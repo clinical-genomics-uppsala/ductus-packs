@@ -20,6 +20,7 @@ vars:
   - experiment_name: null
   - run_year: null
   - csv_file_name: null
+  - outbox_folder: null
   - stderr: null
 
 tasks:
@@ -154,11 +155,44 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - run_sera
+          - create_OUTBOX_sera_analysis
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
           - failed_step: "copy_csv_file  -- Could not copy csv file <% ctx(csv_file_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_OUTBOX_sera_analysis:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: outbox_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - copy_sampleseheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "create_OUTBOX_sera_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  copy_sampleseheet:
+    action: core.local
+    input:
+      cmd: cp <% ctx(runfolder) %>/SampleSheet.csv  <% ctx(outbox_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - run_sera
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
