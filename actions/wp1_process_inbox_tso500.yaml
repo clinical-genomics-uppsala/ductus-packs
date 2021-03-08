@@ -1,10 +1,10 @@
 ---
-name: wp1_process_inbox
+name: wp1_process_inbox_tso500
 description: >
-  Initialize processing of wp1 data using sera. Will move data to appropriate locations and then submit cluster jobs.
+  Initialize processing of wp1 data using tso500. Will move data to appropriate locations and then submit cluster jobs.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/wp1_process_inbox.yaml
+entry_point: workflows/wp1_process_inbox_tso500.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.wp1_process_inbox
+    default: ductus.wp1_process_inbox_tso500
     immutable: true
     type: string
   runfolder:
@@ -24,15 +24,15 @@ parameters:
   runfolder_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_address }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_service_address }}"
   runfolder_host_port:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_service_port }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_service_port }}"
   runfolder_api_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_api_version }}"
+    default: "{{ config_context.wp1_process_inbox_runfolder_api_version }}"
   local_folder_prefix:
     required: true
     type: string
@@ -44,19 +44,19 @@ parameters:
   processing_key:
     required: true
     type: string
-    default: "{{ config_context.wp1_processing_key }}"
+    default: "{{ config_context.wp1_processing_host_key }}"
   processing_user:
     required: true
     type: string
     default: "{{ config_context.wp1_processing_host_user }}"
-  sera_version:
+  tso500_git_url:
     required: true
     type: string
-    default: "{{ config_context.wp1_sera_version }}"
-  ref_files:
+    default: "{{ config_context.wp1_tso500_git_url }}"
+  tso500_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_ref_files_location }}"
+    default: "{{ config_context.wp1_tso500_version }}"
   mail_lab:
     required: true
     type: string

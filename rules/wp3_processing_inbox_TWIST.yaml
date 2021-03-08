@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
         type: "contains"
-        pattern: "/projects/wp3/nobackup/TWIST/INBOX/"
+        pattern: "wp3/nobackup/TWIST/INBOX/"
 
 action:
     ref: "ductus.wp3_process_inbox"

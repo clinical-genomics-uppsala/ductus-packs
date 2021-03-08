@@ -12,6 +12,7 @@ input:
   - transfer_key
   - transfer_user
   - project_type
+  - storage_path
   - mail_lab
   - mail_bioinfo
   - failed_step
@@ -22,19 +23,22 @@ vars:
   - csv_file_name: null
   - machine_type: null
   - failed_step: null
+  - stderr: null
 
 tasks:
   get_experiment_name:
     action: core.local
     input:
-      cmd: python -c "import sys; sys.stdout.write('<% ctx(runfolder) %>'.split('/')[-1])"
+      cmd: python3 -c "import sys; sys.stdout.write('<% ctx(runfolder) %>'.split('/')[-1])"
     next:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
         do:
           - get_runfolder_name
       - when: <% failed() %>
-        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_experiment_name  -- Couldn't get experiment name"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -51,7 +55,9 @@ tasks:
         do:
           - get_csv_file_name
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -68,7 +74,9 @@ tasks:
         do:
           - validate_csv_file
       - when: <% failed() %>
-        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - missing_csv_file
@@ -83,7 +91,9 @@ tasks:
         do:
           - validate_folder_name
       - when: <% failed() %>
-        publish: failed_step="validate_csv_file  -- Couldn't validate csv file name -- <% ctx(csv_file_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_csv_file  -- Couldn't validate csv file name -- <% ctx(csv_file_name) %>"
         do:
           - bioinfo_error_notifier
           - missing_csv_file
@@ -98,7 +108,9 @@ tasks:
         do:
           - get_machine_type
       - when: <% failed() %>
-        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - missing_runfolder
@@ -107,14 +119,16 @@ tasks:
   get_machine_type:
     action: core.local
     input:
-      cmd: python -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: machine_type=<% result().stdout %>
         do:
           - mark_as_started
       - when: <% failed() %>
-        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - unexpected_machine_type
@@ -131,7 +145,9 @@ tasks:
         do:
           - create_runfolder_on_moriarty
       - when: <% failed() %>
-        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        publish:
+            - stderr: <% result().stderr %>
+            - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -148,9 +164,30 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
+          - transfer_SampleSheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_runfolder_on_moriarty  -- Couldn't create folder on <% ctx(transfer_to_host) %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  transfer_SampleSheet:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
           - create_raw_folder_on_moriarty
       - when: <% failed() %>
-        publish: failed_step="create_runfolder_on_moriarty  -- Couldn't create folder on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -176,24 +213,29 @@ tasks:
         do:
           - transfer_nextseq_runinfo_files
       - when: <% failed() %>
-        publish: failed_step="create_raw_folder_on_moriarty  -- Couldn't create raw folder on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_raw_folder_on_moriarty  -- Couldn't create raw folder on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
           - mark_as_failed
 
+
   transfer_runinfo_files:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
         do:
           - transfer_interop_files
       - when: <% failed() %>
-        publish: failed_step="transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -203,14 +245,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
         do:
           - transfer_csv_file
       - when: <% failed() %>
-        publish: failed_step="transfer_interop_files  -- Couldn't transfer interop_files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_interop_files  -- Couldn't transfer interop_files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -220,14 +264,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
         do:
           - transfer_nextseq_interop_files
       - when: <% failed() %>
-        publish: failed_step="transfer_nextseq_interop_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_nextseq_interop_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -237,14 +283,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded %>
         do:
           - transfer_csv_file
       - when: <% failed() %>
-        publish: failed_step="transfer_nextseq_interop_files -- Couldn't transfer_interop_files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_nextseq_interop_files -- Couldn't transfer_interop_files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -254,7 +302,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() and ctx(machine_type) = 'MN' %>
@@ -267,7 +315,9 @@ tasks:
         do:
           - transfer_nextseq_fastq_files
       - when: <% failed() %>
-        publish: failed_step="transfer_csv_file -- Couldn't transfer csv to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_csv_file -- Couldn't transfer csv to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -277,14 +327,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
         do:
           - create_transfer_complete_file
       - when: <% failed() %>
-        publish: failed_step="transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -294,14 +346,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
         do:
           - create_transfer_complete_file
       - when: <% failed() %>
-        publish: failed_step="transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -311,14 +365,16 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t <% ctx(transfer_location) %>/ngs/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
         do:
           - create_transfer_complete_file
       - when: <% failed() %>
-        publish: failed_step="transfer_nextseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_nextseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -337,12 +393,33 @@ tasks:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
+          - archive_data
       - when: <% failed() %>
-        publish: failed_step="create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
           - mark_as_failed
+
+  archive_data:
+    action: ductus.wp1_archive_data
+    input:
+      experiment_name: <% ctx(experiment_name) %>
+      storage_path: <% ctx(storage_path) %>
+      project_type: <% ctx(project_type) %>
+      raw_inbox_storage_path: <% ctx(runfolder) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "archive_data  -- Couldn't archive <% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
 
   missing_runfolder:
     action: core.sendmail
@@ -398,7 +475,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -421,3 +498,6 @@ tasks:
       - when: <% succeeded() %>
         do:
           - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

@@ -1,10 +1,10 @@
 ---
-name: pre_process_wp3_data
+name: preprocess_workspace_wp3_te
 description: >
-  Pre-process data for wp3......
+  This preprocess a WP3 TE analysis
 enabled: true
 runner_type: orquesta
-entry_point: workflows/pre_process_wp3_data.yaml
+entry_point: workflows/preprocess_workspace_wp3_te.yaml
 pack: ductus
 parameters:
   context:
@@ -12,55 +12,60 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.pre_process_wp3_data
+    default: ductus.preprocess_workspace_wp3_te
     immutable: true
     type: string
-  runfolder:
+  runfolder_path:
     required: true
     type: string
-  host:
+  runfolder_name:
     required: true
     type: string
+  samplesheet_file:
+    required: true
+    type: string
+  fastq_files_path:
+    required: true
+    type: string
+  machine_type:
+    required: true
+    type: string
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_service_address }}"
   runfolder_host_port:
     required: true
     type: string
-    default: "{{ config_context.wp3_runfolder_service_port }}"
-  api_version:
+    default: "{{ config_context.workspace_runfolder_service_port }}"
+  runfolder_api_version:
     required: true
     type: string
-    default: "{{ config_context.wp3_runfolder_api_version }}"
+    default: "{{ config_context.workspace_runfolder_api_version }}"
   transfer_to_host:
     required: true
     type: string
     default: "{{ config_context.wp3_preprocess_transfer_ip }}"
-  transfer_location:
+  transfer_to_location:
     required: true
     type: string
     default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
-  transfer_key:
+  transfer_to_key:
     required: true
     type: string
     default: "{{ config_context.wp3_preprocess_transfer_key }}"
-  transfer_user:
+  transfer_to_user:
     required: true
     type: string
     default: "{{ config_context.wp3_preprocess_transfer_user }}"
+  mail_lab:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_notification_mail_lab }}"
   mail_bioinfo:
     required: true
     type: string
-    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
-  wp3_check_demultiplexing_completed_delay:
-    required: true
-    type: string
-    default: "{{ config_context.wp3_check_demultiplexing_completed_delay }}"
-  wp3_num_check_demultiplexing_completed:
-    required: true
-    type: string
-    default: "{{ config_context.wp3_num_check_demultiplexing_completed }}"
-  wp3_check_demultiplexing_retry_delay:
-    required: true
-    type: string
-    default: "{{ config_context.wp3_check_demultiplexing_retry_delay }}"
+    default: "{{ config_context.wp3_notification_mail_lab }}"
   retrieve_result_to_archive_location:
     required: true
     type: string

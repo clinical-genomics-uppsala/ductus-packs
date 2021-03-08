@@ -1,0 +1,293 @@
+version: "1.0" # Orquesta version
+description: Will analyse data found in the inbox folder using TSO500
+
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - runfolder_api_version
+  - local_folder_prefix
+  - project_type
+  - processing_host
+  - processing_key
+  - processing_user
+  - tso500_git_url
+  - tso500_version
+  - mail_lab
+  - mail_bioinfo
+
+vars:
+  - experiment_name: null
+  - run_year: null
+  - analysis_folder: null
+  - outbox_folder: null
+  - stderr: null
+
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: grep "Experiment Name" SampleSheet.csv  | awk 'BEGIN{FS=","}{print($2)}'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: 'get_experiment_name  -- Could not get experiment name from <% ctx(runfolder) %>/SampleSheet.csv'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  get_run_year:
+    action: core.local
+    input:
+      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - create_analysis_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: 'get_run_year  -- Could not extract run year from <% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_analysis_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p /scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+      cwd: <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder="/scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "create_analysis_folder  -- Could not create analysis folder: /scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - clone_tso500_reop
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "mark_as_started -- Could not mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+
+  clone_tso500_reop:
+    action: core.local
+    input:
+      cmd: git clone --depth 1 --branch <% ctx(tso500_version) %> <% ctx(tso500_git_url) %>  <% ctx(analysis_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_data
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "clone_tso500_reop  -- Could not clone repo <% ctx(tso500_git_url) %>, <% ctx(tso500_version) %> into <% ctx(analysis_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  sync_data:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: rsync -Prv *heet.csv *.xml <% ctx(analysis_folder) %>/
+      timeout: 3600
+    next:
+      - when: <% succeeded() %>
+        do:
+         - run_TSO500_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "sync_data  -- Could not sync SampleSheet.csv and xml files"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  run_TSO500_analysis:
+    action: core.remote
+    input:
+      username: <% ctx(processing_user) %>
+      private_key: <% ctx(processing_key) %>
+      hosts: <% ctx(processing_host) %>
+      cwd: <% ctx(analysis_folder) %>
+      cmd: bash /projects/wp1/nobackup/TSO500/Bin/start_pipeline_marvin.sh <% ctx(analysis_folder) %>
+      timeout: 86400
+      hosts: <% ctx(processing_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_OUTBOX_TSO500_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "run_TSO500_analysis  -- failed running TSO500 analysis on  <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_OUTBOX_TSO500_analysis:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: outbox_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - copy_sampleseheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "create_OUTBOX_TSO500_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  copy_sampleseheet:
+    action: core.local
+    input:
+      cmd: cp <% ctx(runfolder) %>/SampleSheet.csv  <% ctx(outbox_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_result_to_outbox
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  sync_result_to_outbox:
+      action: core.local
+      input:
+        cmd: rsync -Prv DNA_bam RNA_bam Results fastq <% ctx(outbox_folder) %>/
+        cwd: <% ctx(analysis_folder) %>
+      next:
+        - when: <% succeeded() %>
+          do:
+            - remove_big_files
+        - when: <% failed() %>
+          publish:
+            - stderr: <% result().error %>
+            - failed_step: "sync_result_to_outbox  -- Could not sync  DNA_bam, RNA_bam, Results, fastq, to <% ctx(outbox_folder) %>"
+          do:
+            - bioinfo_error_notifier
+            - mark_as_failed
+
+  remove_big_files:
+      action: core.local
+      input:
+        cmd: rm -r TST170/TruSightTumor170_Analysis_*/Fastqs/Undetermined* TSO500/Logs_Intermediates/ fastq_temp/ STAR/*.sam
+        cwd: <% ctx(analysis_folder) %>
+      next:
+        - when: <% succeeded() %>
+          do:
+            - sync_remaining_result_to_outbox
+        - when: <% failed() %>
+          publish:
+            - stderr: <% result().error %>
+            - failed_step: "remove_big_files  -- Could not remnove big files from <% ctx(analysis_folder) %>"
+          do:
+            - bioinfo_error_notifier
+            - mark_as_failed
+
+  sync_remaining_result_to_outbox:
+    action: core.local
+    input:
+      cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(outbox_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_Done_txt
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "sync_remaining_result_to_outbox  -- Could not sync  remaining files to <% ctx(outbox_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_Done_txt:
+    action: core.local
+    input:
+        cmd: echo "`date`" > <% ctx(outbox_folder) %>/Done.txt;
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "create_Done_txt  -- Could not create Done.txt in  <% ctx(outbox_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP1][ERROR] - SERA processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the sera processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>, <% ctx(stderr) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+          - molpat_error_notifier
+
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP1][ERROR] - SERA processing failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during SERA processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

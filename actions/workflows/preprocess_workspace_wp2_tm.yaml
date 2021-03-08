@@ -1,0 +1,307 @@
+version: "1.0" # Orquest version
+
+description: Will rsync new sequence data to compute for processing
+
+input:
+  - runfolder_path
+  - runfolder_name
+  - samplesheet_file
+  - fastq_files_path
+  - machine_type
+  - transfer_to_host
+  - transfer_to_location
+  - transfer_to_key
+  - transfer_to_user
+  - runfolder_host
+  - runfolder_host_port
+  - runfolder_api_version
+  - mail_lab
+  - mail_bioinfo
+  - archive_location
+
+vars:
+  - transfer_folder: null
+  - mod_sameplsheet_name: null
+  - run_year: null
+  - stderr: null
+
+tasks:
+  dos2unix:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      cmd: dos2unix -n <% ctx(samplesheet_file)%> SampleSheet.dos2unix.csv
+    next:
+      - when: <% succeeded %>
+        do:
+          - extract_TM_header_SampleSheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "dos2unix -- Could not run dos2unix on ctx(samplesheet_file)%>"
+        do:
+          - mark_as_failed
+
+  extract_TM_header_SampleSheet:
+     action: core.local
+     input:
+       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+       cmd: sed '/Sample_ID/q' SampleSheet.dos2unix.csv > SampleSheet_TM.csv
+     next:
+       - when: <% succeeded %>
+         do:
+           - extract_TM_samples_SampleSheet
+       - when: <% failed() %>
+         publish:
+           - stderr: <% result().error %>
+           - failed_step: "extract_TM_header_SampleSheet -- Failed to extracting TM header from <% ctx(samplesheet_file)%>"
+         do:
+           - mark_as_failed
+
+  extract_TM_samples_SampleSheet:
+     action: core.local
+     input:
+       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+       cmd: grep ",TM$" SampleSheet.dos2unix.csv >> SampleSheet_TM.csv
+     next:
+       - when: <% succeeded %>
+         publish: mod_sameplsheet_name="SampleSheet_TM.csv"
+         do:
+           - create_folder_on_compute
+       - when: <% failed() %>
+         publish:
+           - stderr: <% result().error %>
+           - failed_step: "extract_TM_samples_SampleSheet -- Failed to extract TM samples from <% ctx(samplesheet_file)%>"
+         do:
+           - mark_as_failed
+
+  create_folder_on_compute:
+     action: core.remote
+     input:
+       username: <% ctx(transfer_to_user) %>
+       private_key: <% ctx(transfer_to_key) %>
+       cwd: <% ctx(transfer_to_location) %>/Twist_Myeloid/Workarea
+       cmd: mkdir -p <% ctx(runfolder_name) %>/fastq
+       hosts: <% ctx(transfer_to_host) %>
+     next:
+       - when: <% succeeded() %>
+         publish: transfer_folder="<% ctx(transfer_to_location) %>/Twist_Myeloid/Workarea/<% ctx(runfolder_name) %>"
+         do:
+           - send_mail
+           - transfer_fastq_files
+           - transfer_SampleSheet
+       - when: <% failed() %>
+         publish:
+           - stderr: <% result().error %>
+           - failed_step: "create_folder_on_compute -- Could not create runfolder on <% ctx(transfer_to_host)%>"
+         do:
+           - mark_as_failed
+
+  send_mail:
+     action: core.sendmail
+     input:
+       to: <% ctx(mail_lab) %>
+       from: stanley@clinicalgenomics-as.se
+       subject: WP2 -- Start transfer of <% ctx(runfolder_name) %> to Compute
+       body: Transfer of <% ctx(runfolder_name) %> has been executed!
+     next:
+       - when: <% succeeded() %>
+         do:
+           - create_transfer_complete_file
+       - when: <% failed() %>
+         do:
+           - mark_as_failed
+
+  transfer_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core
+      cmd: >
+          python3 -c 'from ductus.tools.wrappers import Rsync;
+          from ductus.tools.utils import get_samples_and_project;
+          [Rsync(from_path="<% ctx(fastq_files_path) %>/" + sample + "*fastq.gz",
+          to_path="<% ctx(transfer_folder) %>/fastq",
+          remote_address="<% ctx(transfer_to_host) %>",
+          user="<% ctx(transfer_to_user) %>",
+          from_is_remote=2,
+          repeat=20,
+          identity_file="<% ctx(transfer_to_key) %>",
+          checksum_validate=True,
+          preserve_permissions=False,
+          local_sync=False).execute()
+           for sample, project_type in get_samples_and_project("wp2","tm", "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(mod_sameplsheet_name) %>")]'
+      timeout: 86400
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().error %>
+          - failed_step: "transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  transfer_SampleSheet:
+     action: core.local
+     input:
+         cwd: /opt/src/ductus-core/ductus/scripts
+         cmd: python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(mod_sameplsheet_name) %>" -t "<% ctx(transfer_folder) %>/SampleSheet.csv" -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2
+         timeout: 99999
+     next:
+       - when: <% succeeded() %>
+         do:
+           - create_transfer_complete_file
+       - when: <% failed() %>
+         publish:
+           - stderr: <% result().stderr %>
+           - failed_step:  "transfer_SampleSheet -- Coud not transfer samplesheet <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(mod_sameplsheet_name) %>"
+         do:
+           - mark_as_failed
+
+  create_transfer_complete_file:
+      join: all
+      action: core.remote
+      input:
+         username: <% ctx(transfer_to_user) %>
+         private_key: <% ctx(transfer_to_key) %>
+         cwd: <% ctx(transfer_folder) %>/
+         cmd: touch Done.txt
+         hosts: <% ctx(transfer_to_host) %>
+      next:
+        - when: <% succeeded() %>
+          do:
+            - get_run_year
+        - when: <% failed() %>
+          publish:
+            - stderr: <% result().stderr %>
+            - failed_step: "create_transfer_complete_file -- could not create  Done.txt"
+          do:
+            - mark_as_failed
+
+  get_run_year:
+      action: core.local
+      input:
+        cmd: date "+%Y"
+      next:
+        - when: <% succeeded() %>
+          publish: run_year=<% result().stdout %>
+          do:
+            - prepare_transfer_of_fastq_to_archive
+        - when: <% failed() %>
+          do:
+            - mark_as_failed
+
+  prepare_transfer_of_fastq_to_archive:
+      action: core.local
+      input:
+        cmd: mkdir -p <% ctx(archive_location) %>/Klinik/Twist_Myeloid/Fastq/<% ctx(run_year) %>/<% ctx(runfolder_name) %>
+      next:
+        - when: <% succeeded() %>
+          publish: archive_fastq_folder="<% ctx(archive_location) %>/Klinik/Twist_Myeloid/Fastq/<% ctx(run_year) %>/<% ctx(runfolder_name)%>"
+          do:
+            - prepare_transfer_of_runfolder_to_archive
+        - when: <% failed() %>
+          publish:
+            - stderr: <% result().stderr %>
+            - failed_step: "prepare_transfer_of_fastq_to_archive -- failed to create fastq archive folder"
+          do:
+            - mark_as_failed
+
+  prepare_transfer_of_runfolder_to_archive:
+      action: core.local
+      input:
+          cmd: mkdir -p <% ctx(archive_location) %>/Klinik/Twist_Myeloid/Runfolders/<% ctx(run_year) %>/<% ctx(runfolder_name)%>
+      next:
+        - when: <% succeeded() %>
+          publish: archive_runfolder="<% ctx(archive_location) %>/Klinik/Twist_Myeloid/Runfolders/<% ctx(run_year) %>/<% ctx(runfolder_name)%>"
+          do:
+            - archive_fastq_and_runfolder
+        - when: <% failed() %>
+          publish:
+            - stderr: <% result().error %>
+            - failed_step: "prepare_transfer_of_runfolder_to_archive -- failed to create runfolder archive folder"
+          do:
+            - mark_as_failed
+
+  archive_fastq_and_runfolder:
+    action: ductus.archive_runfolder_and_fastq
+    input:
+      samplesheet_file: <% ctx(samplesheet_file) %>
+      compress_runfolder_name: <% ctx(runfolder_name) %>
+      runfolder_path: <% ctx(runfolder_path) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      project_type: "klinik"
+      storage_path_runfolder: <% ctx(archive_runfolder) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
+      storage_path_fastq: <% ctx(archive_fastq_folder) %>
+      analysis: "tm"
+      wp: "wp2"
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_done_notifier
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "archive_fastq_and_runfolder  -- Couldn't archive fastq and runfolder <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - wp2_error_notifier
+
+  wp2_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "WP2 ERROR (<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>): Transfer stopped."
+      body: "Transfer of  <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %> has been stopped. Please consult bioinformaticians."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ERROR] - Pre-processing, <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  archive_done_notifier:
+    join: all
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][SUCCESS] - Archiving, <% ctx(runfolder_name) %>"
+      body: <% ctx(runfolder_name) %> has been archived!!!
+
+output:
+  - stderr: <% ctx(stderr) %>

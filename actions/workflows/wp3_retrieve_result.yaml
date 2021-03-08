@@ -36,7 +36,7 @@ tasks:
   TE_basename_get:
     action: core.local
     input:
-      cmd: python -c 'import sys; sys.stdout.write("<% ctx(TE_folder) %>".split("/")[-1])'
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(TE_folder) %>".split("/")[-1])'
     next:
       - when: <% succeeded() %>
         publish: TE_basename=<% result().stdout %>
@@ -75,7 +75,7 @@ tasks:
     input:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python rsync.py -c -f <% ctx(TE_folder) %> -t <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+      cmd: python3 rsync.py -c -f <% ctx(TE_folder) %> -t <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
     next:
       - when: <% succeeded() %>
         do:

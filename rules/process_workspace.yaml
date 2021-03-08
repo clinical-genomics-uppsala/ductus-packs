@@ -1,0 +1,20 @@
+---
+name: "process_workspace"
+pack: "ductus"
+description: "Rule that triggers move action, will move clincal wp1  data to the inbox folder"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "workspace/INBOX"
+
+action:
+    ref: "ductus.preprocess_workspace"
+    parameters:
+        runfolder: "{{trigger.runfolder}}"
+        runfolder_host: "{{trigger.host }}"
+        #project_type: "klinik"
