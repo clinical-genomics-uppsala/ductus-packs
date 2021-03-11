@@ -266,3 +266,6 @@ tasks:
         publish: failed_step="mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
+
+output:
+  - stderr: <% ctx(stderr) %>

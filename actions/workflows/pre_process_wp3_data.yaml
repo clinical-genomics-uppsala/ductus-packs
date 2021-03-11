@@ -164,3 +164,6 @@ tasks:
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
+
+output:
+  - stderr: <% ctx(stderr) %>

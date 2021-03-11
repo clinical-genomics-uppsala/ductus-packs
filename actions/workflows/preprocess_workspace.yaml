@@ -11,6 +11,7 @@ input:
   - check_demultiplexing_completed_delay
   - num_check_demultiplexing_completed
   - check_demultiplexing_retry_delay
+  - path_fastq_and_complete_file
 
 vars:
   - csv_file_name: null
@@ -26,6 +27,8 @@ vars:
   - interop_path: null
   - stderr: null
   - analysis: null
+  - machine_type: null
+  - manchine_name: null
 
 tasks:
   check_for_samplesheet:
@@ -88,7 +91,7 @@ tasks:
       - when: <% succeeded() %>
         publish: machine_type=<% result().stdout %>
         do:
-          - validate_folder_name
+          - get_machine_name
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
@@ -98,66 +101,33 @@ tasks:
           - unexpected_machine_type
           - mark_as_failed
 
-  validate_folder_name:
+  get_machine_name:
     action: core.local
     input:
-      cmd: echo <% ctx(runfolder_name) %> | awk '!/^[0-9]*_[A-Z0-9]*_([0-9]*|RUO_[0-9]*)_[A-Z0-9-]*$/ {exit(1)}'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN\d+|M0\d+|NDX\d+|NB\d+)_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
-      - when: <% succeeded() and ctx().machine_type = 'MN' %>
+      - when: <% succeeded() %>
         publish:
-          - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
-          - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
+          - manchine_name: "<% result().stdout %>"
+          - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).complete_job_file_path.first() %>"
+          - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).fastq_files_path.first() %>"
         do:
           - wp1_tso500
           - wp1_sera
           - wp2_tm
           - wp3_te
-      - when: <% succeeded() and ctx().machine_type = 'M0'%>
-        publish:
-          - complete_job_file_path: "<% ctx(runfolder) %>/CompletedJobInfo.xml"
-          - fastq_files_path: "<% ctx(runfolder) %>/Data/Intensities/BaseCalls"
-        do:
-          - wp1_tso500
-          - wp1_sera
-          - wp2_tm
-          - wp3_te
-      - when: <% succeeded() and (ctx().machine_type = 'NDX' or ctx().machine_type = 'NB') %>
-        publish:
-          - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/CompletedJobInfo.xml"
-          - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_1/*/Fastq"
-        do:
-          - test_complete_jobininfo_location_nextseq
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
-          - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>"
+          - failed_step: "get_mget_machine_nameachine_type  -- Couldn't parse the machine name from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
+          - unexpected_machine_type
           - mark_as_failed
 
 
-  test_complete_jobininfo_location_nextseq:
-    action: core.local
-    input:
-      cmd: ls <% ctx(complete_job_file_path) %>
-    next:
-      - when:  <% failed() %>
-        publish:
-          - complete_job_file_path: "<% ctx(runfolder) %>/Alignment_1/*/CompletedJobInfo.xml"
-          - fastq_files_path: "<% ctx(runfolder) %>/Alignment_1/*/Fastq"
-        do:
-          - wp1_tso500
-          - wp1_sera
-          - wp2_tm
-          - wp3_te
-      - when: <% succeeded() %>
-        do:
-          - wp1_tso500
-          - wp1_sera
-          - wp2_tm
-          - wp3_te
-
   wp1_tso500:
+    join: 1
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
@@ -169,9 +139,10 @@ tasks:
           - wp1_preprocess_tso500_data
           - runfolder_found
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked_wp1_tso500
 
   wp1_sera:
+    join: 1
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
@@ -181,11 +152,12 @@ tasks:
         publish: analysis="wp1_sera"
         do:
           - runfolder_found
-          - look_for_complete_file
+          - look_for_complete_file_wp1_sera
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked_wp1_sera
 
   wp2_tm:
+    join: 1
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
@@ -195,11 +167,12 @@ tasks:
         publish: analysis="wp2_tm"
         do:
           - runfolder_found
-          - look_for_complete_file
+          - look_for_complete_file_wp2_tm
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked_wp2_tm
 
   wp3_te:
+    join: 1
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
@@ -209,11 +182,31 @@ tasks:
         publish: analysis="wp3_te"
         do:
           - runfolder_found
-          - look_for_complete_file
+          - look_for_complete_file_wp3_te
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked_wp3_te
 
-  look_for_complete_file:
+  analysis_checked_wp1_tso500:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  analysis_checked_wp1_sera:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  analysis_checked_wp2_tm:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  analysis_checked_wp3_te:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  look_for_complete_file_wp1_sera:
     action: core.local
     input:
       cmd: ls <% ctx(complete_job_file_path) %>
@@ -223,8 +216,32 @@ tasks:
     next:
       - when: <% succeeded() and ctx().analysis = 'wp1_sera' %>
         do: wp1_preprocess_sera_data
+      - when: <% failed() %>
+        do:
+          - completed_job_file_missing
+
+  look_for_complete_file_wp2_tm:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    retry:
+      count: <% ctx(num_check_demultiplexing_completed) %>
+      delay: <% ctx(check_demultiplexing_retry_delay) %>
+    next:
       - when: <% succeeded() and ctx().analysis = 'wp2_tm' %>
         do: wp2_preprocess_data
+      - when: <% failed() %>
+        do:
+          - completed_job_file_missing
+
+  look_for_complete_file_wp3_te:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    retry:
+      count: <% ctx(num_check_demultiplexing_completed) %>
+      delay: <% ctx(check_demultiplexing_retry_delay) %>
+    next:
       - when: <% succeeded() and ctx().analysis = 'wp3_te' %>
         do: wp3_preprocess_data
       - when: <% failed() %>
@@ -244,6 +261,8 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
+      - when: <% succeeded() %>
+        do: wp1_sera_done
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
@@ -263,6 +282,8 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
+      - when: <% succeeded() %>
+        do: wp1_tso500_done
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
@@ -283,6 +304,8 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
+      - when: <% succeeded() %>
+        do: wp2_tm_done
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
@@ -303,12 +326,48 @@ tasks:
       runfolder_api_version: <% ctx(api_version) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
+      - when: <% succeeded() %>
+        do: wp3_te_done
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
           - faild_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
         do:
           - fail
+
+  wp1_sera_done:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  wp1_tso500_done:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  wp2_tm_done:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  wp3_te_done:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  move_archived_folder:
+    join: 4
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>
+      cmd: mv <% ctx(runfolder_name) %> archived_runfolders/
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
+        do:
+          - bioinfo_error_notifier
 
   runfolder_found:
     action: core.sendmail
