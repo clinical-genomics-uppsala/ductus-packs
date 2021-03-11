@@ -17,6 +17,7 @@ input:
 vars:
   - runfolder_name: null
   - TE_basename: null
+  - stderr: null
 
 tasks:
   runfolder_directory:
@@ -95,3 +96,6 @@ tasks:
       url: http://<% ctx(host) %>:<% ctx(host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(TE_folder) %>
       body: '{"state": "done"}'
       method: "POST"
+
+output:
+  - stderr: <% ctx(stderr) %>

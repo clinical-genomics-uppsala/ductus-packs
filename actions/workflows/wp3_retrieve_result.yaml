@@ -18,6 +18,7 @@ input:
 vars:
   - run_year: null
   - TE_basename: null
+  - stderr: null
 
 tasks:
   get_run_year:
@@ -110,3 +111,6 @@ tasks:
       from: stanley@clinicalgenomics-as.se
       subject: WP3 -- <% ctx(TE_basename) %> results transferred
       body: <% ctx(TE_basename) %> analysis has been finished and transferred to <% ctx(retrieve_result_to_result_location) %>/<% ctx(runpanel) %>/Resultat/<% ctx(run_year) %>/<% ctx(TE_basename) %>!
+
+output:
+  - stderr: <% ctx(stderr) %>

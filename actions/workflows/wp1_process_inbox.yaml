@@ -45,7 +45,7 @@ tasks:
         do:
           - run_tso500
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked
 
   run_tso500:
     action: ductus.wp1_process_inbox_tso500
@@ -72,7 +72,7 @@ tasks:
         do:
           - run_wp1_sera
       - when: <% failed() %>
-        do: noop
+        do: analysis_checked
 
   run_wp1_sera:
     action: ductus.wp1_process_inbox_sera
@@ -88,6 +88,9 @@ tasks:
         publish:
           - stderr: <% result().output.stderr %>
           - failed_step: "run_sera_wp1  -- Could not start SERA processing on <% ctx(runfolder) %>"
+
+  analysis_checked:
+    action: core.noop
 
   tso500_analysis_started:
     action: core.sendmail

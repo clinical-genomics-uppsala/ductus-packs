@@ -333,3 +333,6 @@ tasks:
       - when: <% succeeded() %>
         do:
           - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
