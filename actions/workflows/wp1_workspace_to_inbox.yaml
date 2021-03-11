@@ -19,6 +19,7 @@ vars:
   - csv_file_name: null
   - experiment_name: null
   - runfolder_name: null
+  - stderr: null
   - inbox_folder: null
 
 tasks:
@@ -33,7 +34,9 @@ tasks:
         do:
           - get_experiment_name
       - when: <% failed() %>
-        publish: failed_step="get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - missing_csv_file
@@ -50,7 +53,9 @@ tasks:
         do:
           - get_runfolder_name
       - when: <% failed() %>
-        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_experiment_name  -- Could not get experiment name'
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -66,7 +71,9 @@ tasks:
         do:
           - get_machine_type
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -82,7 +89,9 @@ tasks:
         do:
           - validate_folder_name
       - when: <% failed() %>
-        publish: failed_step="get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - unexpected_machine_type
@@ -106,7 +115,9 @@ tasks:
         do:
           - look_for_complete_file
       - when: <% failed() %>
-        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -171,7 +182,9 @@ tasks:
         do:
           - transfer_csv_file
       - when: <% failed() %>
-        publish: failed_step="transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_runfolder -- Couldn't transfer runfolder to inbox - <% ctx(preprocessing_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>/!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -198,7 +211,9 @@ tasks:
         do:
           - runfolder_moved
       - when: <% failed() %>
-        publish: failed_step="create_tansfer_complete -- Couldn't create TransferComplete file -- <% ctx(inbox_folder) %>!"
+        publish::
+          - stderr: <% result().stderr %>
+          - failed_step: "create_tansfer_complete -- Couldn't create TransferComplete file -- <% ctx(inbox_folder) %>!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -258,7 +273,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -293,3 +308,6 @@ tasks:
       - when: <% succeeded() %>
         do:
           - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

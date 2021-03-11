@@ -45,6 +45,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_fetch_to_prefix }}"
+  processing_location:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_preprocess_transfer_prefix_location }}"
   project_type:
     required: true
     type: string

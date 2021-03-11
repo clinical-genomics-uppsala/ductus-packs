@@ -11,6 +11,7 @@ input:
   - transfer_from_key
   - transfer_from_host
   - storage_path
+  - processing_location
   - project_type
   - mail_lab
   - mail_bioinfo
@@ -81,17 +82,17 @@ tasks:
   create_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes
+      cwd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker
       cmd: mkdir -p <% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
-        publish: result_storage_folder="<% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/<% ctx(run_year) %>"
+        publish: result_storage_folder="<% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker/<% ctx(run_year) %>"
         do:
           - transfer_result
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/<% ctx(run_year) %>'
+          - failed_step: 'create_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -103,6 +104,25 @@ tasks:
       timeout: 5
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_stats
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result  -- Could not transfer result'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  transfer_stats:
+    action: core.local
+    input:
+      timeout: 5
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3  rsync.py -c  -f '<% ctx(processing_location) %>/Twist_Myeloid/Workarea/InheritedGenes/<% ctx(run_year) %>-*.txt' -t  <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
     next:
       - when: <% succeeded() %>
         do:
