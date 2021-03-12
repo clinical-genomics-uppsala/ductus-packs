@@ -249,7 +249,7 @@ tasks:
       method: "POST"
     next:
       - when: <% failed() %>
-        publish: failed_step="mark_as_finshed -- Couldn't mark <% ctx(runfolder) %> as finished!"
+        publish: failed_step="mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
 

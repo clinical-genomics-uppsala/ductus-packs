@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/Twist_Myeloid/Workarea"
+      pattern: "Twist_Myeloid/Workarea"
 
 action:
     ref: "ductus.process_wp2_twist_tm_inbox_data"
