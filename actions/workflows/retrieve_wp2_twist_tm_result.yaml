@@ -197,9 +197,6 @@ tasks:
     input:
       cmd: mv <% ctx(result_storage_folder) %>/HD829_* <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Batchcontrols/
     next:
-      - when: <% succeeded() %>
-        do:
-          - mv_batch_control
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
