@@ -177,9 +177,13 @@ tasks:
           - wp2_error_notifier
 
   look_for_batch_control:
-    action: core.local
+    action: core.remote
     input:
-      cwd: <% ctx(result_storage_folder) %>
+      username: <% ctx(transfer_from_user) %>
+      private_key: <% ctx(transfer_from_key) %>
+      timeout: 10
+      hosts: <% ctx(transfer_from_host) %>
+      cwd: <% ctx(runfolder) %>/
       cmd: ls HD829_*
     next:
       - when: <% succeeded() %>
