@@ -120,7 +120,7 @@ tasks:
   transfer_stats:
     action: core.local
     input:
-      timeout: 5
+      timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3  rsync.py -c  -f '<% ctx(processing_location) %>/Twist_Myeloid/Workarea/InheritedGenes/<% ctx(run_year) %>-*.txt' -t  <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
     next:
