@@ -408,8 +408,9 @@ tasks:
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
       body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
-    do:
-      - fail
+    next:
+      - do:
+          - fail
 
   mark_as_failed:
     action: core.http
