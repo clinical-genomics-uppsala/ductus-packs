@@ -195,7 +195,7 @@ tasks:
   mv_batch_control:
     action: core.local
     input:
-      cwd: mv <% ctx(result_storage_folder) %>/HD829_*
+      cwd: mv <% ctx(result_storage_folder) %>/HD829_* .
       cmd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Batchcontrols/
     next:
       - when: <% succeeded() %>
