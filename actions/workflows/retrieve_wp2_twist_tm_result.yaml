@@ -21,6 +21,7 @@ vars:
   - failed_step: null
   - run_year: null
   - result_storage_folder: null
+  - result_qc_storage_folder: null
   - stderr: null
 
 tasks:
@@ -126,8 +127,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - result_retrieved
-          - mark_as_finished
+          - create_qc_year_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -136,6 +136,76 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
           - wp2_error_notifier
+
+  create_qc_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/Twist_Myeloid/
+      cmd: mkdir -p QC_<% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: result_qc_storage_folder="<% ctx(storage_path) %>/Twist_Myeloid/QC_<% ctx(run_year) %>"
+        do:
+          - look_for_batch_control
+          - mv_qc_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_qc_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/QC_<% ctx(run_year) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  mv_qc_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>
+      cmd: mv batchQC* <% ctx(result_qc_storage_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - result_retrieved
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'mv_qc_folder  -- Could not move batchQC to  <% ctx(result_qc_storage_folder) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  look_for_batch_control:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>
+      cmd: ls HD829_*
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mv_batch_control
+      - when: <% failed() %>
+        do: noop
+
+  mv_batch_control:
+    action: core.local
+    input:
+      cwd: mv <% ctx(result_storage_folder) %>/HD829_*
+      cmd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Batchcontrols/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mv_batch_control
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'mv_batch_control  -- Could not move batch control'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
 
   wp2_error_notifier:
     action: core.sendmail
