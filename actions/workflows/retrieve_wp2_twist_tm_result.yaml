@@ -161,7 +161,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(result_storage_folder) %>
-      cmd: mv batchQC* <% ctx(result_qc_storage_folder) %>
+      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -195,8 +195,7 @@ tasks:
   mv_batch_control:
     action: core.local
     input:
-      cwd: mv <% ctx(result_storage_folder) %>/HD829_* .
-      cmd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Batchcontrols/
+      cmd: mv <% ctx(result_storage_folder) %>/HD829_* <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Batchcontrols/
     next:
       - when: <% succeeded() %>
         do:
