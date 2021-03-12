@@ -101,7 +101,7 @@ tasks:
   transfer_result:
     action: core.local
     input:
-      timeout: 5
+      timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
     next:
