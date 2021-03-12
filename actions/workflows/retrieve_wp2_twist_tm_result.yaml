@@ -161,7 +161,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(result_storage_folder) %>
-      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>
+      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
     next:
       - when: <% succeeded() %>
         do:
