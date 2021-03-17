@@ -19,6 +19,7 @@ input:
 
 vars:
   - runfolder_name: null
+  - stderr: null
 
 tasks:
   get_runfolder_name:
@@ -31,7 +32,9 @@ tasks:
         do:
           - validate_folder_name
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -45,7 +48,9 @@ tasks:
         do:
           - mark_as_started
       - when: <% failed() %>
-        publish: failed_step="validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -62,7 +67,9 @@ tasks:
         do:
           - transfer_runfolder
       - when: <% failed() %>
-        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
@@ -78,7 +85,9 @@ tasks:
           do:
             - create_transfer_complete_file
         - when: <% failed() %>
-          publish: failed_step="transfer_runfolder  -- Couldn't transfer runfolder  ctx(runfolder), <% result().stdout %>, <% result().stderr %>"
+          publish:
+            - stderr: <% result().stderr %>
+            - failed_step: "transfer_runfolder  -- Couldn't transfer runfolder  ctx(runfolder)"
           do:
             - bioinfo_error_notifier
             - mark_as_failed
@@ -98,7 +107,9 @@ tasks:
           - mark_as_finished
           - pre_proccesing_complete_notifier
       - when: <% failed() %>
-        publish: failed_step="create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -130,7 +141,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       subject: "[DUCTUS][WP3][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
-      body: Something went wrong during the pre-processing of <% ct(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>
+      body: Something went wrong during the pre-processing of <% ct(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
     next:
       - when: <% succeeded() %>
         do:

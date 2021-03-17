@@ -23,6 +23,7 @@ vars:
   - analysis_folder_name: null
   - alignment_folder: null
   - failed_step: null
+  - stderr: null
 
 tasks:
   get_runfolder_name:
@@ -34,7 +35,9 @@ tasks:
         publish: runfolder_name=<% result().stdout %>
         do: validate_folder_name
       - when: <% failed() %>
-        publish: failed_step="get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -48,7 +51,9 @@ tasks:
         do:
           - mark_as_started
       - when: <% failed() %>
-        publish: failed_step="validate_folder_name  -- Couldn't  validate runfolder name <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "validate_folder_name  -- Couldn't  validate runfolder name <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -65,7 +70,9 @@ tasks:
         do:
           - get_machine_id
       - when: <% failed() %>
-        publish: failed_step="mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
 
@@ -89,7 +96,9 @@ tasks:
         do:
           - create_analysis_folder_name
       - when: <% failed() %>
-        publish: failed_step="get_run_date  -- Couldn't extract run date from  <% ctx(runfolder_name) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_run_date  -- Couldn't extract run date from  <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -104,7 +113,9 @@ tasks:
         do:
           - create_inbox_analysis_folder_on_moriarty
       - when: <% failed() %>
-        publish: failed_step="create_analysis_folder_name  -- Couldn't create folder name, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_analysis_folder_name  -- Couldn't create folder name"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -123,7 +134,9 @@ tasks:
         do:
           - transfer_samplesheet_file
       - when: <% failed() %>
-        publish: failed_step="create_inbox_analysis_folder_on_moriarty  -- Couldn't create inbox folder <% ctx(analysis_folder_name) %>/bam on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_inbox_analysis_folder_on_moriarty  -- Couldn't create inbox folder <% ctx(analysis_folder_name) %>/bam on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -139,7 +152,9 @@ tasks:
         do:
           - find_miseq_alignment_folder
       - when: <% failed() %>
-        publish: failed_step="transfer_samplesheet_file  -- Couldn't transfer samplesheet, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_samplesheet_file  -- Couldn't transfer samplesheet"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -154,7 +169,9 @@ tasks:
         do:
           - transfer_miseq_alignment_bam_files
       - when: <% failed() %>
-        publish: failed_step="find_miseq_alignment_folder  -- Couldn't locate alignment folder, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "find_miseq_alignment_folder  -- Couldn't locate alignment folder"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -170,7 +187,9 @@ tasks:
         do:
           - transfer_miseq_alignment_vcf_files
       - when: <% failed() %>
-        publish: failed_step="transfer_miseq_alignment_bam_files  -- Couldn't transfer bam files, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_miseq_alignment_bam_files  -- Couldn't transfer bam files"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -186,7 +205,9 @@ tasks:
         do:
           - create_transfer_complete_file
       - when: <% failed() %>
-        publish: failed_step="transfer_miseq_alignment_vcf_files  -- Couldn't transfer vcf files, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_miseq_alignment_vcf_files  -- Couldn't transfer vcf files"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -206,7 +227,9 @@ tasks:
           - mark_as_finished
           - pre_proccesing_complete_notifier
       - when: <% failed() %>
-        publish: failed_step="create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -236,7 +259,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP2][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>
+      body: Something went wrong during the pre-processing of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
     next:
       - when: <% succeeded() %>
         do: fail
