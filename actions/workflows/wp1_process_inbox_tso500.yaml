@@ -136,7 +136,7 @@ tasks:
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(analysis_folder) %>
       cmd: bash /projects/wp1/nobackup/TSO500/Bin/start_pipeline_marvin.sh <% ctx(analysis_folder) %>
-      timeout: 86400
+      timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
       - when: <% succeeded() %>

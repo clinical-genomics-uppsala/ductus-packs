@@ -81,7 +81,7 @@ tasks:
        username: <% ctx(transfer_to_user) %>
        private_key: <% ctx(transfer_to_key) %>
        cwd: <% ctx(transfer_to_location) %>/Twist_Myeloid/Workarea
-       cmd: mkdir -p <% ctx(runfolder_name) %>/fastq
+       cmd: mkdir -p <% ctx(runfolder_name) %>/fastq-perLane
        hosts: <% ctx(transfer_to_host) %>
      next:
        - when: <% succeeded() %>
@@ -120,7 +120,7 @@ tasks:
           python3 -c 'from ductus.tools.wrappers import Rsync;
           from ductus.tools.utils import get_samples_and_project;
           [Rsync(from_path="<% ctx(fastq_files_path) %>/" + sample + "*fastq.gz",
-          to_path="<% ctx(transfer_folder) %>/fastq",
+          to_path="<% ctx(transfer_folder) %>/fastq-perLane",
           remote_address="<% ctx(transfer_to_host) %>",
           user="<% ctx(transfer_to_user) %>",
           from_is_remote=2,
@@ -138,7 +138,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
-          - failed_step: "transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>, <% result().stderr %>"
+          - failed_step: "transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - wp2_error_notifier

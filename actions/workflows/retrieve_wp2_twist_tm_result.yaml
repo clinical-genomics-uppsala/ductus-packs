@@ -225,7 +225,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][WP2][ERROR] - WP2 Processing, <% ctx(experiment_name) %>"
-      body: Something went wrong when retrieving truesight wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>
+      body: Something went wrong when retrieving truesight wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
     next:
       - when: <% succeeded() %>
         do:
