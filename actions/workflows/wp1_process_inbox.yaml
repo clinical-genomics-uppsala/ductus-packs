@@ -30,7 +30,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
-          - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
+          - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
