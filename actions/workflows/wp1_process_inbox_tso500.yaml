@@ -62,17 +62,17 @@ tasks:
   create_analysis_folder:
     action: core.local
     input:
-      cmd: mkdir -p /scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+      cmd: mkdir -p /scratch/wp1/nobackup/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>
       cwd: <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
-        publish: analysis_folder="/scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        publish: analysis_folder="/scratch/wp1/nobackup/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - mark_as_started
       - when: <% failed() %>
         publish:
           - stderr: <% result().error %>
-          - failed_step: "create_analysis_folder  -- Could not create analysis folder: /scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+          - failed_step: "create_analysis_folder  -- Could not create analysis folder: /scratch/wp1/nobackup/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
