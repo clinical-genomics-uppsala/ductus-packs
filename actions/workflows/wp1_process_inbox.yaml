@@ -59,7 +59,7 @@ tasks:
           - tso500_analysis_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: "TSO500 processing failed"
           - failed_step: "run_tso500  -- Could not start TSO500 processing on <% ctx(runfolder) %>"
 
   wp1_sera:
