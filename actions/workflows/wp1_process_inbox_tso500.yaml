@@ -36,7 +36,7 @@ tasks:
           - get_run_year
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: 'get_experiment_name  -- Could not get experiment name from <% ctx(runfolder) %>/SampleSheet.csv'
         do:
           - bioinfo_error_notifier
@@ -53,7 +53,7 @@ tasks:
           - create_analysis_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: 'get_run_year  -- Could not extract run year from <% ctx(experiment_name) %>'
         do:
           - bioinfo_error_notifier
@@ -71,8 +71,8 @@ tasks:
           - mark_as_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
-          - failed_step: "create_analysis_folder  -- Could not create analysis folder: /scratch/wp1/nobackup/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+          - stderr: <% result().stderr %>
+          - failed_step: "create_analysis_folder  -- Could not create analysis folder: /scratch/wp1/nobackup/ngs/klinik/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -89,7 +89,7 @@ tasks:
           - clone_tso500_reop
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Could not mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -104,7 +104,7 @@ tasks:
           - sync_data
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "clone_tso500_reop  -- Could not clone repo <% ctx(tso500_git_url) %>, <% ctx(tso500_version) %> into <% ctx(analysis_folder) %>"
         do:
           - bioinfo_error_notifier
@@ -122,7 +122,7 @@ tasks:
          - run_TSO500_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_data  -- Could not sync SampleSheet.csv and xml files"
         do:
           - bioinfo_error_notifier
@@ -161,7 +161,7 @@ tasks:
           - copy_sampleseheet
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_OUTBOX_TSO500_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -177,7 +177,7 @@ tasks:
           - sync_result_to_outbox
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
@@ -194,7 +194,7 @@ tasks:
             - remove_big_files
         - when: <% failed() %>
           publish:
-            - stderr: <% result().error %>
+            - stderr: <% result().stderr %>
             - failed_step: "sync_result_to_outbox  -- Could not sync  DNA_bam, RNA_bam, Results, fastq, to <% ctx(outbox_folder) %>"
           do:
             - bioinfo_error_notifier
@@ -211,7 +211,7 @@ tasks:
             - sync_remaining_result_to_outbox
         - when: <% failed() %>
           publish:
-            - stderr: <% result().error %>
+            - stderr: <% result().stderr %>
             - failed_step: "remove_big_files  -- Could not remnove big files from <% ctx(analysis_folder) %>"
           do:
             - bioinfo_error_notifier
@@ -227,7 +227,7 @@ tasks:
           - create_Done_txt
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_remaining_result_to_outbox  -- Could not sync  remaining files to <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
@@ -240,7 +240,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_Done_txt  -- Could not create Done.txt in  <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier

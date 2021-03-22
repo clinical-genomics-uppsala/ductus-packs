@@ -31,7 +31,7 @@ tasks:
           - run_pomfrey
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -93,7 +93,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
@@ -111,7 +111,7 @@ tasks:
           - fail
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier

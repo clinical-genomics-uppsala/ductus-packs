@@ -29,7 +29,7 @@ tasks:
           - get_run_year
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
@@ -47,7 +47,7 @@ tasks:
           - create_year_runfolder_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_run_year  -- Couldn't extract run year from \"<% ctx(experiment_name) %>\""
         do:
           - bioinfo_error_notifier
@@ -63,7 +63,7 @@ tasks:
           - create_fastq_sample_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -80,7 +80,7 @@ tasks:
           - sync_run_info
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/ngs//<% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -97,7 +97,7 @@ tasks:
           - sync_interop
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_run_info  -- Couldn't sync RunInfo, ) , <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -120,7 +120,7 @@ tasks:
           - sync_nextseq_fastq_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_interop  -- Couldn't sync InterOp, ) , <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -137,7 +137,7 @@ tasks:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz"
         do:
           - bioinfo_error_notifier
@@ -154,7 +154,7 @@ tasks:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz"
         do:
           - bioinfo_error_notifier
@@ -171,7 +171,7 @@ tasks:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_miseq_fastq_files -- Couldn't fastq files <% ctx(raw_inbox_storage_path) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz"
         do:
           - bioinfo_error_notifier
@@ -188,7 +188,7 @@ tasks:
           - sync_index_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_year_index_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/"
         do:
           - bioinfo_error_notifier
@@ -205,7 +205,7 @@ tasks:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "sync_index_file  -- Couldn't sync index file <% ctx(raw_inbox_storage_path) %>/*index.csv"
         do:
           - bioinfo_error_notifier
@@ -222,7 +222,7 @@ tasks:
           - compress_runfolder_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
         do:
           - bioinfo_error_notifier
@@ -239,7 +239,7 @@ tasks:
           - validate_runfolder_archive
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "compress_runfolder_folder  -- Couldn't compress folder ctx(raw_inbox_storage_path) %>/ngs/preprocessing/<% ctx(project_type) %>/INBOX/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -255,7 +255,7 @@ tasks:
           - create_checksum_for_archive
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "validate_runfolder_archive  -- Couldn't validate compressed folder <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>__<% ctx(runfolder_name) %>.tar.gz"
         do:
           - bioinfo_error_notifier
@@ -271,7 +271,7 @@ tasks:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_checksum_for_archive  -- Couldn't create checksum for compressed folder <% ctx(archive_runfolder) %>/<% ctx(experiment_name) %>__<% ctx(runfolder_name) %>.tar.gz"
         do:
           - bioinfo_error_notifier

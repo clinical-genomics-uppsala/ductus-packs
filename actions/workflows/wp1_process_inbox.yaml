@@ -29,7 +29,7 @@ tasks:
           - wp1_sera
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
