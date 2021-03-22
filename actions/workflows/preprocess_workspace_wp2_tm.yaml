@@ -37,7 +37,7 @@ tasks:
           - extract_TM_header_SampleSheet
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "dos2unix -- Could not run dos2unix on ctx(samplesheet_file)%>"
         do:
           - mark_as_failed
@@ -53,7 +53,7 @@ tasks:
            - extract_TM_samples_SampleSheet
        - when: <% failed() %>
          publish:
-           - stderr: <% result().error %>
+           - stderr: <% result().stderr %>
            - failed_step: "extract_TM_header_SampleSheet -- Failed to extracting TM header from <% ctx(samplesheet_file)%>"
          do:
            - mark_as_failed
@@ -70,7 +70,7 @@ tasks:
            - create_folder_on_compute
        - when: <% failed() %>
          publish:
-           - stderr: <% result().error %>
+           - stderr: <% result().stderr %>
            - failed_step: "extract_TM_samples_SampleSheet -- Failed to extract TM samples from <% ctx(samplesheet_file)%>"
          do:
            - mark_as_failed
@@ -92,7 +92,7 @@ tasks:
            - transfer_SampleSheet
        - when: <% failed() %>
          publish:
-           - stderr: <% result().error %>
+           - stderr: <% result().stderr %>
            - failed_step: "create_folder_on_compute -- Could not create runfolder on <% ctx(transfer_to_host)%>"
          do:
            - mark_as_failed
@@ -137,7 +137,7 @@ tasks:
           - create_transfer_complete_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "transfer_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -221,7 +221,7 @@ tasks:
             - archive_fastq_and_runfolder
         - when: <% failed() %>
           publish:
-            - stderr: <% result().error %>
+            - stderr: <% result().stderr %>
             - failed_step: "prepare_transfer_of_runfolder_to_archive -- failed to create runfolder archive folder"
           do:
             - mark_as_failed

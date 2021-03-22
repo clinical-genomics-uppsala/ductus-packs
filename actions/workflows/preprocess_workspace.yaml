@@ -42,7 +42,7 @@ tasks:
           - get_runfolder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_csv_file_name  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -59,7 +59,7 @@ tasks:
           - get_runfolder_path
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -76,7 +76,7 @@ tasks:
           - get_machine_type
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_runfolder_name  -- Couldn't get dir name for <% ctx(runfolder) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
@@ -93,7 +93,7 @@ tasks:
           - get_machine_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -117,7 +117,7 @@ tasks:
           - wp3_te
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_mget_machine_nameachine_type  -- Couldn't parse the machine name from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
