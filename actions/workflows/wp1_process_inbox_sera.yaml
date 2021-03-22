@@ -220,7 +220,7 @@ tasks:
           - mark_as_finished
       - when: <% failed() %>
         publish:
-          - stderr: <% result() %>
+          - stderr: <% result().stderr %>
           - failed_step: "run_sera  -- Could not start sera <% ctx(sera_version) %>"
         do:
           - bioinfo_error_notifier
