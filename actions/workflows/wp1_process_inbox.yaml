@@ -86,7 +86,7 @@ tasks:
           - sera_analysis_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: "SERA analysis failed"
           - failed_step: "run_sera_wp1  -- Could not start SERA processing on <% ctx(runfolder) %>"
 
   analysis_checked:
