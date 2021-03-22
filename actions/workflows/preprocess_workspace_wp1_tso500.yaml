@@ -113,7 +113,7 @@ tasks:
           - create_transfer_complete_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -139,7 +139,7 @@ tasks:
           - create_year_runfolder_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
