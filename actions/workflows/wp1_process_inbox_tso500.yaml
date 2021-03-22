@@ -251,8 +251,8 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP1][ERROR] - SERA processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the sera processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>, <% ctx(stderr) %>
+      subject: "[DUCTUS][WP1][ERROR] - TSO500 processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the TSO500 processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -282,8 +282,8 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP1][ERROR] - SERA processing failure, <% ctx(experiment_name) %>"
-      body: Something went wrong during SERA processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
+      subject: "[DUCTUS][WP1][ERROR] - TSO500 processing failure, <% ctx(experiment_name) %>"
+      body: Something went wrong during TSO500 processing of folder <% ctx(experiment_name) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
