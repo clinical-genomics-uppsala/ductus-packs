@@ -53,7 +53,7 @@ tasks:
           - mark_as_finished
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: "Pomfrey failed"
           - failed_step: failed_step='run_pomfrey  -- Couldn't start Pomfrey on <% ctx(runfolder) %>'
         do:
           - bioinfo_error_notifier
