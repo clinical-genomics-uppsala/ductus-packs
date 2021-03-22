@@ -35,7 +35,7 @@ tasks:
           - get_run_year
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: 'get_experiment_name  -- Could not get experiment name'
         do:
           - bioinfo_error_notifier
@@ -52,7 +52,7 @@ tasks:
           - get_csv_file_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: 'get_run_year  -- Could not extract run year from <% ctx(experiment_name) %>'
         do:
           - bioinfo_error_notifier
@@ -70,7 +70,7 @@ tasks:
           - mark_as_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "get_csv_file_name  -- Could not locate a csv file in folder <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -89,7 +89,7 @@ tasks:
           - create_csv_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Could not mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -106,7 +106,7 @@ tasks:
           - copy_rawdata
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_runfolder_on_moriarty  -- Could not create fastq folder  <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/fastq_filer<% ctx(run_year) %>/<% ctx(experiment_name) %>_rawdata"
         do:
           - bioinfo_error_notifier
@@ -124,7 +124,7 @@ tasks:
          - run_sera
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "copy_rawdata  -- Could not copy raw data to <% ctx(raw_data_folder) %>"
         do:
           - bioinfo_error_notifier
@@ -141,7 +141,7 @@ tasks:
           - copy_csv_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_csv_folder  -- Could not create csv folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/sample_files/<% ctx(run_year) %>"
         do:
           - bioinfo_error_notifier
@@ -158,7 +158,7 @@ tasks:
           - create_OUTBOX_sera_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "copy_csv_file  -- Could not copy csv file <% ctx(csv_file_name) %>"
         do:
           - bioinfo_error_notifier
@@ -175,7 +175,7 @@ tasks:
           - copy_sampleseheet
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "create_OUTBOX_sera_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -191,7 +191,7 @@ tasks:
           - run_sera
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
