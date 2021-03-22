@@ -144,7 +144,7 @@ tasks:
           - create_OUTBOX_TSO500_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().error %>
+          - stderr: <% result().stderr %>
           - failed_step: "run_TSO500_analysis  -- failed running TSO500 analysis on  <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
