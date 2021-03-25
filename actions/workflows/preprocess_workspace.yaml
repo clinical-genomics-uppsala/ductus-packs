@@ -394,7 +394,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][ERROR] -  <% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP][ERROR] -  <% ctx(runfolder_name) %>"
       body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %>
     next:
       - when: <% succeeded() %>
