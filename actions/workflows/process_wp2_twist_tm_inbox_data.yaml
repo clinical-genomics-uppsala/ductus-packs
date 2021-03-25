@@ -57,28 +57,28 @@ tasks:
           - failed_step: failed_step='run_pomfrey  -- Couldn't start Pomfrey on <% ctx(runfolder) %>'
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
           - mark_as_failed
 
-  wp2_error_notifier:
-    action: core.sendmail
-    input:
-      to: <% ctx(mail_lab) %>
-      from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong during TrueSight processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
-    next:
-      - when: <% succeeded() %>
-        do:
-          - fail
+#  wp2_error_notifier:
+#    action: core.sendmail
+#    input:
+#      to: <% ctx(mail_lab) %>
+#      from: stanley@clinicalgenomics-uu.se
+#      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid My processing failure, <% ctx(runfolder) %>"
+#      body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+#    next:
+#      - when: <% succeeded() %>
+#        do:
+#          - fail
 
   bioinfo_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing, <% ctx(runfolder) %>"
-      body: Something went wrong during the TrueSight processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid processing, <% ctx(runfolder) %>"
+      body: Something went wrong during the Twist Myeloid processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -97,7 +97,7 @@ tasks:
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
   mark_as_failed:
     action: core.http
@@ -115,7 +115,7 @@ tasks:
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
 output:
   - stderr: <% ctx(stderr) %>
