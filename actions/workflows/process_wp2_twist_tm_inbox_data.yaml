@@ -16,9 +16,27 @@ input:
 
 vars:
   - failed_step: null
+  - runfolder_name: null
   - stderr: null
 
 tasks:
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_runfolder_name  -- Could not get runfolder name'
+        do:
+          - bioinfo_error_notifier
+
+
   mark_as_started:
     action: core.http
     input:
@@ -35,7 +53,7 @@ tasks:
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
   run_pomfrey:
     action: core.remote
@@ -44,7 +62,7 @@ tasks:
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(runfolder) %>
-      cmd: bash /projects/wp2/nobackup/Twist_Myeloid/Bin/start_pipeline_marvin.sh fastq/  <% ctx(runfolder) %>
+      cmd: bash /projects/wp2/nobackup/Twist_Myeloid/Bin/start_pipeline_marvin.sh fastq/  <% ctx(runfolder_name) %>
       timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
@@ -54,31 +72,31 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: "Pomfrey failed"
-          - failed_step: failed_step='run_pomfrey  -- Couldn't start Pomfrey on <% ctx(runfolder) %>'
+          - failed_step: failed_step='run_pomfrey  -- Couldn't start Pomfrey on <% ctx(runfolder_name) %>'
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
           - mark_as_failed
 
-  wp2_error_notifier:
-    action: core.sendmail
-    input:
-      to: <% ctx(mail_lab) %>
-      from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong during TrueSight processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
-    next:
-      - when: <% succeeded() %>
-        do:
-          - fail
+#  wp2_error_notifier:
+#    action: core.sendmail
+#    input:
+#      to: <% ctx(mail_lab) %>
+#      from: stanley@clinicalgenomics-uu.se
+#      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid My processing failure, <% ctx(runfolder) %>"
+#      body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+#    next:
+#      - when: <% succeeded() %>
+#        do:
+#          - fail
 
   bioinfo_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - TrueSight processing, <% ctx(runfolder) %>"
-      body: Something went wrong during the TrueSight processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid processing, <% ctx(runfolder) %>"
+      body: Something went wrong during the Twist Myeloid processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -97,7 +115,7 @@ tasks:
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
   mark_as_failed:
     action: core.http
@@ -115,7 +133,7 @@ tasks:
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
 output:
   - stderr: <% ctx(stderr) %>
