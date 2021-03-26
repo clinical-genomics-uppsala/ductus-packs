@@ -49,15 +49,14 @@ tasks:
           - mark_as_failed
 
   start_script:
-    action: ductus.start_bcbio_analysis
+    action: core.remote
     input:
       username: <% ctx(processing_user) %>
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
-      panel_name: <% ctx(runpanel) %>
-      runfolder_directory: <% ctx(TE_folder) %>/<% ctx(runfolder_name) %>
-      bcbio_version: <% ctx(bcbio_version) %>
-      timeout: 999999
+      cwd: <% ctx(TE_folder) %>/<% ctx(runfolder_name) %>
+      cmd: /projects/wp3/Script/TWIST_Marvin/run_everything_script.sh
+      timeout: 345600
     next:
       - when: <% succeeded() %>
         do:
