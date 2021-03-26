@@ -36,7 +36,7 @@ tasks:
         do:
           - bioinfo_error_notifier
 
-          
+
   mark_as_started:
     action: core.http
     input:
@@ -53,7 +53,7 @@ tasks:
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-          - wp2_error_notifier
+#          - wp2_error_notifier
 
   run_pomfrey:
     action: core.remote
