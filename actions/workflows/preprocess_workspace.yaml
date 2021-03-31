@@ -374,7 +374,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP] - Pre-processing, <% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP] - Pre-processing, <% ctx(runfolder_name) %>, <% ctx(analysis) %>"
       body: Found runfolder!
 
   unexpected_machine_type:
