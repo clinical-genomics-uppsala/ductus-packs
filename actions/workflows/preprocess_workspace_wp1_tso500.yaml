@@ -197,7 +197,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP2][SUCCESS] - Archiving, <% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP1][SUCCESS] - TSO500 Archiving, <% ctx(runfolder_name) %>"
       body: <% ctx(runfolder_name) %> has been archived!!!
 
   molpat_error_notifier:
