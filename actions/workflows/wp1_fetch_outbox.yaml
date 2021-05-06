@@ -151,6 +151,7 @@ tasks:
   sync_fastq_files:
     action: core.local
     input:
+      timeout: 86400
       cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
       cmd: rsync -Prv fastq <% ctx(fastq_storage_folder)%>/
     next:
@@ -249,7 +250,7 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][WP1][SUCCESS] - SERA/TSO500 analysis available, <% ctx(experiment_name) %>"
       body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
