@@ -107,7 +107,6 @@ tasks:
       - when: <% succeeded() %>
         do:
           - wp1_tso500
-          - result_retrieved
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -126,8 +125,10 @@ tasks:
       - when: <% succeeded() %>
         do:
           - create_fastq_folder
+          - result_retrieved_tso500
       - when: <% failed() %>
         do:
+          - result_retrieved_sera
           - mark_as_finished
 
   create_fastq_folder:
@@ -245,12 +246,20 @@ tasks:
         do:
           - fail
 
-  result_retrieved:
+  result_retrieved_sera:
     action: core.sendmail
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][SUCCESS] - SERA/TSO500 analysis available, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
+      body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
+      
+ result_retrieved_tso500:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][SUCCESS] - TSO500 analysis available, <% ctx(experiment_name) %>"
       body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
