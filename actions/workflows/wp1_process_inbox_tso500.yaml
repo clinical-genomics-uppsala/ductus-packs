@@ -188,6 +188,7 @@ tasks:
       input:
         cmd: rsync -Prv DNA_bam RNA_bam Results fastq <% ctx(outbox_folder) %>/
         cwd: <% ctx(analysis_folder) %>
+        timeout: 36000
       next:
         - when: <% succeeded() %>
           do:
