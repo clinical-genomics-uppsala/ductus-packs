@@ -254,7 +254,7 @@ tasks:
       subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
       body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
       
- result_retrieved_tso500:
+  result_retrieved_tso500:
     action: core.sendmail
     input:
       to: <% ctx(mail_lab) %>
