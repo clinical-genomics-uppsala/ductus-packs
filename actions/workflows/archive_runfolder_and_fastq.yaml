@@ -30,6 +30,7 @@ tasks:
         publish: samples=<% result().stdout %>
         do:
           - fastq_files
+          - undetermined_fastq_files
       - when: <% succeeded() %>
         do:
           - compress_runfolder_folder
@@ -52,7 +53,21 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "sync_miseq_fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
+          - failed_step: "fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
+        do:
+          - bioinfo_error_notifier
+          
+  undetermined_fastq_files:
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/Undetermined_*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "undetermined_fastq_files -- Could not archive Undetermined_ fastq files <% ctx(fastq_files_path) %>"
         do:
           - bioinfo_error_notifier
 
