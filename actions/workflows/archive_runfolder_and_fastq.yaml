@@ -60,6 +60,17 @@ tasks:
   undetermined_fastq_files:
     action: core.local
     input:
+      cmd: ls <% ctx(fastq_files_path) %>/Undetermined_*fastq.gz
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        do: noop
+      - when: <% succeeded() %>
+        do: sync_undetermined_fastq_files
+          
+  sync_undetermined_fastq_files:
+    action: core.local
+    input:
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/Undetermined_*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
       timeout: 86400
