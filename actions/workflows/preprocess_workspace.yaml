@@ -33,7 +33,7 @@ tasks:
   check_for_samplesheet:
     action: core.local
     input:
-      cmd: ls SampleSheet.csv
+      cmd: ls [Ss]ample[Ss]heet.csv
       cwd: <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
