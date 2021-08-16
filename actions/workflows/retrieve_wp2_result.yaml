@@ -110,7 +110,7 @@ tasks:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP2][ERROR] - Processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong when retrieving sera result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
+      body: Something went wrong when retrieving wp2 result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
