@@ -45,7 +45,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python3 -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z]{2}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
+      cmd: python3 -c "import sys;import re; p = re.compile('^(\d{4})\d{4}_[a-zA-Z-]{2,}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
