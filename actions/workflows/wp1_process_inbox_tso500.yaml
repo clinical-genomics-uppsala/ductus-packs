@@ -45,7 +45,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z-]{2,}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
@@ -98,6 +98,7 @@ tasks:
     action: core.local
     input:
       cmd: git clone --depth 1 --branch <% ctx(tso500_version) %> <% ctx(tso500_git_url) %>  <% ctx(analysis_folder) %>
+      timeout: 300
     next:
       - when: <% succeeded() %>
         do:
@@ -171,6 +172,7 @@ tasks:
     action: core.local
     input:
       cmd: cp <% ctx(runfolder) %>/SampleSheet.csv  <% ctx(outbox_folder) %>/
+      timeout: 300
     next:
       - when: <% succeeded() %>
         do:
@@ -188,7 +190,7 @@ tasks:
       input:
         cmd: rsync -Prv DNA_bam RNA_bam Results fastq <% ctx(outbox_folder) %>/
         cwd: <% ctx(analysis_folder) %>
-        timeout: 36000
+        timeout: 7200
       next:
         - when: <% succeeded() %>
           do:
@@ -206,6 +208,7 @@ tasks:
       input:
         cmd: rm -r TST170/TruSightTumor170_Analysis_*/Fastqs/Undetermined* TSO500/Logs_Intermediates/ fastq_temp/ STAR/*.sam
         cwd: <% ctx(analysis_folder) %>
+        timeout: 600
       next:
         - when: <% succeeded() %>
           do:
@@ -222,6 +225,7 @@ tasks:
     action: core.local
     input:
       cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(outbox_folder) %>
+      timeout: 7200
     next:
       - when: <% succeeded() %>
         do:
