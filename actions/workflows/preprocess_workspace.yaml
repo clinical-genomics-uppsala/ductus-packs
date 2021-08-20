@@ -15,7 +15,6 @@ input:
 
 vars:
   - csv_file_name: null
-  - run_year: null
   - runfolder_path: null
   - runfolder_name: null
   - inbox_folder: null
