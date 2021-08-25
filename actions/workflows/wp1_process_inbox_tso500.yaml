@@ -212,6 +212,7 @@ tasks:
       next:
         - when: <% succeeded() %>
           do:
+            - create_Done_txt
             - remove_big_files
         - when: <% failed() %>
           publish:
@@ -230,7 +231,7 @@ tasks:
       next:
         - when: <% succeeded() %>
           do:
-            - sync_remaining_result_to_outbox
+            - sync_remaining_result_to_project_analys
         - when: <% failed() %>
           publish:
             - stderr: <% result().stderr %>
@@ -245,9 +246,6 @@ tasks:
       cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(projects_analysis_folder) %>
       timeout: 7200
     next:
-      - when: <% succeeded() %>
-        do:
-          - create_Done_txt
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
