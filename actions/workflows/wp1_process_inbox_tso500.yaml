@@ -243,7 +243,7 @@ tasks:
   sync_remaining_result_to_project_analys:
     action: core.local
     input:
-      cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(projects_analysis_folder) %>
+      cmd: rsync -Prv <% ctx(analysis_folder) %>/* <% ctx(projects_analysis_folder) %>
       timeout: 7200
     next:
       - when: <% failed() %>
