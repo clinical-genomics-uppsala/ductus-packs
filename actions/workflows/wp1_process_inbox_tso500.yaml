@@ -20,6 +20,7 @@ vars:
   - experiment_name: null
   - run_year: null
   - analysis_folder: null
+  - projects_analysis_folder: null
   - outbox_folder: null
   - stderr: null
 
@@ -159,11 +160,28 @@ tasks:
       - when: <% succeeded() %>
         publish: outbox_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
-          - copy_sampleseheet
+          - create_project_analysis_TSO500
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "create_OUTBOX_TSO500_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_project_analysis_TSO500:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: projects_analysis_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - copy_sampleseheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_project_analysis_TSO500  -- Could not project analys folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -221,10 +239,10 @@ tasks:
             - bioinfo_error_notifier
             - mark_as_failed
 
-  sync_remaining_result_to_outbox:
+  sync_remaining_result_to_project_analys:
     action: core.local
     input:
-      cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(outbox_folder) %>
+      cmd: rsync -Prv <% ctx(analysis_folder) %> <% ctx(projects_analysis_folder) %>
       timeout: 7200
     next:
       - when: <% succeeded() %>
@@ -233,7 +251,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "sync_remaining_result_to_outbox  -- Could not sync  remaining files to <% ctx(outbox_folder) %>"
+          - failed_step: "sync_remaining_result_to_project_analys  -- Could not sync  remaining files to <% ctx(projects_analysis_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
