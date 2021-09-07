@@ -206,7 +206,7 @@ tasks:
   sync_result_to_outbox:
       action: core.local
       input:
-        cmd: rsync -Prv DNA_bam RNA_bam Results fastq <% ctx(outbox_folder) %>/
+        cmd: rsync -Prv *NA_bam Results fastq <% ctx(outbox_folder) %>/
         cwd: <% ctx(analysis_folder) %>
         timeout: 7200
       next:
