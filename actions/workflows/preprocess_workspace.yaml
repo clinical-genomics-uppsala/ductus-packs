@@ -84,7 +84,7 @@ tasks:
   get_machine_type:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN|M0|NDX|NB).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(NS|MN|M0|NDX|NB).*_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: machine_type=<% result().stdout %>
