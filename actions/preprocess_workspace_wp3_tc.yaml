@@ -69,4 +69,4 @@ parameters:
   archive_location:
     required: true
     type: string
-    default: "{{ config_context.wp3_archive_location }}"
+    default: "{{ config_context.wp3_tc_archive_location }}"

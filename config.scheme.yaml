@@ -342,6 +342,11 @@
     type: string
     required: true
     default: "/AL_NGS-Archive/KG_Archive/Konstitutionell/Klinik"
+  wp3_tc_archive_location:
+    description: Location on transfer host where runfolder will be archived.
+    type: string
+    required: true
+    default: "/data/hospital/wp3/Archive/Klinik"
   wp3_runfolder_api_version:
     description: The arteria-runfolder api version that should be used.
     type: string
@@ -367,3 +372,13 @@
     type: string
     required: true
     default: "bioinfo-clinical-genomics-uu@googlegroups.com"
+
+  wp3_runfolder_service_address:
+      description: Address that will be used to send requests to the runfolder service, for wp3
+      type: string
+      required: true
+      default: "wp1runfolder"
+  wp3_TC_notification_mail_lab:
+    descripion: Email list to lab for WP3 Twist Cancer.
+    type: string
+    required: true
