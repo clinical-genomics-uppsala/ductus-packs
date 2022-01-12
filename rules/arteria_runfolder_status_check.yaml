@@ -1,0 +1,14 @@
+---
+name: "arteria_runfolder_status_check"
+pack: "ductus"
+description: "Rule that triggers checking of arteria-runfolders"
+enabled: false
+
+trigger:
+    type: "core.st2.IntervalTimer"
+    parameters:
+        unit: "hours"
+        delta: 6
+
+action:
+    ref: "ductus.arteria_runfolder_status_check"
