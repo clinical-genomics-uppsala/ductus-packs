@@ -1,5 +1,5 @@
 ---
-name: wp3_TC_process_inbox_data
+name: process_inbox_wp3_tc
 description: >
   Run pomfrey-tc for WP3 Twist Cancer data.
 enabled: true
