@@ -24,9 +24,6 @@ parameters:
   samplesheet_file:
     required: true
     type: string
-  machine_type:
-    required: true
-    type: string
   storage_path:
     required: true
     type: string
