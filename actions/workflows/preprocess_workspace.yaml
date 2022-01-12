@@ -106,7 +106,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - manchine_name: "<% result().stdout %>"
+          - machine_name: "<% result().stdout %>"
           - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).complete_job_file_path.first() %>"
           - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).fastq_files_path.first() %>"
         do:
@@ -264,7 +264,7 @@ tasks:
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
-         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+         - failed_step: "Unable to process sera data <% ctx(runfolder_name) %>"
         do:
          - fail
 
@@ -285,7 +285,7 @@ tasks:
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
-         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+         - failed_step: "Unable to process sera data <% ctx(runfolder_name) %>"
         do:
          - fail
 
