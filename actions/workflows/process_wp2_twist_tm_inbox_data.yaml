@@ -95,7 +95,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid processing, <% ctx(runfolder) %>"
+      subject: "[DUCTUS][WP2][TM][ERROR] - Twist Myeloid processing, <% ctx(runfolder) %>"
       body: Something went wrong during the Twist Myeloid processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
