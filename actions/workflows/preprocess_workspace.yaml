@@ -102,7 +102,7 @@ tasks:
   get_machine_name:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("\d*_(MN\d+|M0\d+|NDX\d+|NB\d+)_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("\d{6}_([A-Z]+[0-9]+)_\d+_.*");sys.stdout.write(p.search("<% ctx(runfolder_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish:
