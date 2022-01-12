@@ -47,14 +47,14 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - run_pomfrey
+          - run_pomfrey_TC
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-         - wp3_TC_error_notifier
+          - wp3_TC_error_notifier
 
   run_pomfrey_TC:
     action: core.remote
@@ -79,17 +79,17 @@ tasks:
           - wp3_TC_error_notifier
           - mark_as_failed #G;rs inte det i error notifiers?
 
- wp3_TC_error_notifier:
-   action: core.sendmail
-   input:
-     to: <% ctx(mail_lab) %>
-     from: stanley@clinicalgenomics-uu.se
-     subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer  processing failure, <% ctx(runfolder) %>"
-     body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
-   next:
-     - when: <% succeeded() %>
-       do:
-         - fail
+  wp3_TC_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer  processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
   bioinfo_error_notifier:
     action: core.sendmail

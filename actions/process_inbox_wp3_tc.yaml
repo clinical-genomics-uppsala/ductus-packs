@@ -18,7 +18,6 @@ parameters:
   runfolder:
     required: true
     type: string
-  # TC_folder? eller ska jag bara ha det namnet pa sjukhuset Results?
   host:
     required: true
     type: string
@@ -53,8 +52,8 @@ parameters:
   mail_lab: #Ar det inte alltid samma for alla wp3?
     required: true
     type: string
-    default: "{{ config_context.wp3_TC_notification_mail_lab }}"
+    default: "{{ config_context.wp3_notification_mail_lab }}"
   mail_bioinfo: #Ar det inte alltid samma? Borde vi inte forenkla
     required: true
     type: string
-    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
+    default: "{{ config_context.wp2_notification_mail_bioinfo }}"
