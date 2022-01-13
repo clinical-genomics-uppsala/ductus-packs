@@ -1,0 +1,182 @@
+version: "1.0"
+
+description: Will sync wp3 Twist Cancer results back from compute
+
+input:
+  - runfolder
+  - host
+  - runfolder_port
+  - runfolder_api_version
+  - transfer_from_user
+  - transfer_from_key
+  - transfer_from_host
+  - storage_path
+  - processing_location
+  - mail_lab
+  - mail_bioinfo
+
+vars:
+  - experiment_name: null
+  - failed_step: null
+  - run_year: null
+  - result_storage_folder: null
+  - result_qc_storage_folder: null
+  - stderr: null
+
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% results().stderr %>
+          - failed_step: 'get_experiment_name -- Could not get experminent name'
+        do:
+          - bioinfo_error_notifier
+          - wp3_error_notifier
+          - mark_as_failed
+
+  get_run_year:
+    action: core.local
+    input:
+      cmd: date "+%Y" #python3 -c 'import sys;import re; p = re.compile("^(\d{2})\d{4}_[0-9A-Z_]+$");sys.stdout.write("20" + p.search("<% ctx(experiment_name) %>").group(1))'
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_run_year -- Could not extract run year'
+        do:
+          - bioinfo_error_notifier
+          - wp3_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_year_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'mark_as_started -- Could not mark <% ctx(runfolder) %> as started'
+        do:
+          - bioinfo_error_notifier
+          - wp3_error_notifier
+          - mark_as_failed
+
+  create_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/TWIST_Cancer/Resultat
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: result_storage_folder="<% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>"
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_year_folder -- Could not create year folder <% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp3_error_notifier
+
+  transfer_result:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - result_retrieved
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp3_error_notifier
+
+  result_retrieved:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP3][TC][SUCCESS] - WP3 TC analysis available, <% ctx(experiment_name) %>"
+      body: The result from WP3 TC analysis of <% ctx(experiment_name) %> can now be accessed.
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+    next:
+      - when: <% failed() %>
+        publish: failed_step="mark_as_finished -- Couldn't mark <% ctx(runfolder) as finished! >"
+        do:
+          - bioinfo_error_notifier
+          - wp3_error_notifier
+  mark_as_failed:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctrx(runfolder_api_version) %>/rulfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+      - when: <% failed() %>
+        publish: failed_step='mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!'
+        do:
+          - bioinfo_error_notifier
+          - wp3_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP3][TC][ERROR] - WP3 TC Processing, <% ctx(experiment_name) %>"
+      body: Something went wrong when retrieving Twist Cancer wp3 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  wp3_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP3][TC][ERROR] - Processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong when retrieving WP3 Twist Cancer result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

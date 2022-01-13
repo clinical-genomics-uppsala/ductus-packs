@@ -374,10 +374,10 @@
     default: "bioinfo-clinical-genomics-uu@googlegroups.com"
 
   wp3_runfolder_service_address:
-      description: Address that will be used to send requests to the runfolder service, for wp3
-      type: string
-      required: true
-      default: "wp1runfolder"
+    description: Address that will be used to send requests to the runfolder service, for wp3
+    type: string
+    required: true
+    default: "wp1runfolder"
   wp3_TC_notification_mail_lab:
     descripion: Email list to lab for WP3 Twist Cancer.
     type: string
