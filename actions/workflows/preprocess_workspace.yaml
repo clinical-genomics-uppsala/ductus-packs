@@ -26,7 +26,7 @@ vars:
   - stderr: null
   - analysis: null
   - machine_type: null
-  - manchine_name: null
+  - machine_name: null
 
 tasks:
   check_for_samplesheet:
