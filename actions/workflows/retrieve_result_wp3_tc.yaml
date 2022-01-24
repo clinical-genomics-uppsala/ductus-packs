@@ -138,6 +138,7 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp3_error_notifier
+          
   mark_as_failed:
     action: core.http
     input:

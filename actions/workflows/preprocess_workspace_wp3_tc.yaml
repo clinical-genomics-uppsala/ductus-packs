@@ -253,10 +253,10 @@ tasks:
   prepare_transfer_of_runfolder_to_archive:
     action: core.local
     input:
-      cmd: mkdir -p <% ctx(archive_location) %>/TWIST_Cancer/Runfolders/<% ctx(run_year) %>/<% ctx(TC_folder)%>
+      cmd: mkdir -p <% ctx(archive_location) %>/TWIST_Cancer/Runfolders/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
-        publish: archive_runfolder="<% ctx(archive_location) %>/TWIST_Cancer/Runfolders/<% ctx(run_year) %>/<% ctx(TC_folder)%>"
+        publish: archive_runfolder="<% ctx(archive_location) %>/TWIST_Cancer/Runfolders/<% ctx(run_year) %>"
         do:
           - archive_fastq_and_runfolder
       - when: <% failed() %>
