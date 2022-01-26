@@ -1,0 +1,32 @@
+version: "1.0" # mistral version
+
+description: Simple test used to make sure that arteria-runfolder service can be queried.
+
+input:
+    - arteria_runfolder_services
+    - mail_bioinfo
+
+tasks:
+  query_arteria_runfolder:
+    with:
+      items: <% ctx(arteria_runfolder_services) %>
+    action: core.http
+    input:
+      url:  http://<% item().address %>:<% item().port %>/api/<% item().api_version %>/runfolders/path<% item().runfolder_path %>
+      method: "GET"
+    next:
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: "stanley@clinicalgenomics-as.se"
+      subject: "'[DUCTUS][ARTERIA][ERROR] - Unable to query all test runfolders'"
+      body: Could not query all test runfolders, please investigate!
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
