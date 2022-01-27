@@ -45,7 +45,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: date "+%Y" #python3 -c 'import sys;import re; p = re.compile("^(\d{2})\d{4}_[0-9A-Z_]+$");sys.stdout.write("20" + p.search("<% ctx(experiment_name) %>").group(1))'
+      cmd: date "+%Y"
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
