@@ -27,9 +27,6 @@ parameters:
   fastq_files_path:
     required: true
     type: string
-  machine_type:
-    required: true
-    type: string
   preprocessing_storage_path:
     required: true
     type: string

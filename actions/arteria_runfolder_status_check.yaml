@@ -1,0 +1,17 @@
+---
+    name: arteria_runfolder_status_check
+    description: >
+        Check if arteria-runfolder can be queried
+    enabled: true
+    runner_type: orquesta
+    entry_point: workflows/arteria_runfolder_status_check.yaml
+    pack: ductus
+    parameters:
+        arteria_runfolder_services:
+          required: true
+          type: array
+          default: "{{ config_context.arteria_runfolder_services }}"
+        mail_bioinfo:
+           required: true
+           type: string
+           default: "{{ config_context.notification_mail_bioinfo }}"

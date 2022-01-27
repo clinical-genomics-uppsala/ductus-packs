@@ -259,6 +259,9 @@ tasks:
     input:
         cmd: echo "`date`" > <% ctx(outbox_folder) %>/Done.txt;
     next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>

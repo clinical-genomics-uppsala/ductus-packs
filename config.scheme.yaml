@@ -1,4 +1,8 @@
 ---
+  arteria_runfolder_addresses:
+    description: list of addresses for arteria-runfolder services
+    type: array
+    required: true
   wp1_preprocess_transfer_user:
     description: The user that will be used to push data.
     type: string
