@@ -56,4 +56,4 @@ parameters:
   mail_bioinfo: #Ar det inte alltid samma? Borde vi inte forenkla
     required: true
     type: string
-    default: "{{ config_context.wp2_notification_mail_bioinfo }}"
+    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
