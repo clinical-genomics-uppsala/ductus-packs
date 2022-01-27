@@ -25,7 +25,8 @@ vars:
   - interop_path: null
   - stderr: null
   - analysis: null
-  - manchine_name: null
+  - machine_type: null
+  - machine_name: null
 
 tasks:
   check_for_samplesheet:
@@ -87,7 +88,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - manchine_name: "<% result().stdout %>"
+          - machine_name: "<% result().stdout %>"
           - complete_job_file_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).complete_job_file_path.first() %>"
           - fastq_files_path: "<% ctx(runfolder) %>/<% ctx(path_fastq_and_complete_file).where($.name=result().stdout).fastq_files_path.first() %>"
         do:
@@ -95,6 +96,7 @@ tasks:
           - wp1_sera
           - wp2_tm
           - wp3_te
+          - wp3_tc
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -165,6 +167,21 @@ tasks:
       - when: <% failed() %>
         do: analysis_checked_wp3_te
 
+  wp3_tc:
+    join: 1
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp3", "tc") else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        publish: analysis="wp3_tc"
+        do:
+          - runfolder_found
+          - look_for_complete_file_wp3_tc
+      - when: <% failed() %>
+        do: analysis_checked_wp3_tc
+
   analysis_checked_wp1_tso500:
     action: core.noop
     next:
@@ -181,6 +198,11 @@ tasks:
       - do: move_archived_folder
 
   analysis_checked_wp3_te:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
+  analysis_checked_wp3_tc:
     action: core.noop
     next:
       - do: move_archived_folder
@@ -222,7 +244,21 @@ tasks:
       delay: <% ctx(check_demultiplexing_retry_delay) %>
     next:
       - when: <% succeeded() and ctx().analysis = 'wp3_te' %>
-        do: wp3_preprocess_data
+        do: wp3_te_preprocess_data
+      - when: <% failed() %>
+        do:
+          - completed_job_file_missing
+
+  look_for_complete_file_wp3_tc:
+    action: core.local
+    input:
+      cmd: ls <% ctx(complete_job_file_path) %>
+    retry:
+      count: <% ctx(num_check_demultiplexing_completed) %>
+      delay: <% ctx(check_demultiplexing_retry_delay) %>
+    next:
+      - when: <% succeeded() and ctx().analysis = 'wp3_tc' %>
+        do: wp3_tc_preprocess_data
       - when: <% failed() %>
         do:
           - completed_job_file_missing
@@ -244,7 +280,7 @@ tasks:
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
-         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+         - failed_step: "Unable to process sera data <% ctx(runfolder_name) %>"
         do:
          - fail
 
@@ -264,7 +300,7 @@ tasks:
       - when: <% failed() %>
         publish:
          - stderr: <% result().output.stderr %>
-         - faild_step: "Unable to process sera data <% ctx(runfolder_name) %>"
+         - failed_step: "Unable to process sera data <% ctx(runfolder_name) %>"
         do:
          - fail
 
@@ -285,11 +321,11 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
-          - faild_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
+          - failed_step: "Unable to process WP2 TM data <% ctx(runfolder_name) %>"
         do:
           - fail
 
-  wp3_preprocess_data:
+  wp3_te_preprocess_data:
     action: ductus.preprocess_workspace_wp3_te
     input:
       runfolder_path: <% ctx(runfolder_path) %>
@@ -306,7 +342,29 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
-          - faild_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
+          - failed_step: "Unable to process WP3 TE data <% ctx(runfolder_name) %>"
+        do:
+          - fail
+
+  wp3_tc_preprocess_data:
+    action: ductus.preprocess_workspace_wp3_tc
+    input:
+      runfolder_path: <% ctx(runfolder_path) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      samplesheet_file: <% ctx(csv_file_name) %>
+      fastq_files_path: <% ctx(fastq_files_path) %>
+      machine_type: <% ctx(machine_type) %>
+      runfolder_host: <% ctx(runfolder_host) %>
+      runfolder_host_port: <% ctx(runfolder_host_port) %>
+      runfolder_api_version: <% ctx(api_version) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% succeeded() %>
+        do: wp3_tc_done
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().output.stderr %>
+          - failed_step: "Unable to process WP3 TC data <% ctx(runfolder_name) %>"
         do:
           - fail
 
@@ -330,9 +388,14 @@ tasks:
     next:
       - do: move_archived_folder
 
+  wp3_tc_done:
+    action: core.noop
+    next:
+      - do: move_archived_folder
+
   move_archived_folder:
     action: core.noop
-    join: 4
+    join: 5
     #action: core.local
     #input:
     #  cwd: <% ctx(runfolder_path) %>
