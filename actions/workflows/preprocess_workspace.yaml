@@ -25,7 +25,6 @@ vars:
   - interop_path: null
   - stderr: null
   - analysis: null
-  - machine_type: null
   - machine_name: null
 
 tasks:
@@ -353,7 +352,6 @@ tasks:
       runfolder_name: <% ctx(runfolder_name) %>
       samplesheet_file: <% ctx(csv_file_name) %>
       fastq_files_path: <% ctx(fastq_files_path) %>
-      machine_type: <% ctx(machine_type) %>
       runfolder_host: <% ctx(runfolder_host) %>
       runfolder_host_port: <% ctx(runfolder_host_port) %>
       runfolder_api_version: <% ctx(api_version) %>

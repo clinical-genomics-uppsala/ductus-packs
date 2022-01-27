@@ -7,7 +7,6 @@ input:
   - runfolder_name
   - samplesheet_file
   - fastq_files_path
-  - machine_type
   - transfer_to_host
   - transfer_to_location
   - transfer_to_key
