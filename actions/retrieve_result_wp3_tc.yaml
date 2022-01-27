@@ -24,7 +24,7 @@ parameters:
   runfolder_port:
     required: true
     type: string
-    default: "{{ config_context.wp2_transfer_from_runfolder_port }}"
+    default: "{{ config_context.wp3_transfer_from_runfolder_port }}"
   runfolder_api_version:
     required: true
     type: string
