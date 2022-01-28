@@ -88,11 +88,30 @@ tasks:
       - when: <% succeeded() %>
         publish: result_storage_folder="<% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>"
         do:
-          - transfer_result
+          - create_qc_year_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: 'create_year_folder -- Could not create year folder <% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp3_error_notifier
+
+  create_qc_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/TWIST_Cancer/batchQC
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: result_qc_storage_folder="<% ctx(storage_path) %>/TWIST_Cancer/batchQC/<% ctx(run_year) %>"
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(storage_path) %>/TWIST_Cancer/batchQC/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -107,12 +126,30 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
+          - mv_qc_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp3_error_notifier
+
+  mv_qc_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>
+      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
           - result_retrieved
           - mark_as_finished
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+          - failed_step: 'mv_qc_folder  -- Could not move batchQC to  <% ctx(result_qc_storage_folder) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -138,7 +175,7 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp3_error_notifier
-          
+
   mark_as_failed:
     action: core.http
     input:
