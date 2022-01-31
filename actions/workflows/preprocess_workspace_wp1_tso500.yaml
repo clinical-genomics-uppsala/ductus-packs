@@ -6,7 +6,6 @@ input:
   - runfolder_path
   - runfolder_name
   - samplesheet_file
-  - machine_type
   - storage_path
   - transfer_to_host
   - transfer_to_location
@@ -227,7 +226,7 @@ tasks:
   mark_as_finished:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %><% ctx(runfolder_name) %>
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
       body: '{"state": "done"}'
       method: "POST"
 

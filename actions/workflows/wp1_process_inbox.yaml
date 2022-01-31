@@ -1,5 +1,5 @@
 version: "1.0" # Orquesta version
-description: Will analyse data found in the inbox folder using SERA
+description: Will analyse data found in the inbox folder using SERA or TSO500 module
 
 input:
   - runfolder

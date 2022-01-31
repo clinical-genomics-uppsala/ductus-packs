@@ -1,10 +1,10 @@
 ---
-name: preprocess_workspace_wp1_sera
+name: preprocess_workspace_wp3_tc
 description: >
-  Preprocess a sera analysis
+  This preprocess a WP3 TC analysis
 enabled: true
 runner_type: orquesta
-entry_point: workflows/preprocess_workspace_wp1_sera.yaml
+entry_point: workflows/preprocess_workspace_wp3_tc.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.preprocess_workspacewp1_sera
+    default: ductus.preprocess_workspace_wp3_tc
     immutable: true
     type: string
   runfolder_path:
@@ -27,10 +27,6 @@ parameters:
   fastq_files_path:
     required: true
     type: string
-  preprocessing_storage_path:
-    required: true
-    type: string
-    default: "{{ config_context.wp1_preprocess_storage_path }}"
   runfolder_host:
     required: true
     type: string
@@ -46,24 +42,28 @@ parameters:
   transfer_to_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_preprocess_transfer_ip }}"
+    default: "{{ config_context.wp3_preprocess_transfer_ip }}"
   transfer_to_location:
     required: true
     type: string
-    default: "{{ config_context.wp1_preprocess_transfer_prefix_location }}"
+    default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
   transfer_to_key:
     required: true
     type: string
-    default: "{{ config_context.wp1_preprocess_transfer_key }}"
+    default: "{{ config_context.wp3_preprocess_transfer_key }}"
   transfer_to_user:
     required: true
     type: string
-    default: "{{ config_context.wp1_preprocess_transfer_user }}"
+    default: "{{ config_context.wp3_preprocess_transfer_user }}"
   mail_lab:
     required: true
     type: string
-    default: "{{ config_context.wp1_notification_mail_lab }}"
+    default: "{{ config_context.wp3_notification_mail_lab }}"
   mail_bioinfo:
     required: true
     type: string
-    default: "{{ config_context.wp1_notification_mail_bioinfo }}"
+    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
+  archive_location:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_tc_archive_location }}"

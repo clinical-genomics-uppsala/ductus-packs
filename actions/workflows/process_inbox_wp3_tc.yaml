@@ -1,6 +1,6 @@
 version: "1.0" # Orquest version
 
-description: Will analyse data found in the inbox folder using ...
+description: Will analyse data found in the wp3 TC inbox folder
 
 input:
     - runfolder
@@ -15,8 +15,9 @@ input:
     - mail_bioinfo
 
 vars:
-  - failed_step: null
+  - TC_basename: null
   - runfolder_name: null
+  - failed_step: null
   - stderr: null
 
 tasks:
@@ -46,24 +47,24 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - run_pomfrey
+          - run_pomfrey_TC
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-#          - wp2_error_notifier
+          - wp3_TC_error_notifier
 
-  run_pomfrey:
+  run_pomfrey_TC:
     action: core.remote
     input:
       username: <% ctx(processing_user) %>
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
-      cwd: <% ctx(runfolder) %>
-      cmd: bash /projects/wp2/nobackup/Twist_Myeloid/Bin/start_pipeline_marvin.sh fastq/  <% ctx(runfolder_name) %>
-      timeout: 172800
+      cwd: <% ctx(runfolder) %> #borde det inte vara en annan tills testat klart?
+      cmd: bash /projects/wp3/nobackup/TwistCancer/Bin/pomfrey-TC/start_TC_marvin.sh fastq/  <% ctx(runfolder_name) %>
+      timeout: 172800 # Hur bestammer man?
       hosts: <% ctx(processing_host) %>
     next:
       - when: <% succeeded() %>
@@ -71,31 +72,31 @@ tasks:
           - mark_as_finished
       - when: <% failed() %>
         publish:
-          - stderr: "Pomfrey failed"
-          - failed_step: failed_step='run_pomfrey  -- Couldn't start Pomfrey on <% ctx(runfolder_name) %>'
+          - stderr: "Pomfrey-TC failed"
+          - failed_step: failed_step='run_pomfrey_TC  -- Couldn't start Pomfrey-TC on <% ctx(runfolder_name) %>'
         do:
           - bioinfo_error_notifier
-#          - wp2_error_notifier
-          - mark_as_failed
+          - wp3_TC_error_notifier
+          - mark_as_failed #G;rs inte det i error notifiers?
 
-#  wp2_error_notifier:
-#    action: core.sendmail
-#    input:
-#      to: <% ctx(mail_lab) %>
-#      from: stanley@clinicalgenomics-uu.se
-#      subject: "[DUCTUS][WP2][ERROR] - Twist Myeloid My processing failure, <% ctx(runfolder) %>"
-#      body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
-#    next:
-#      - when: <% succeeded() %>
-#        do:
-#          - fail
+  wp3_TC_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer  processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong during Twist Myeloid processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
   bioinfo_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][TM][ERROR] - Twist Myeloid processing, <% ctx(runfolder) %>"
+      subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer processing failure, <% ctx(runfolder) %>"
       body: Something went wrong during the Twist Myeloid processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
@@ -115,9 +116,9 @@ tasks:
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
-#          - wp2_error_notifier
+          - wp3_TC_error_notifier
 
-  mark_as_failed:
+  mark_as_failed: #Mark as failed because couldnt mark as failed??
     action: core.http
     input:
       url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
@@ -133,7 +134,7 @@ tasks:
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
-#          - wp2_error_notifier
+          - wp3_TC_error_notifier #Kanske inte till lab behovs?
 
 output:
   - stderr: <% ctx(stderr) %>

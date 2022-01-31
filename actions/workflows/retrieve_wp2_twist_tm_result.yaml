@@ -75,7 +75,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'mark_as_started  -- Could not extract run year'
+          - failed_step: 'mark_as_started -- Could not mark <% ctx(runfolder) %> as started'
         do:
           - bioinfo_error_notifier
           - wp2_error_notifier
@@ -99,7 +99,7 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
           - wp2_error_notifier
-  
+
   create_inheritedGenes_year_folder:
     action: core.local
     input:
@@ -151,7 +151,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result  -- Could not transfer result'
+          - failed_step: 'transfer_stats  -- Could not transfer stats'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -171,7 +171,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_qc_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/QC_<% ctx(run_year) %>'
+          - failed_step: 'create_qc_year_folder  -- Could not create QC year folder <% ctx(storage_path) %>/Twist_Myeloid/QC_<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -232,8 +232,8 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP2][ERROR] - Processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong when retrieving sera result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
+      subject: "[DUCTUS][WP2][TM][ERROR] - Processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong when retrieving Twist Myeloid result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
@@ -244,8 +244,8 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP2][ERROR] - WP2 Processing, <% ctx(experiment_name) %>"
-      body: Something went wrong when retrieving truesight wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
+      subject: "[DUCTUS][WP2][TM][ERROR] - WP2 Processing, <% ctx(experiment_name) %>"
+      body: Something went wrong when retrieving Twist Myeloid wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
     next:
       - when: <% succeeded() %>
         do:
@@ -286,7 +286,7 @@ tasks:
        to: <% ctx(mail_lab) %>
        from: stanley@clinicalgenomics-as.se
        subject: "[DUCTUS][WP2][SUCCESS] - WP2 analysis available, <% ctx(experiment_name) %>"
-       body: The result from WP2 analysis of <% ctx(experiment_name) %> can now be accessed.
+       body: The result from WP2 Twist Myeloid analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
   - stderr: <% ctx(stderr) %>
