@@ -69,7 +69,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_year_folder
+          -   create_year_and_experiment_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -79,20 +79,20 @@ tasks:
           - wp3_error_notifier
           - mark_as_failed
 
-  create_year_folder:
+  create_year_and_experiment_folder:
     action: core.local
     input:
       cwd: <% ctx(storage_path) %>/TWIST_Cancer/Resultat
-      cmd: mkdir -p <% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(run_year) %>/<% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: result_storage_folder="<% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>"
+        publish: result_storage_folder="<% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - create_qc_year_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder -- Could not create year folder <% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>'
+          - failed_step: 'create_year_and_experiment_folder -- Could not create year and runfolder <% ctx(storage_path) %>/TWIST_Cancer/Resultat/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
