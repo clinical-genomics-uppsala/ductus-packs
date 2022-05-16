@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.6.0...v2.7.0) (2022-05-16)
+
+
+### Features
+
+* update version ([4bcf2cf](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4bcf2cfc77b11d4290d5e285972c34ddbacb688a))
+
 ## [2.6.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.5.0...v2.6.0) (2022-05-09)
 
 
