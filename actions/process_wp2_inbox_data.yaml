@@ -53,10 +53,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_process_local_prefix_location }}"
-  project_type:
-      required: true
-      type: string
-      default: TruSight_Myeloid
   mail_lab:
     required: true
     type: string
