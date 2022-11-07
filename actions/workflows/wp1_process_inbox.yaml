@@ -1,5 +1,5 @@
 version: "1.0" # Orquesta version
-description: Will analyse data found in the inbox folder using SERA or TSO500 module
+description: Will analyse data found in the inbox folder using SERA, GMS560 or TSO500 module
 
 input:
   - runfolder
@@ -27,6 +27,7 @@ tasks:
         do:
           - wp1_tso500
           - wp1_sera
+          - wp1_GMS560
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -34,6 +35,33 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+
+  wp1_GMS560:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp1", "GMS560", "<% ctx(project_type) %>") else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - run_GMS560
+      - when: <% failed() %>
+        do: analysis_checked
+
+  run_GMS560:
+    action: ductus.wp1_process_inbox_GMS560
+    input:
+      runfolder: <% ctx(runfolder) %>
+      project_type: <% ctx(project_type) %>
+      runfolder_host: <% ctx(runfolder_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - GMS560_analysis_started
+      - when: <% failed() %>
+        publish:
+          - stderr: "GMS560 processing failed"
+          - failed_step: "run_GMS560  -- Could not start GMS560 processing on <% ctx(runfolder) %>"
 
   wp1_tso500:
     action: core.local
