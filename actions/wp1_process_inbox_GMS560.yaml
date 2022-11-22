@@ -49,14 +49,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_processing_host_user }}"
-  tso500_git_url:
+  GMS560_git_url:
     required: true
     type: string
-    default: "{{ config_context.wp1_tso500_git_url }}"
-  tso500_version:
+    default: "{{ config_context.wp1_GMS560_git_url }}"
+  GMS560_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_tso500_version }}"
+    default: "{{ config_context.wp1_GMS560_version }}"
   mail_lab:
     required: true
     type: string

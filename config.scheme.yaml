@@ -148,13 +148,21 @@
     required: true
     default: "/data/ref_data/wp1"
   wp1_tso500_git_url:
-      description: Sera version that will be loaded.
+      description: TSO500 version that will be loaded.
       type: string
       required: https://github.com/clinical-genomics-uppsala/TSO500_Marvin.git
   wp1_tso500_version:
-      description: Sera version that will be loaded.
+      description: TSO500 version that will be loaded.
       type: string
       required: main
+  wp1_GMS560_git_url:
+      description: GMS560 version that will be loaded.
+      type: string
+      required: https://github.com/genomic-medicine-sweden/Twist_Solid.git
+  wp1_GMS560_version:
+      description: GMS560 version that will be loaded.
+      type: string
+      required: v0.2.3-validation
 
   wp2_notification_mail_lab:
     description: Email address where notifications to lab will be sent.
