@@ -136,7 +136,7 @@ get_experiment_name:
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(analysis_folder) %>
-      cmd: bash /projects/wp1/nobackup/GMS560/Bin/create_sample_unit_file.sh <% ctx(runfolder) %>
+      cmd: bash /projects/wp1/nobackup/GMS560/Bin/create_sample_unit_file_GMS560.sh <% ctx(runfolder) %>
       timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
@@ -158,7 +158,7 @@ get_experiment_name:
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(analysis_folder) %>
-      cmd: bash /projects/wp1/nobackup/GMS560/Bin/modify_sample_unit_file.sh
+      cmd: bash /projects/wp1/nobackup/GMS560/Bin/modify_sample_unit_file_GMS560.sh
       timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
@@ -180,7 +180,7 @@ get_experiment_name:
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(analysis_folder) %>
-      cmd: bash /projects/wp1/nobackup/GMS560/Bin/start_pipeline_marvin.sh
+      cmd: bash /projects/wp1/nobackup/GMS560/Bin/start_pipeline_marvin_GMS560.sh
       timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
@@ -243,7 +243,7 @@ get_experiment_name:
         - when: <% failed() %>
           publish:
             - stderr: <% result().stderr %>
-            - failed_step: "sync_result_to_outbox  -- Could not sync DNA_bam, RNA_bam, results, to <% ctx(outbox_folder) %>"
+            - failed_step: "sync_result_to_outbox  -- Could not sync bam_dna, bam_rna, results, to <% ctx(outbox_folder) %>"
           do:
             - bioinfo_error_notifier
             - mark_as_failed
