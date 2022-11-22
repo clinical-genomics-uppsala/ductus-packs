@@ -115,7 +115,7 @@ get_experiment_name:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: rsync -Prv SampleSheet.csv <% ctx(analysis_folder) %>/
+      cmd: rsync -Prv SampleSheet.csv fastq <% ctx(analysis_folder) %>/
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -136,7 +136,7 @@ get_experiment_name:
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
       cwd: <% ctx(analysis_folder) %>
-      cmd: bash /projects/wp1/nobackup/GMS560/Bin/create_sample_unit_file_GMS560.sh <% ctx(runfolder) %>
+      cmd: bash /projects/wp1/nobackup/GMS560/Bin/create_sample_unit_file_GMS560.sh
       timeout: 172800
       hosts: <% ctx(processing_host) %>
     next:
