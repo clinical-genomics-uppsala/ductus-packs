@@ -136,6 +136,14 @@ tasks:
       subject: "[DUCTUS][WP1][SERA] - SERA processing started"
       body: SERA processing started on <% ctx(runfolder) %>
 
+  GMS560_analysis_started:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][GMS560] - GMS560 processing started"
+      body: GMS560 processing started on <% ctx(runfolder) %>
+
   bioinfo_error_notifier:
     action: core.sendmail
     input:
