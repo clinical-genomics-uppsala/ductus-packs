@@ -1,10 +1,10 @@
 ---
-name: wp1_process_inbox_GMS560
+name: wp1_process_inbox_gms560
 description: >
   Initialize processing of wp1 data using GMS560. Will move data to appropriate locations and then submit cluster jobs.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/wp1_process_inbox_GMS560.yaml
+entry_point: workflows/wp1_process_inbox_gms560.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.wp1_process_inbox_GMS560
+    default: ductus.wp1_process_inbox_gms560
     immutable: true
     type: string
   runfolder:
@@ -49,14 +49,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_processing_host_user }}"
-  GMS560_git_url:
+  gms560_git_url:
     required: true
     type: string
-    default: "{{ config_context.wp1_GMS560_git_url }}"
-  GMS560_version:
+    default: "{{ config_context.wp1_gms560_git_url }}"
+  gms560_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_GMS560_version }}"
+    default: "{{ config_context.wp1_gms560_version }}"
   mail_lab:
     required: true
     type: string

@@ -1,4 +1,20 @@
 ---
+  workspace_runfolder_service_address:
+    required: true
+    type: string
+  workspace_runfolder_service_port:
+    required: true
+    type: string
+  workspace_demultiplexing_service_address:
+    required: true
+    type: string
+  workspace_demultiplexing_service_port:
+    required: true
+    type: string
+  demultiplexing_output_folder:
+    required: true
+    type: string
+
   arteria_runfolder_addresses:
     description: list of addresses for arteria-runfolder services
     type: array

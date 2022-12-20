@@ -1,10 +1,10 @@
 ---
-name: preprocess_workspace_wp1_GMS560
+name: preprocess_workspace_wp1_gms560
 description: >
   Preprocess a GMS560 analysis
 enabled: true
 runner_type: orquesta
-entry_point: workflows/preprocess_workspace_wp1_GMS560.yaml
+entry_point: workflows/preprocess_workspace_wp1_gms560.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.preprocess_workspace_wp1_GMS560
+    default: ductus.preprocess_workspace_wp1_gms560
     immutable: true
     type: string
   runfolder_path:
@@ -56,6 +56,18 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_preprocess_transfer_user }}"
+  demultiplexing_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_preprocess_bclconvert_host }}"
+  demultiplexing_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_preprocess_bclconvert_port }}"
+  demultiplexing_output_folder:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_output_folder }}"
   mail_lab:
     required: true
     type: string

@@ -11,8 +11,8 @@ input:
   - processing_host
   - processing_key
   - processing_user
-  - GMS560_git_url
-  - GMS560_version
+  - gms560_git_url
+  - gms560_version
   - mail_lab
   - mail_bioinfo
 
@@ -25,22 +25,22 @@ vars:
   - stderr: null
 
 tasks:
-get_experiment_name:
-  action: core.local
-  input:
-    cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
-  next:
-    - when: <% succeeded() %>
-      publish: experiment_name=<% result().stdout %>
-      do:
-        - get_run_year
-    - when: <% failed() %>
-      publish:
-        - stderr: <% result().stderr %>
-        - failed_step: 'get_experiment_name  -- Could not get experiment name'
-      do:
-        - bioinfo_error_notifier
-        - mark_as_failed
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_experiment_name  -- Could not get experiment name'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   get_run_year:
     action: core.local
@@ -86,7 +86,7 @@ get_experiment_name:
     next:
       - when: <% succeeded() %>
         do:
-          - clone_GMS560_repo
+          - clone_gms560_repo
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -94,10 +94,10 @@ get_experiment_name:
         do:
           - bioinfo_error_notifier
 
-  clone_GMS560_repo:
+  clone_gms560_repo:
     action: core.local
     input:
-      cmd: git clone --depth 1 --branch <% ctx(GMS560_version) %> <% ctx(GMS560_git_url) %>  <% ctx(analysis_folder) %>
+      cmd: git clone --depth 1 --branch <% ctx(gms560_version) %> <% ctx(gms560_git_url) %>  <% ctx(analysis_folder) %>
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -106,7 +106,7 @@ get_experiment_name:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "clone_GMS560_repo  -- Could not clone repo <% ctx(GMS560_git_url) %>, <% ctx(GMS560_version) %> into <% ctx(analysis_folder) %>"
+          - failed_step: "clone_gms560_repo  -- Could not clone repo <% ctx(gms560_git_url) %>, <% ctx(gms560_version) %> into <% ctx(analysis_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -120,7 +120,7 @@ get_experiment_name:
     next:
       - when: <% succeeded() %>
         do:
-         - run_GMS560_analysis
+         - create_sample_unit_file
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -164,7 +164,7 @@ get_experiment_name:
     next:
       - when: <% succeeded() %>
         do:
-          - run_GMS560_analysis
+          - run_gms560_analysis
       - when: <% failed() %>
         publish:
           - stderr: "Modifying sample.tsv and units.tsv failed"
@@ -173,7 +173,7 @@ get_experiment_name:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  run_GMS560_analysis:
+  run_gms560_analysis:
     action: core.remote
     input:
       username: <% ctx(processing_user) %>
@@ -186,16 +186,16 @@ get_experiment_name:
     next:
       - when: <% succeeded() %>
         do:
-          - create_OUTBOX_GMS560_analysis
+          - create_OUTBOX_gms560_analysis
       - when: <% failed() %>
         publish:
-          - stderr: "GMS560 analysis failed"
-          - failed_step: "run_GMS560_analysis  -- failed running GMS560 analysis on  <% ctx(analysis_folder) %>"
+          - stderr: "gms560 analysis failed"
+          - failed_step: "run_gms560_analysis  -- failed running GMS560 analysis on  <% ctx(analysis_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  create_OUTBOX_GMS560_analysis:
+  create_OUTBOX_gms560_analysis:
     action: core.local
     input:
       cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>
@@ -203,16 +203,16 @@ get_experiment_name:
       - when: <% succeeded() %>
         publish: outbox_folder="<% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
-          - create_project_analysis_GMS560
+          - create_project_analysis_gms560
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_OUTBOX_GMS560_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
+          - failed_step: "create_OUTBOX_gms560_analysis  -- Could not outbox folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/OUTBOX/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  create_project_analysis_GMS560:
+  create_project_analysis_gms560:
     action: core.local
     input:
       cmd: mkdir -p <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>
@@ -224,7 +224,7 @@ get_experiment_name:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_project_analysis_GMS560 -- Could not project analys folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+          - failed_step: "create_project_analysis_gms560 -- Could not project analys folder <% ctx(local_folder_prefix) %>/ngs/<% ctx(project_type) %>/analys/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed

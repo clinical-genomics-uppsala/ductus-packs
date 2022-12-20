@@ -14,15 +14,23 @@ input:
   - runfolder_host
   - runfolder_host_port
   - runfolder_api_version
+  - demultiplexing_host
+  - demultiplexing_port
+  - demultiplexing_output_folder
   - mail_lab
   - mail_bioinfo
 
 vars:
+  - archive_fastq_folder: null
+  - archive_runfolder: null
   - sample_index_file: null
   - experiment_name: null
-  - inbox_folder: null
+  - fastq_files_path: null
   - project_types: null
+  - project_and_experiments: null
   - run_year: null
+  - demultiplexing_id: null
+  - failed_step: null
   - stderr: null
 
 tasks:
@@ -38,7 +46,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_run_year  -- Could not extract run year from \"<% ctx(experiment_name) %>\""
+          - failed_step: "get_run_year  -- Could not extract run year from \"<% ctx(runfolder_name) %>\""
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -47,12 +55,12 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
-      cmd: python3 -c 'from ductus.tools.utils import get_project_types; import json; print(json.dumps(list(get_project_types("wp1", "GMS560", "<% ctx(samplesheet_file) %>"))))'
+      cmd: python3 -c 'from ductus.tools.utils import get_project_types; import json; print(json.dumps(list(get_project_types("wp1", "gms560", "<% ctx(samplesheet_file) %>"))))'
     next:
       - when: <% succeeded() %>
-        publish: project_types=<% result().stdout %>
+        publish: get_project_and_experiment=<% result().stdout %>
         do:
-          - demultiplex
+          - get_project_and_experiment
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -61,20 +69,34 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  demultiplex:
-    action: core.remote
+  get_project_and_experiment:
+    action: core.local
     input:
-      username: <% ctx(processing_user) %>
-      private_key: <% ctx(processing_key) %>
-      hosts: <% ctx(processing_host) %>
       cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
-      cmd: bash demultiplex_GMS560.sh
-      timeout: 172800
-      hosts: <% ctx(processing_host) %>
+      cmd: python3 -c 'from ductus.tools.utils import get_project_and_experiment; import json; print(json.dumps(list(get_project_and_experiment("wp1", "gms560", "<% ctx(samplesheet_file) %>"))))'
     next:
       - when: <% succeeded() %>
+        publish: project_and_experiments=<% result().stdout %>
         do:
-          - transfer_samplesheet_file
+          - demultiplex
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_project_and_experiment  -- Could not extract project and experiments \"<% ctx(runfolder_name) %>\""
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  demultiplex:
+    action: core.local
+    input:
+      cmd: >
+        curl -X POST --data '{"additional_args":""}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_port) %>/api/1.0/start/<% ctx(runfolder_name) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        publish: demultiplexing_id=<% result().stdout %>
+        do:
+          - wait_for_demultiplexing_to_be_done
       - when: <% failed() %>
         publish:
           - stderr: "Demultplexing failed"
@@ -83,13 +105,60 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
+  wait_for_demultiplexing_to_be_done:
+      action: core.local
+      input:
+        cmd: >
+          curl http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_port) %>/api/1.0/status/<% ctx(demultiplexing_id) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); exit(0) if result["state"] == "done" else exit(1)'
+      retry:
+        count: 10
+        delay: 1
+      next:
+        - when: <% succeeded() %>
+          publish:
+            - fastq_files_path: "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder_name) %>"
+          do:
+            create_fastq_folder_on_compute
+        - when: <% failed() %>
+          publish:
+            - stderr: "Demultplexing failed"
+            - failed_step: "demultiplex -- failed demultiplexing on  <% ctx(runfolder_name) %>"
+          do:
+            - bioinfo_error_notifier
+            - mark_as_failed
+
+  create_fastq_folder_on_compute:
+    with:
+      items: <% ctx(project_and_experiments) %>
+    action: core.remote
+    input:
+      username: <% ctx(transfer_to_user) %>
+      private_key: <% ctx(transfer_to_key) %>
+      cwd: <% ctx(transfer_to_location) %>/ngs/
+      cmd: mkdir -p <% item()[0] %>/INBOX/<% item()[1] %>/fastq
+      timeout: 10
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+         - transfer_samplesheet_file
+         - transfer_fastq_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_raw_folder_on_compute  -- Could not create raw folder on <% ctx(transfer_to_host) %>"
+        do:
+         - bioinfo_error_notifier
+         - molpat_error_notifier
+         - mark_as_failed
+
   transfer_samplesheet_file:
     with:
-      items: <% ctx(project_types) %>
+      items: <% ctx(project_and_experiments) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_to_location) %>/ngs/<% item() %>/INBOX/<% ctx(experiment_name) %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
+      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %> -t <% ctx(transfer_to_location) %>/ngs/<% item()[0] %>/INBOX/<% item()[1] %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
       timeout: 300
     next:
       - when: <% succeeded() %>
@@ -105,14 +174,16 @@ tasks:
           - mark_as_failed
 
   transfer_fastq_files:
+    with:
+      items: <% ctx(project_and_experiments) %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core
       cmd: >
           python3 -c 'from ductus.tools.wrappers import Rsync;
           from ductus.tools.utils import get_samples_and_project;
-          [Rsync(from_path="<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/fastq/*fastq.gz",
-          to_path="<% ctx(transfer_to_location) %>/ngs/" + project_type + "/INBOX/<% ctx(experiment_name) %>",
+          [Rsync(from_path="<% ctx(fastq_files_path) %>/" + sample + "*fastq.gz",
+          to_path="<% ctx(transfer_to_location) %>/ngs/" + project_type + "/INBOX/" + experiment + "/fastq/",
           remote_address="<% ctx(transfer_to_host) %>",
           user="<% ctx(transfer_to_user) %>",
           from_is_remote=2,
@@ -121,7 +192,7 @@ tasks:
           checksum_validate=True,
           preserve_permissions=False,
           local_sync=False).execute()
-           for sample, project_type, *info in get_samples_and_project("wp1","sera", "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %>")]'
+           for sample, project_type, experiment, *info in get_samples_and_project("wp1","gms560", "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% ctx(samplesheet_file) %>")]'
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -138,21 +209,21 @@ tasks:
 
   create_transfer_complete_file:
     with:
-      items: <% ctx(project_types) %>
+      items: <% ctx(project_and_experiments) %>
     action: core.remote
     join: all
     input:
       username: <% ctx(transfer_to_user) %>
       private_key: <% ctx(transfer_to_key) %>
       cwd: <% ctx(transfer_to_location) %>/ngs/
-      cmd: echo "`date`" > <% item() %>/INBOX/<% ctx(experiment_name) %>/Done.txt;
+      cmd: echo "`date`" > <% item()[0] %>/INBOX/<% item()[1] %>/Done.txt;
       timeout: 10
       hosts: <% ctx(transfer_to_host) %>
     next:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
-          - archive_runfolder_data
+          - prepare_transfer_of_fastq_to_archive
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -162,84 +233,71 @@ tasks:
           - molpat_error_notifier
           - mark_as_failed
 
+  prepare_transfer_of_fastq_to_archive:
+    with:
+      items: <% ctx(project_and_experiments) %>
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(storage_path) %>/ngs/<% item()[0] %>/archive/gms560/fastq/<% ctx(run_year) %>/<% item()[1] %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - prepare_transfer_of_runfolder_to_archive
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "prepare_transfer_of_fastq_to_archive -- Couldn't create fastq runfolder in archive"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  prepare_transfer_of_runfolder_to_archive:
+    with:
+      items: <% ctx(project_and_experiments) %>
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(storage_path) %>/ngs/<% item()[0] %>/archive/gms560/NGS_runfolder/<% ctx(run_year) %>/<% item()[1] %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - archive_runfolder_data
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "prepare_transfer_of_runfolder_to_archive -- failed to create runfolder archive folder"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
   archive_runfolder_data:
     with:
-      items: <% ctx(project_types) %>
-    action: ductus.wp1_archive_workspace
+      items: <% ctx(project_and_experiments) %>
+    action: ductus.archive_runfolder_and_fastq
     input:
       samplesheet_file: <% ctx(samplesheet_file) %>
-      experiment_name: <% ctx(experiment_name) %>
-      runfolder_name: <% ctx(runfolder_name) %>
+      compress_runfolder_name: "gms560_<% ctx(runfolder_name) %>"
       runfolder_path: <% ctx(runfolder_path) %>
+      runfolder_name: <% ctx(runfolder_name) %>
+      project_type: "<% item()[0] %>"
+      storage_path_runfolder: <% ctx(storage_path) %>/ngs/<% item()[0] %>/archive/gms560/NGS_runfolder/<% ctx(run_year) %>/<% item()[1] %>
       fastq_files_path: <% ctx(fastq_files_path) %>
-      storage_path: <% ctx(storage_path) %>
-      run_year: <% ctx(run_year) %>
-      project_type: <% item() %>
-      analysis: "GMS560"
+      storage_path_fastq: "<% ctx(storage_path) %>/ngs/<% item()[0] %>/archive/gms560/fastq/<% ctx(run_year) %>/<% item()[1] %>"
+      analysis: "gms560"
       wp: "wp1"
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
       - when: <% succeeded() %>
         do:
           - mark_as_finished
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().output.stderr %>
-          - failed_step: "archive_runfolder_data -- Could not archive runfolder <% ctx(runfolder_name) %>"
-        do:
-          - bioinfo_error_notifier
-          - molpat_error_notifier
-          - mark_as_failed
-
-
-
-
-
-
-  create_year_runfolder_folder:
-    with:
-      items: <% ctx(project_types) %>
-    action: core.local
-    input:
-      cwd: <% ctx(storage_path) %>/ngs/<% item() %>/archive/runfolders/<% ctx(run_year) %>/
-      cmd: mkdir -p <% ctx(run_year) %>
-    next:
-      - when: <% succeeded() %>
-        do:
-          - archive_fastq_and_runfolder
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "create_year_runfolder_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/project_types/archive/runfolders/<% ctx(run_year) %>/"
-        do:
-          - bioinfo_error_notifier
-
-  archive_fastq_and_runfolder:
-    with:
-      items: <% ctx(project_types) %>
-    action: ductus.archive_runfolder_and_fastq
-    input:
-      samplesheet_file: <% ctx(samplesheet_file) %>
-      compress_runfolder_name: "tso500__<% ctx(runfolder_name) %>"
-      runfolder_path: <% ctx(runfolder_path) %>
-      runfolder_name: <% ctx(runfolder_name) %>
-      project_type: <% item() %>
-      storage_path_runfolder:  <% ctx(storage_path) %>/ngs/<% item() %>/archive/runfolders/<% ctx(run_year) %>/
-      fastq_files_path: null
-      storage_path_fastq: null
-      analysis: "tso500"
-      wp: "wp1"
-      mail_bioinfo: <% ctx(mail_bioinfo) %>
-    next:
-      - when: <% succeeded() %>
-        do:
           - archive_done_notifier
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
-          - failed_step: "archive_fastq_and_runfolder  -- Could not archive runfolder <% ctx(runfolder_name) %>"
+          - failed_step: "archive_runfolder_data -- Could not  archive runfolder <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
 
   archive_done_notifier:
     join: all

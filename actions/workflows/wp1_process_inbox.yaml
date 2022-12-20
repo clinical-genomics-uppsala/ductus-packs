@@ -27,7 +27,7 @@ tasks:
         do:
           - wp1_tso500
           - wp1_sera
-          - wp1_GMS560
+          - wp1_gms560
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -36,20 +36,20 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
-  wp1_GMS560:
+  wp1_gms560:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp1", "GMS560", "<% ctx(project_type) %>") else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("<% ctx(csv_file_name) %>", "wp1", "gms560", "<% ctx(project_type) %>") else exit(1)'
     next:
       - when: <% succeeded() %>
         do:
-          - run_GMS560
+          - run_gms560
       - when: <% failed() %>
         do: analysis_checked
 
-  run_GMS560:
-    action: ductus.wp1_process_inbox_GMS560
+  run_gms560:
+    action: ductus.wp1_process_inbox_gms560
     input:
       runfolder: <% ctx(runfolder) %>
       project_type: <% ctx(project_type) %>
@@ -57,7 +57,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - GMS560_analysis_started
+          - gms560_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: "GMS560 processing failed"
@@ -136,7 +136,7 @@ tasks:
       subject: "[DUCTUS][WP1][SERA] - SERA processing started"
       body: SERA processing started on <% ctx(runfolder) %>
 
-  GMS560_analysis_started:
+  gms560_analysis_started:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
