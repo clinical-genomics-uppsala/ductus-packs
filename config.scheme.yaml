@@ -180,7 +180,6 @@
     description: GMS560 version that will be loaded.
     type: string
     required: true
-    default: v0.2.3-validation
 
   wp2_notification_mail_lab:
     description: Email address where notifications to lab will be sent.
