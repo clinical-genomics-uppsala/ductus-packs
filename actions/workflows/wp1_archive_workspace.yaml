@@ -1,6 +1,6 @@
 version: "1.0" # mistral version
 
-description: Will Wp1 workspace data
+description: Will archive wp1 workspace data
 
 input:
     - samplesheet_file
