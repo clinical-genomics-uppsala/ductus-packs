@@ -91,7 +91,7 @@ tasks:
     action: core.local
     input:
       cmd: >
-        curl -X POST --data '{"additional_args":""}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_port) %>/api/1.0/start/<% ctx(runfolder_name) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
+        curl -X POST --data '{"additional_args":"", "output": "<% ctx(demultiplexing_output_folder) %>/gms560_<% ctx(runfolder_name) %>"}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_port) %>/api/1.0/start/<% ctx(runfolder_name) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
     next:
       - when: <% succeeded() %>
         publish: demultiplexing_id=<% result().stdout %>
@@ -116,7 +116,7 @@ tasks:
       next:
         - when: <% succeeded() %>
           publish:
-            - fastq_files_path: "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder_name) %>"
+            - fastq_files_path: "<% ctx(demultiplexing_output_folder) %>/gms560_<% ctx(runfolder_name) %>"
           do:
             create_fastq_folder_on_compute
         - when: <% failed() %>
@@ -290,6 +290,7 @@ tasks:
         do:
           - mark_as_finished
           - archive_done_notifier
+          - remove_demuplixed_fastq_file
       - when: <% failed() %>
         publish:
           - stderr: <% result().output.stderr %>
@@ -298,6 +299,11 @@ tasks:
           - bioinfo_error_notifier
           - molpat_error_notifier
           - mark_as_failed
+
+  remove_demuplixed_fastq_file:
+    action: core.local
+    input:
+      cmd: rm -rf <% ctx(fastq_files_path) %>
 
   archive_done_notifier:
     join: all
