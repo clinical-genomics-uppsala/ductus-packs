@@ -275,7 +275,7 @@ tasks:
     action: ductus.archive_runfolder_and_fastq
     input:
       samplesheet_file: <% ctx(samplesheet_file) %>
-      compress_runfolder_name: "gms560_<% ctx(runfolder_name) %>"
+      compress_runfolder_name: "gms560__<% ctx(experiment_name) %>__<% ctx(runfolder_name) %>"
       runfolder_path: <% ctx(runfolder_path) %>
       runfolder_name: <% ctx(runfolder_name) %>
       project_type: "<% item()[0] %>"
