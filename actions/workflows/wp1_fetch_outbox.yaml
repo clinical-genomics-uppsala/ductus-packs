@@ -17,6 +17,7 @@ input:
 
 vars:
   - experiment_name: null
+  - experiment_name_result: null
   - result_storage_folder: null
   - fastq_storage_folder: null
   - samplesheet_storage_folder: null
@@ -32,7 +33,7 @@ tasks:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
         do:
-          - get_run_year
+          - get_experiment_name_result
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -41,6 +42,25 @@ tasks:
           - bioinfo_error_notifier
           - molpat_error_notifier
           - mark_as_failed
+
+  get_experiment_name_result:
+    action: core.local
+    input:
+      cmd: python3 -c "import sys; import re; sys.stdout.write(re.sub(r'-[RD]NA$', '', '<% ctx(experiment_name) %>'))"
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name_result=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_experiment_name_result  -- Could not get experiment name for result'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
 
   get_run_year:
     action: core.local
@@ -102,7 +122,7 @@ tasks:
     input:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %> -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(experiment_name_result) %> -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
     next:
       - when: <% succeeded() %>
         do:
@@ -253,7 +273,7 @@ tasks:
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
       body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
-      
+
   result_retrieved_tso500:
     action: core.sendmail
     input:
