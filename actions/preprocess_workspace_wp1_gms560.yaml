@@ -70,11 +70,11 @@ parameters:
     default: "{{ config_context.demultiplexing_output_folder }}"
   demultiplexingservice_check_num_retry:
     required: true
-    type: string
+    type: integer
     default: "{{ config_context.demultiplexingservice_check_num_retry }}"
   demultiplexingservice_check_delay:
     required: true
-    type: string
+    type: integer
     default: "{{ config_context.demultiplexingservice_check_delay }}"
   mail_lab:
     required: true
