@@ -68,6 +68,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.demultiplexing_output_folder }}"
+  demultiplexing_check_num_retry:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_check_num_retry }}"
+  demultiplexing_check_delay:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_check_delay }}"
   mail_lab:
     required: true
     type: string
