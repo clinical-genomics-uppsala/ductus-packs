@@ -14,6 +14,14 @@
   demultiplexing_output_folder:
     required: true
     type: string
+  demultiplexingservice_check_num_retry:
+    required: true
+    type: integer
+    default: 24
+  demultiplexingservice_check_delay:
+    required: true
+    type: integer
+    default: 300
 
   arteria_runfolder_addresses:
     description: list of addresses for arteria-runfolder services

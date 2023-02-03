@@ -17,6 +17,8 @@ input:
   - demultiplexing_host
   - demultiplexing_port
   - demultiplexing_output_folder
+  - demultiplexingservice_check_num_retry
+  - demultiplexingservice_check_delay
   - mail_lab
   - mail_bioinfo
 
@@ -111,8 +113,8 @@ tasks:
         cmd: >
           curl http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_port) %>/api/1.0/status/<% ctx(demultiplexing_id) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); exit(0) if result["state"] == "done" else exit(1)'
       retry:
-        count: 10
-        delay: 1
+        count: <% ctx(demultiplexingservice_check_num_retry) %>
+        delay: <% ctx(demultiplexingservice_check_delay) %>
       next:
         - when: <% succeeded() %>
           publish:
