@@ -1,5 +1,17 @@
 # Changelog
 
+### [2.8.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.0...v2.8.1) (2023-02-03)
+
+
+### Bug Fixes
+
+* make it possible to set num checks and delay for demultipling queries ([79b12e3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/79b12e37aadf33b943140e163c68a286cd5dace5))
+
+
+### Documentation
+
+* update pack version ([6f45394](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/6f453943d2ba344d1ae1994bd928f7958e8ce739))
+
 ## [2.8.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.7.0...v2.8.0) (2023-01-24)
 
 
