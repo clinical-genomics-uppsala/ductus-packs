@@ -1,5 +1,17 @@
 # Changelog
 
+### [2.8.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.1...v2.8.2) (2023-02-06)
+
+
+### Bug Fixes
+
+* change to use correct variable fo fetching experiment ([4553191](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4553191bc9082922379807f1661887ecac41865b))
+
+
+### Documentation
+
+* update version ([56f2217](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/56f22170d2f8d47c76371f9fa04294a649c15b9c))
+
 ### [2.8.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.0...v2.8.1) (2023-02-03)
 
 
