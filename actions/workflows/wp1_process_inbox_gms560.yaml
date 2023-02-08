@@ -13,6 +13,8 @@ input:
   - processing_user
   - gms560_git_url
   - gms560_version
+  - gms560_config_git_url
+  - gms560_config_version
   - mail_lab
   - mail_bioinfo
 
@@ -102,11 +104,29 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - sync_data
+          - clone_gms560_config_repo
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "clone_gms560_repo  -- Could not clone repo <% ctx(gms560_git_url) %>, <% ctx(gms560_version) %> into <% ctx(analysis_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+   clone_gms560_config_repo:
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder) %>
+      cmd: git clone --depth 1 --branch <% ctx(gms560_config_version) %> <% ctx(gms560_config_git_url) %>
+      timeout: 300
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_data
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "clone_gms560_config_repo  -- Could not clone repo <% ctx(gms560_config_git_url) %>, <% ctx(gms560_config_version) %> into <% ctx(analysis_folder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
