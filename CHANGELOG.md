@@ -1,5 +1,13 @@
 # Changelog
 
+### [2.9.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.9.0...v2.9.1) (2023-02-08)
+
+
+### Documentation
+
+* update config ([860aa5d](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/860aa5def41c7632ad4befa097138fe0d8744e4a))
+* update config ([6e21613](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/6e216139a54b7a04ed8de0bf0e8817c81850a3e3))
+
 ## [2.9.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.2...v2.9.0) (2023-02-08)
 
 
