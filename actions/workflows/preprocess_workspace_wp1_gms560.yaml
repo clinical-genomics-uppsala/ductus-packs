@@ -1,4 +1,4 @@
-Deversion: "1.0" # Orquest version
+version: "1.0" # Orquest version
 
 description: Will rsync new sequence data to compute for GMS560 processing
 
