@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.9.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.2...v2.9.0) (2023-02-08)
+
+
+### Features
+
+* add checkout for gms560 config repo ([fa50a8f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/fa50a8f747363dacf27c92b9faea245d82fdaa36))
+
+
+### Bug Fixes
+
+* correct indentation error ([bc866e5](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/bc866e5174ff12b14b71ad199b3e279b3d07c4e0))
+
 ### [2.8.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.8.1...v2.8.2) (2023-02-06)
 
 
