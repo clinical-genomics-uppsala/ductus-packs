@@ -180,12 +180,21 @@
     type: string
     required: main
   wp1_GMS560_git_url:
-    description: GMS560 version that will be loaded.
+    description: GMS560 repo that will be loaded.
     type: string
     required: true
     default: https://github.com/genomic-medicine-sweden/Twist_Solid.git
   wp1_GMS560_version:
     description: GMS560 version that will be loaded.
+    type: string
+    required: true
+  wp1_GMS560_config_git_url:
+    description: custom GMS560 repo that will be loaded.
+    type: string
+    required: true
+    default: https://github.com/genomic-medicine-sweden/Twist_Solid.git
+  wp1_GMS560_config_version:
+    description: inhouse GMS560 config that will be loaded.
     type: string
     required: true
 

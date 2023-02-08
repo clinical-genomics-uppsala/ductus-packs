@@ -57,6 +57,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_gms560_version }}"
+  gms560_config_git_url:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_gms560_config_git_url }}"
+  gms560_config_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_gms560_config_version }}"
   mail_lab:
     required: true
     type: string
