@@ -113,7 +113,7 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
-   clone_gms560_config_repo:
+  clone_gms560_config_repo:
     action: core.local
     input:
       cwd: <% ctx(analysis_folder) %>
