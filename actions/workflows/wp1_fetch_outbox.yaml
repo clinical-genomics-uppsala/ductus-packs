@@ -271,8 +271,8 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][SUCCESS] - SERA analysis available, <% ctx(experiment_name) %>"
-      body: The result from SERA analysis of <% ctx(experiment_name) %> can now be accessed.
+      subject: "[DUCTUS][WP1][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
+      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
 
   result_retrieved_tso500:
     action: core.sendmail
