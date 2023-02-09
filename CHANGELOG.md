@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.9.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.9.1...v2.9.2) (2023-02-09)
+
+
+### Bug Fixes
+
+* removed SERA from result retrieved message ([b64bd94](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b64bd94d23b4de7be774fdd72e00d2118b8c2aab))
+
 ### [2.9.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.9.0...v2.9.1) (2023-02-08)
 
 
