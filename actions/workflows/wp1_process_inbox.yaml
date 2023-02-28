@@ -45,6 +45,7 @@ tasks:
       - when: <% succeeded() %>
         do:
           - run_gms560
+          - gms560_analysis_started
       - when: <% failed() %>
         do: analysis_checked
 
@@ -55,9 +56,6 @@ tasks:
       project_type: <% ctx(project_type) %>
       runfolder_host: <% ctx(runfolder_host) %>
     next:
-      - when: <% succeeded() %>
-        do:
-          - gms560_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: "GMS560 processing failed"
