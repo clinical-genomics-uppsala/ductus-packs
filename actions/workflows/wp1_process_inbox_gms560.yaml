@@ -15,6 +15,7 @@ input:
   - gms560_version
   - gms560_config_git_url
   - gms560_config_version
+  - run_statistics_path
   - mail_lab
   - mail_bioinfo
 
@@ -141,6 +142,7 @@ tasks:
       - when: <% succeeded() %>
         do:
          - create_sample_unit_file
+         - generate_elastic_statistics
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -148,6 +150,12 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+
+  generate_elastic_statistics:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(experiment_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="wp1", tool="gms560", analysis="Twist_GMS560", project="klinik", prep="FFPE")]; writer.close()'
 
   create_sample_unit_file:
     action: core.remote
