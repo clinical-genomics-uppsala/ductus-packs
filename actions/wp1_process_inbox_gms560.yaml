@@ -65,6 +65,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_gms560_config_version }}"
+  run_statistics_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp1_path_run_statistics }}"
   mail_lab:
     required: true
     type: string

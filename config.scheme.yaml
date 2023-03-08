@@ -23,6 +23,11 @@
     type: integer
     default: 300
 
+  wp1_path_run_statistics:
+    description: folder path
+    required: true
+    type: string
+
   arteria_runfolder_addresses:
     description: list of addresses for arteria-runfolder services
     type: array
