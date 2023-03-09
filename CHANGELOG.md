@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.10.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.9.1...v2.10.0) (2023-03-08)
+
+
+### Features
+
+* print run statistics for gms560 ([1cadf8b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/1cadf8bfaf20613dd3a01aef1ea8fce9df6e846b))
+
+
+### Bug Fixes
+
+* removed SERA from result retrieved message ([b64bd94](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b64bd94d23b4de7be774fdd72e00d2118b8c2aab))
+* send mail when GMS560 is started and not when it' done ([4a9e7d1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4a9e7d1c3b58f14513b62c8b901b3f7d12c1bd34))
+
 ### [2.9.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.9.0...v2.9.1) (2023-02-08)
 
 
