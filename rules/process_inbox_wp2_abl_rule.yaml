@@ -1,0 +1,19 @@
+---
+name: "process_inbox_wp2_abl_rule"
+pack: "ductus"
+description: "Rule that triggers processing of WP2 BCR::ABL1 inbox on compute"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "BCR_ABL1/INBOX"
+
+action:
+    ref: "ductus.process_inbox_wp2_abl_action"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"
