@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.11.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.10.1...v2.11.0) (2023-04-21)
+
+
+### Features
+
+* create a file with archived runfolders ([f39b814](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/f39b81463c1504e442e1200c8c02e1e1bcb3e648))
+* transfer RunParameters.xml and RunInfo.xml files to compute ([dd5f5be](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/dd5f5beea8a2be38834768c231d83151d9f42482))
+* wp2 abl pipeline add ([37efb29](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/37efb29de88c92f1425519edeb0ef1839f0fb0d8))
+
 ### [2.10.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.10.0...v2.10.1) (2023-03-10)
 
 
