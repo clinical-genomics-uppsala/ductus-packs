@@ -239,6 +239,10 @@
     type: string
     required: true
     default: "/projects/wp2/nobackup"
+  wp2_path_run_statistics:
+    type: string
+    required: true
+    default: "/projects/wp2/nobackup/Collect_statistics"
   wp2_preprocess_transfer_key:
     description: The key that will be used transfer data.
     type: string
@@ -281,12 +285,12 @@
     type: string
     required: true
     default: "10801"
-  wp2_tansfer_from_user:
+  wp2_transfer_from_user:
     description: The user that will be used to push data.
     type: string
     required: true
     default: "stanley"
-  wp2_tansfer_from_key:
+  wp2_transfer_from_key:
     description: The key that will be used transfer data.
     type: string
     required: true

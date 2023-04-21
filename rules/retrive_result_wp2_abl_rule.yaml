@@ -1,0 +1,19 @@
+---
+name: "retrieve_result_wp2_abl_rule"
+pack: "ductus"
+description: "Rule that triggers retriving of wp2 abl results from compute"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "wp2/nobackup/BCR_ABL1/OUTBOX/"
+
+action:
+    ref: "ductus.retrieve_result_wp2_abl_action"
+    parameters:
+        host: "{{trigger.host}}"
+        runfolder: "{{trigger.runfolder}}"

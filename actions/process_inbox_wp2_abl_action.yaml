@@ -1,0 +1,63 @@
+---
+name: process_inbox_wp2_abl_action
+description: >
+  Run bcr_abl1 pipeline for WP2 ABL data on compute and collect statistics.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/process_inbox_wp2_abl_workflow.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.process_inbox_wp2_abl_workflow
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
+  project_type: #Vad gor den?
+    required: true
+    type: string
+    default: ABL
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_runfolder_api_version }}"
+  processing_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_processing_host_ip }}"
+  processing_key:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_processing_host_key }}"
+  processing_user:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_processing_host_user }}"
+  run_statistics_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_path_run_statistics }}"
+  mail_lab:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_notification_mail_lab }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.wp2_notification_mail_bioinfo }}"
