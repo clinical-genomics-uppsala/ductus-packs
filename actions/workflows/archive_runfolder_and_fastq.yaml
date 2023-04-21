@@ -57,6 +57,9 @@ tasks:
           - failed_step: "fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
         do:
           - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_archive_done
           
   undetermined_fastq_files:
     action: core.local
@@ -108,6 +111,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
+          - create_archive_done
           - create_checksum_for_archive
       - when: <% failed() %>
         publish:
@@ -125,7 +129,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_archived_folder
+          - create_archive_done
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -133,16 +137,17 @@ tasks:
         do:
           - bioinfo_error_notifier
 
-  create_archived_folder:
+  create_archive_done:
+    join: all
     action: core.local
     input:
       cwd: <% ctx(runfolder_path) %>
-      cmd: mkdir -p archived_runfolders
+      cmd: echo "<% ctx(runfolder_name) %>" >> archived_runfolders.txt
     next:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_archived_folder  -- Could not create folder <% ctx(runfolder_path) %>/archived_runfolder"
+          - failed_step: "create_archive_don  -- Could not add entries to <% ctx(runfolder_path) %>/archived_runfolders.txt"
         do:
           - bioinfo_error_notifier
 

@@ -1,0 +1,183 @@
+version: "1.0"
+
+description: Will sync WP2 BCR::ABL1 results back from compute
+
+input:
+  - runfolder
+  - host
+  - runfolder_port
+  - runfolder_api_version
+  - transfer_from_user
+  - transfer_from_key
+  - transfer_from_host
+  - storage_path
+  - processing_location
+  - mail_lab
+  - mail_bioinfo
+
+vars:
+  - experiment_name: null
+  - failed_step: null
+  - run_year: null
+  - result_storage_folder: null
+  - result_qc_storage_folder: null
+  - stderr: null
+
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% results().stderr %>
+          - failed_step: 'get_experiment_name -- Could not get experminent name'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  get_run_year:
+    action: core.local
+    input:
+      cmd: date "+%Y"
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_run_year -- Could not extract run year'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          -   create_year_and_experiment_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'mark_as_started -- Could not mark <% ctx(runfolder) %> as started'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  create_year_and_experiment_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/Nextera_BCR_ABL/
+      cmd: mkdir -p <% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: result_storage_folder="<% ctx(storage_path) %>/Nextera_BCR_ABL/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_year_and_experiment_folder -- Could not create year and runfolder <% ctx(storage_path) %>/Nextera_BCR_ABL/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  transfer_result:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - result_retrieved
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  result_retrieved:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ABL][SUCCESS] - WP2 ABL analysis available, <% ctx(experiment_name) %>"
+      body: The result from WP2 ABL analysis of <% ctx(experiment_name) %> can now be accessed.
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+    next:
+      - when: <% failed() %>
+        publish: failed_step="mark_as_finished -- Couldn't mark <% ctx(runfolder) as finished! >"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/rulfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+      - when: <% failed() %>
+        publish: failed_step='mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ABL][ERROR] - WP2 ABL Processing, <% ctx(experiment_name) %>"
+      body: Something went wrong when retrieving BCR::ABL1 wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  wp2_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ABL][ERROR] - Processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong when retrieving WP2 BCR::ABL1 result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
