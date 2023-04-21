@@ -165,11 +165,32 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_transfer_complete_file
+          - transfer_run_xml_files
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "transfer_csv_file -- Could not transfer csv to <% ctx(transfer_to_host) %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+  
+  transfer_run_xml_files:
+    with:
+      items: <% ctx(project_and_experiments) %>
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/Run*.xml -t <% ctx(transfer_to_location) %>/ngs/<% item()[0] %>/INBOX/<% item()[1] %>/ -u <% ctx(transfer_to_user) %> -i <% ctx(transfer_to_key) %> -r <% ctx(transfer_to_host) %> -p 2;
+      timeout: 300
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_run_xml_files -- Could not transfer run to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier
