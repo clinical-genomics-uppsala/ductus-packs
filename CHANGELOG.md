@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.11.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.11.0...v2.11.1) (2023-04-27)
+
+
+### Bug Fixes
+
+* hande failing archiving due to multiple workflows archiving the same data ([c60ef9e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/c60ef9e995aa4b867835fcad186994c7b9142c44))
+
 ## [2.11.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.10.1...v2.11.0) (2023-04-21)
 
 
