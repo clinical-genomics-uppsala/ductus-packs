@@ -90,7 +90,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder_path) %>/
-      cmd: tar --exclude="*.fastq.gz" -zcf  <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz <% ctx(runfolder_name) %>
+      cmd: tar --exclude="*.fastq.gz" --exclude=".arteria" -zcf  <% ctx(storage_path_runfolder) %>/<% ctx(compress_runfolder_name) %>.tar.gz <% ctx(runfolder_name) %>
       timeout: 86400
     next:
       - when: <% succeeded() %>
