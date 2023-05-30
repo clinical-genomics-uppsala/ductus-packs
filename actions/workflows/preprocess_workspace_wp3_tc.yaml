@@ -137,7 +137,7 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: [DUCTUS][WP3][TC][Transfer] -- Start transfer of <% ctx(runfolder_name) %> to compute
+      subject: "[DUCTUS][WP3][TC][Transfer] -- Start transfer of <% ctx(runfolder_name) %> to compute"
       body: Transfer of <% ctx(runfolder_name) %> has started!
     next:
       - when: <% succeeded() %>

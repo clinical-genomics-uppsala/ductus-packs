@@ -144,7 +144,7 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: [DUCTUS][WP3][TE][Transfer] -- Start transfer of <% ctx(TE_folder) %> to Moriarty
+      subject: "[DUCTUS][WP3][TE][Transfer] -- Start transfer of <% ctx(TE_folder) %> to Moriarty"
       body: Transfer of <% ctx(TE_folder) %> has been executed!
     next:
       - when: <% succeeded() %>
