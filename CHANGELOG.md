@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.12.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.1...v2.12.2) (2023-05-30)
+
+
+### Bug Fixes
+
+* fix wp2 mail subject ([dedf408](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/dedf408fdb59c07acc9297465787f3dba40bc388))
+
 ### [2.12.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.0...v2.12.1) (2023-05-30)
 
 
