@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.11.1...v2.12.0) (2023-05-30)
+
+
+### Features
+
+* update version number ([7156d2b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7156d2be0a8b7bd51e5d41de0a115b6245aaf1d9))
+
 ### [2.11.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.11.0...v2.11.1) (2023-04-27)
 
 
