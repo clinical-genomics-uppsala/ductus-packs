@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.12.3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.2...v2.12.3) (2023-05-30)
+
+
+### Bug Fixes
+
+* fix header wp3 retrieve ([246d5f5](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/246d5f50876e04d6dfa49f9e82bc88d99dcebd4a))
+
 ### [2.12.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.1...v2.12.2) (2023-05-30)
 
 
