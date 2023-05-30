@@ -144,7 +144,7 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: WP3 -- Start transfer of <% ctx(TE_folder) %> to Moriarty
+      subject: [DUCTUS][WP3][TE][Transfer] -- Start transfer of <% ctx(TE_folder) %> to Moriarty
       body: Transfer of <% ctx(TE_folder) %> has been executed!
     next:
       - when: <% succeeded() %>
@@ -285,7 +285,7 @@ tasks:
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "WP3 ERROR (<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>): Transfer stopped."
+      subject: "[DUCTUS][WP3][TE][Error] (<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>): Transfer stopped."
       body: "Transfer of  <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %> has been stopped. Please consult bioinformaticians."
     next:
       - when: <% succeeded() %>
@@ -298,7 +298,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP3][SUCCESS] - Archiving, <% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP3][TE][SUCCESS] - Archiving, <% ctx(runfolder_name) %>"
       body: <% ctx(runfolder_name) %> has been archived!!!
 
   bioinfo_error_notifier:
@@ -306,7 +306,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP3][ERROR] - Pre-processing, <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP3][TE][ERROR] - Pre-processing, <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>"
       body: Something went wrong during the pre-processing of <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
