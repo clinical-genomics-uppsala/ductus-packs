@@ -1,0 +1,59 @@
+---
+name: process_inbox_wp3_te
+description: >
+  Run hastings for WP3 whole exome data.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/process_inbox_wp3_te.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.process_inbox_wp3_te
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
+  project_type:
+    required: true
+    type: string
+    default: Twist_WES
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_runfolder_api_version }}"
+  processing_host:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_processing_host_ip }}"
+  processing_key:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_processing_host_key }}"
+  processing_user:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_processing_host_user }}"
+  mail_lab: #Ar det inte alltid samma for alla wp3?
+    required: true
+    type: string
+    default: "{{ config_context.wp3_notification_mail_lab }}"
+  mail_bioinfo: #Ar det inte alltid samma? Borde vi inte forenkla
+    required: true
+    type: string
+    default: "{{ config_context.wp3_notification_mail_bioinfo }}"
