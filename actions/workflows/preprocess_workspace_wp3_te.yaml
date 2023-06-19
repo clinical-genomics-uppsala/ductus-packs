@@ -116,12 +116,12 @@ tasks:
     input:
       username: <% ctx(transfer_to_user) %>
       private_key: <% ctx(transfer_to_key) %>
-      cwd: <% ctx(transfer_to_location) %>/TWIST/Workarea
+      cwd: <% ctx(transfer_to_location) %>/TWIST/INBOX
       cmd: mkdir -p <% ctx(TE_folder) %>/fastq/
       hosts: <% ctx(transfer_to_host) %>
     next:
       - when: <% succeeded() %>
-        publish: transfer_folder="<% ctx(transfer_to_location) %>/TWIST/Workarea/<% ctx(TE_folder) %>"
+        publish: transfer_folder="<% ctx(transfer_to_location) %>/TWIST/INBOX/<% ctx(TE_folder) %>"
         do:
           - send_transfer_mail
           - transfer_fastq_files
