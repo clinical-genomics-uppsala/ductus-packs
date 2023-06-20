@@ -402,6 +402,11 @@
     type: string
     required: true
     default: "/data/hospital/wp3/Archive/Klinik"
+  wp3_te_archive_location:
+    description: Location on transfer host where runfolder will be archived.
+    type: string
+    required: true
+    default: "/data/hospital/wp3/Archive/Klinik"
   wp3_runfolder_api_version:
     description: The arteria-runfolder api version that should be used.
     type: string
@@ -435,5 +440,9 @@
     default: "wp1runfolder"
   wp3_TC_notification_mail_lab:
     descripion: Email list to lab for WP3 Twist Cancer.
+    type: string
+    required: true
+  wp3_TE_notification_mail_lab:
+    descripion: Email list to lab for WP3 Twist whole exome.
     type: string
     required: true

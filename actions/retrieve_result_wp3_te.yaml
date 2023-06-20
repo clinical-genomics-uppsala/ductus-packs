@@ -1,7 +1,7 @@
 ---
-name: wp3_retrieve_result
+name: retrieve_result_wp3_te
 description: >
-  Retrieve processed data for wp3......
+  Retrieve processed data for wp3 whole exome results
 enabled: true
 runner_type: orquesta
 entry_point: workflows/retrieve_result_wp3_te.yaml

@@ -2,7 +2,6 @@ version: "1.0" # Orquesta version
 
 description: Will rsync wp3 Whole Exome result back from compute
 
-
 input:
   - runfolder
   - host

@@ -75,7 +75,7 @@ tasks:
           - failed_step: failed_step='run_hastings_TE  -- Couldn't start Hastings on <% ctx(runfolder_name) %>'
         do:
           - bioinfo_error_notifier
-          - wp3_TC_error_notifier
+          - wp3_TE_error_notifier
           - mark_as_failed #G;rs inte det i error notifiers?
 
   send_start_notifier:
