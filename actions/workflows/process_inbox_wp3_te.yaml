@@ -21,7 +21,7 @@ vars:
   - stderr: null
 
 tasks:
-  runfolder_directory:
+  get_runfolder_name:
     action: core.local
     input:
       cmd: python3 -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
@@ -77,18 +77,6 @@ tasks:
           - bioinfo_error_notifier
           - wp3_TE_error_notifier
           - mark_as_failed #G;rs inte det i error notifiers?
-
-  send_start_notifier:
-    action: core.sendmail
-    input:
-      to: <% ctx(mail_lab) %>
-      from: stanley@clinicalgenomics-as.se
-      subject: [DUCTUS][WP3][TE] -- Starting analysis of <% ctx(TE_basename) %>
-      body: <% ctx(TE_basename) %> analysis has been started!
-    next:
-      - when: <% failed() %>
-        do:
-          - mark_as_failed
 
   wp3_TE_error_notifier:
     action: core.sendmail
