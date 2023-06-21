@@ -117,7 +117,7 @@ tasks:
           - bioinfo_error_notifier
           - wp3_TE_error_notifier
 
-mark_as_failed: #Mark as failed because couldnt mark as failed??
+  mark_as_failed: #Mark as failed because couldnt mark as failed??
     action: core.http
     input:
       url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>

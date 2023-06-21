@@ -24,7 +24,7 @@ parameters:
   project_type:
     required: true
     type: string
-    default: Twist_WES
+    default: TWIST_WES
   runfolder_host:
     required: true
     type: string
