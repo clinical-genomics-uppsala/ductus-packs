@@ -76,7 +76,6 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp3_TE_error_notifier
-          - mark_as_failed #G;rs inte det i error notifiers?
 
   wp3_TE_error_notifier:
     action: core.sendmail
