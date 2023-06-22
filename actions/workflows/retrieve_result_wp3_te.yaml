@@ -126,30 +126,12 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - mv_qc_folder
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result -- Could not transfer result from marvin'
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
-          - wp3_error_notifier
-
-  mv_qc_folder:
-    action: core.local
-    input:
-      cwd: <% ctx(result_storage_folder) %>
-      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
-    next:
-      - when: <% succeeded() %>
-        do:
           - result_retrieved
           - mark_as_finished
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'mv_qc_folder  -- Could not move batchQC to  <% ctx(result_qc_storage_folder) %>'
+          - failed_step: 'transfer_result -- Could not transfer result from marvin'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
