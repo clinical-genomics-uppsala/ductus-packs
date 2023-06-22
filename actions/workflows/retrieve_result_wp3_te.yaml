@@ -63,7 +63,7 @@ tasks:
   mark_as_started:
     action: core.http
     input:
-      url: http://<% ctx(transfer_from_host) %>:<% ctx(transfer_from_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "started"}'
       method: "POST"
     next:
