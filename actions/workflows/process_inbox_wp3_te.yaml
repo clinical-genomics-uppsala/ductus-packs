@@ -72,11 +72,11 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: "Hastings failed"
-          - failed_step: failed_step='run_hastings_TE  -- Couldn't start Hastings on <% ctx(runfolder_name) %>'
+          - failed_step: "run_hastings_TE  -- Couldn't start Hastings on <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - wp3_TE_error_notifier
-          - marked_as_failed
+          - mark_as_failed
 
   wp3_TE_error_notifier:
     action: core.sendmail
