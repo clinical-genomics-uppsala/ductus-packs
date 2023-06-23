@@ -123,7 +123,7 @@ tasks:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
-      cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/TE*multiqc*' -t <% ctx(result_qc_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+      cmd: mv <% ctx(result_storage_folder) %>/TE*multiqc* <% ctx(result_qc_storage_folder) %>/
     next:
       - when: <% succeeded() %>
         do:
