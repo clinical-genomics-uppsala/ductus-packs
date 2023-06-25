@@ -140,7 +140,7 @@ tasks:
     action: core.local
     input:
       timeout: 86400
-      cmd: cp <% ctx(result_storage_folder) %>/multiqc_DNA.html <% ctx(result_qc_storage_folder) %>/<% ctx(experiment_name) %>_multiqc.html
+      cmd: cp <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>_multiqc.html <% ctx(result_qc_storage_folder) %>/
     next:
       - when: <% succeeded() %>
         do:
@@ -149,7 +149,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'transfer_qc -- Could not transfer qc result from Result to BatchQC'
+          - failed_step: 'transfer_qc -- Could not transfer qc result from Result to batchQC'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
