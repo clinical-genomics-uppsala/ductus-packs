@@ -123,6 +123,23 @@ tasks:
       timeout: 86400
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3  rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(result_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_qc
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp3_error_notifier
+
+  transfer_qc:
+    action: core.local
+    input:
+      timeout: 86400
       cmd: cp <% ctx(result_storage_folder) %>/multiqc_DNA.html <% ctx(result_qc_storage_folder) %>/<% ctx(experiment_name) %>_multiqc.html
     next:
       - when: <% succeeded() %>
@@ -132,7 +149,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result -- Could not transfer result from marvin'
+          - failed_step: 'transfer_qc -- Could not transfer qc result from Result to BatchQC'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
