@@ -31,6 +31,7 @@ tasks:
         publish: runfolder_name=<% result().stdout %>
         do:
           - mark_as_started
+          - generate_elastic_statistics
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
