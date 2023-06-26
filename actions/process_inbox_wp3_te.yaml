@@ -49,6 +49,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp3_processing_host_user }}"
+  run_statistics_path:
+    required: true
+    type: string
+    default: "{{ config_context.wp3_path_run_statistics }}"
   mail_lab: #Ar det inte alltid samma for alla wp3?
     required: true
     type: string
