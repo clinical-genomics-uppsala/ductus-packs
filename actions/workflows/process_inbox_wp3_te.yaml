@@ -8,6 +8,7 @@ input:
     - runfolder_host
     - runfolder_host_port
     - runfolder_api_version
+    - run_statistics_path
     - processing_host
     - processing_key
     - processing_user
@@ -54,6 +55,12 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp3_TE_error_notifier
+
+  generate_elastic_statistics:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(runfolder_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="wp3", tool="twist_wes", analysis="TWIST", project="klinik", prep="TWIST")]; writer.close()'
 
   run_hastings_TE:
     action: core.remote

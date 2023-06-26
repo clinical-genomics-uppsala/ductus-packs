@@ -347,6 +347,10 @@
       type: string
       required: true
       default: "10800"
+  wp3_path_run_statistics:
+    type: string
+    required: true
+    default: "/projects/wp3/nobackup/Collect_statistics"
   wp3_transfer_from_host_port:
       description: The port used to communiction with remote runfolder service.
       type: string
