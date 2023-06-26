@@ -8,12 +8,12 @@ input:
     - runfolder_host
     - runfolder_host_port
     - runfolder_api_version
-    - run_statistics_path
     - processing_host
     - processing_key
     - processing_user
     - mail_lab
     - mail_bioinfo
+    - run_statistics_path
 
 vars:
   - TE_basename: null
