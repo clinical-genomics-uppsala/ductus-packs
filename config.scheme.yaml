@@ -220,10 +220,10 @@
     default: "1.0"
 
   wp2_runfolder_service_address:
-      description: Address that will be used to send requests to the runfolder service, for wp2
-      type: string
-      required: true
-      default: "wp1runfolder"
+    description: Address that will be used to send requests to the runfolder service, for wp2
+    type: string
+    required: true
+    default: "wp1runfolder"
   wp2_runfolder_service_port:
     description: Port that will be used to send requests to the runfolder service, for wp2
     type: string
@@ -270,10 +270,10 @@
     required: true
     default: "~/.ssh/id_rsa"
   wp2_processing_host_user:
-      description: The user that will be used to push data.
-      type: string
-      required: true
-      default: "stanley"
+    description: The user that will be used to push data.
+    type: string
+    required: true
+    default: "stanley"
 
   wp2_transfer_from_host_ip:
     description: The host where outbox data will be retrieved.
