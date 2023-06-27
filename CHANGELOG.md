@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.13.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.3...v2.13.0) (2023-06-27)
+
+
+### Features
+
+* add semantic git commit check ([c1a9306](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/c1a93069eed2b02d8bf46e3d610d5046d498699d))
+* bump version for hastings and semantic check ([55215ca](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/55215ca5f75095e24103e7f224cf5cd01cf0ce72))
+
 ### [2.12.3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.2...v2.12.3) (2023-05-30)
 
 
