@@ -1,6 +1,6 @@
-version: "1.0" # Orquest version
+version: "1.0" # Orquesta version
 
-description: Will analyse data found in the wp3 TC inbox folder
+description: Will analyse data found in the wp3 TE inbox folder
 
 input:
     - runfolder
@@ -13,9 +13,10 @@ input:
     - processing_user
     - mail_lab
     - mail_bioinfo
+    - run_statistics_path
 
 vars:
-  - TC_basename: null
+  - TE_basename: null
   - runfolder_name: null
   - failed_step: null
   - stderr: null
@@ -30,13 +31,13 @@ tasks:
         publish: runfolder_name=<% result().stdout %>
         do:
           - mark_as_started
+          - generate_elastic_statistics
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: 'get_runfolder_name  -- Could not get runfolder name'
         do:
           - bioinfo_error_notifier
-
 
   mark_as_started:
     action: core.http
@@ -47,24 +48,30 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - run_pomfrey_TC
+          - run_hastings_TE
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-          - wp3_TC_error_notifier
+          - wp3_TE_error_notifier
 
-  run_pomfrey_TC:
+  generate_elastic_statistics:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(runfolder_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="wp3", tool="twist_wes", analysis="TWIST", project="klinik", prep="TWIST")]; writer.close()'
+
+  run_hastings_TE:
     action: core.remote
     input:
       username: <% ctx(processing_user) %>
       private_key: <% ctx(processing_key) %>
       hosts: <% ctx(processing_host) %>
-      cwd: <% ctx(runfolder) %> #borde det inte vara en annan tills testat klart?
-      cmd: bash /projects/wp3/nobackup/TwistCancer/Bin/pomfrey-TC/start_TC_marvin.sh fastq/  <% ctx(runfolder_name) %>
-      timeout: 172800 # Hur bestammer man?
+      cwd: <% ctx(runfolder) %>
+      cmd: bash /projects/wp3/nobackup/TWIST/Bin/Hastings/start_TE_marvin.sh fastq/ <% ctx(runfolder_name) %>
+      timeout: 300000
       hosts: <% ctx(processing_host) %>
     next:
       - when: <% succeeded() %>
@@ -72,20 +79,20 @@ tasks:
           - mark_as_finished
       - when: <% failed() %>
         publish:
-          - stderr: "Pomfrey-TC failed"
-          - failed_step: failed_step='run_pomfrey_TC  -- Couldn't start Pomfrey-TC on <% ctx(runfolder_name) %>'
+          - stderr: "Hastings failed"
+          - failed_step: "run_hastings_TE  -- Couldn't start Hastings on <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
-          - wp3_TC_error_notifier
-          - mark_as_failed #G;rs inte det i error notifiers?
+          - wp3_TE_error_notifier
+          - mark_as_failed
 
-  wp3_TC_error_notifier:
+  wp3_TE_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_lab) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer  processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong during Twist Inherited Cancer processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+      subject: "[DUCTUS][WP3][TE][ERROR] - Twist Whole Exome processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong during Twist Whole Exome processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
@@ -96,8 +103,8 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][WP3][TC][ERROR] - Twist Cancer processing failure, <% ctx(runfolder) %>"
-      body: Something went wrong during the Twist Inherited Cancer processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+      subject: "[DUCTUS][WP3][TE][ERROR] - Twist Whole Exome processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong during the Twist Whole Exome processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -116,7 +123,7 @@ tasks:
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
-          - wp3_TC_error_notifier
+          - wp3_TE_error_notifier
 
   mark_as_failed: #Mark as failed because couldnt mark as failed??
     action: core.http
@@ -134,7 +141,7 @@ tasks:
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
-          - wp3_TC_error_notifier #Kanske inte till lab behovs?
+          - wp3_TE_error_notifier #Kanske inte till lab behovs?
 
 output:
   - stderr: <% ctx(stderr) %>

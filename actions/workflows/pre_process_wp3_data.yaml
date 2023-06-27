@@ -1,6 +1,6 @@
 version: "1.0" # Orquest version
 
-description: Will rsync new sequence data to moriarty for processing
+description: Will rsync new sequence data to marvin for processing
 
 
 input:

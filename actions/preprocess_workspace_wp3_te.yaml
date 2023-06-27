@@ -63,7 +63,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp3_notification_mail_lab }}"
-  retrieve_result_to_archive_location:
+  archive_location:
     required: true
     type: string
-    default: "{{ config_context.wp3_retrieve_result_to_archive_location }}"
+    default: "{{ config_context.wp3_te_archive_location }}"

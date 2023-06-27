@@ -220,12 +220,12 @@
     default: "1.0"
 
   wp2_runfolder_service_address:
-      description: Address that will be used to send requests to the runfolder service, for wp1
-      type: string
-      required: true
-      default: "wp1runfolder"
+    description: Address that will be used to send requests to the runfolder service, for wp2
+    type: string
+    required: true
+    default: "wp1runfolder"
   wp2_runfolder_service_port:
-    description: Port that will be used to send requests to the runfolder service, for wp1
+    description: Port that will be used to send requests to the runfolder service, for wp2
     type: string
     required: true
     default: "10800"
@@ -270,10 +270,10 @@
     required: true
     default: "~/.ssh/id_rsa"
   wp2_processing_host_user:
-      description: The user that will be used to push data.
-      type: string
-      required: true
-      default: "stanley"
+    description: The user that will be used to push data.
+    type: string
+    required: true
+    default: "stanley"
 
   wp2_transfer_from_host_ip:
     description: The host where outbox data will be retrieved.
@@ -313,60 +313,64 @@
 
 
   wp3_processing_host_ip:
-      description: The host where pre-process data should be pushed to.
-      type: string
-      required: true
-      default: "130.238.54.142"
+    description: The host where pre-process data should be pushed to.
+    type: string
+    required: true
+    default: "130.238.54.142"
   wp3_processing_host_user:
-      description: The user that will be used to push data.
-      type: string
-      required: true
-      default: "stanley"
+    description: The user that will be used to push data.
+    type: string
+    required: true
+    default: "stanley"
   wp3_processing_host_key:
-      description: The key that will be used transfer data.
-      type: string
-      required: true
-      default: "/home/stanley/.ssh/moriarty_rsa"
+    description: The key that will be used transfer data.
+    type: string
+    required: true
+    default: "/home/stanley/.ssh/moriarty_rsa"
   wp3_notification_mail_lab:
-      description: Email address where notifications to lab will be sent.
-      type: string
-      required: true
-      default: "klinsek-sureselect-analysis@googlegroups.com"
+    description: Email address where notifications to lab will be sent.
+    type: string
+    required: true
+    default: "klinsek-sureselect-analysis@googlegroups.com"
   wp3_preprocessing_runfolder_port:
-      description: Post used send requests to the runfolder service, for wp3
-      type: string
-      required: true
-      default: "10812"
+    description: Post used send requests to the runfolder service, for wp3
+    type: string
+    required: true
+    default: "10812"
   wp3_preprocessing_runfolder_ip:
-      description: Address used send requests to the runfolder service, for wp3
-      type: string
-      required: true
-      default: "inbox"
+    description: Address used send requests to the runfolder service, for wp3
+    type: string
+    required: true
+    default: "inbox"
   wp3_runfolder_service_port:
-      description: Port that will be used to send requests to the runfolder service, for wp1
-      type: string
-      required: true
-      default: "10800"
+    description: Port that will be used to send requests to the runfolder service, for wp3
+    type: string
+    required: true
+    default: "10800"
+  wp3_path_run_statistics:
+    type: string
+    required: true
+    default: "/projects/wp3/nobackup/Collect_statistics"
   wp3_transfer_from_host_port:
-      description: The port used to communiction with remote runfolder service.
-      type: string
-      required: true
-      default: "10801"
+    description: The port used to communiction with remote runfolder service.
+    type: string
+    required: true
+    default: "10801"
   wp3_transfer_from_host_ip:
-      description: The host where outbox data will be retrieved.
-      type: string
-      required: true
-      default: "130.238.54.142"
+    description: The host where outbox data will be retrieved.
+    type: string
+    required: true
+    default: "130.238.54.142"
   wp3_transfer_from_user:
-      description: The user that will be used to push data.
-      type: string
-      required: true
-      default: "stanley"
+    description: The user that will be used to push data.
+    type: string
+    required: true
+    default: "stanley"
   wp3_transfer_from_key:
-      description: The key that will be used transfer data.
-      type: string
-      required: true
-      default: "/home/stanley/.ssh/moriarty_rsa"
+    description: The key that will be used transfer data.
+    type: string
+    required: true
+    default: "/home/stanley/.ssh/moriarty_rsa"
   wp3_preprocess_transfer_user:
     description: The user that will be used to push data.
     type: string
@@ -392,12 +396,12 @@
     type: string
     required: true
     default: "/AL_NGS-Results/KG_Results/Konstitutionell/Klinik"
-  wp3_retrieve_result_to_archive_location:
-    description: Location on transfer host where data will be stored.
+  wp3_tc_archive_location:
+    description: Location on transfer host where runfolder will be archived.
     type: string
     required: true
-    default: "/AL_NGS-Archive/KG_Archive/Konstitutionell/Klinik"
-  wp3_tc_archive_location:
+    default: "/data/hospital/wp3/Archive/Klinik"
+  wp3_te_archive_location:
     description: Location on transfer host where runfolder will be archived.
     type: string
     required: true
@@ -435,5 +439,9 @@
     default: "wp1runfolder"
   wp3_TC_notification_mail_lab:
     descripion: Email list to lab for WP3 Twist Cancer.
+    type: string
+    required: true
+  wp3_TE_notification_mail_lab:
+    descripion: Email list to lab for WP3 Twist whole exome.
     type: string
     required: true
