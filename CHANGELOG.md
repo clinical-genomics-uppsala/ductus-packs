@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.13.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.13.0...v2.13.1) (2023-09-05)
+
+
+### Bug Fixes
+
+* generate_elastic_statistics for te ([4951c4f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4951c4fd2b492dbefa5e714483f2e2f90824afd8))
+
 ## [2.13.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.12.3...v2.13.0) (2023-06-27)
 
 
