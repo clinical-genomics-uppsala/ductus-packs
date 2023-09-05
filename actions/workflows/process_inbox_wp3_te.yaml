@@ -61,7 +61,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(runfolder_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="wp3", tool="twist_wes", analysis="TWIST", project="klinik", prep="TWIST")]; writer.close()'
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(runfolder_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="wp3", tool="te", analysis="TWIST_exome", project="klinik", prep="TWIST")]; writer.close()'
 
   run_hastings_TE:
     action: core.remote
