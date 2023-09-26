@@ -1,0 +1,155 @@
+version: "1.0" # Orquest version
+
+description: Will sync data to a remove host
+
+input:
+  - transfer_to_host
+  - transfer_user
+  - transfer_key
+  - fastq_files_path
+  - preprocessing_analysis
+  - runfolder
+  - samplesheet_file
+  - experiment_name
+  - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: null
+  - experiment_information: null
+  - experiment_folder: null
+  - extra_files: null
+  - samples: null
+
+tasks:
+  get_experiment_information:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import get_experiments; import json; print(json.dumps(get_experiments("<% ctx(samplesheet_file) %>")["<% ctx(experiment_name) %>"]))'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_information=<% result().stdout %>
+        do:
+          - experiment_folder_path
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_experiment_information -- couldn't get experiment information for <% ctx(experiment_name) %>"
+        do:
+         - bioinfo_error_notifier
+
+  experiment_folder_path:
+    action: core.local
+    input:
+      cmd: echo "/projects/INBOX/<% ctx(experiment_information).get('wp') %>_<% ctx(experiment_information).get('analysis') %>/<% ctx(experiment_name) %>"
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_folder=<% result().stdout %>
+        do:
+          - create_experiment_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "experiment_folder_path: -- couldn't create folder string <% ctx(experiment_name) %>"
+        do:
+         - bioinfo_error_notifier
+
+  create_experiment_folder:
+    action: core.remote
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cmd: mkdir -p <% ctx(experiment_folder) %>/fastq
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+         - transfer_fastq_file
+         - get_data
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_experiment_folder  -- Could not create folder on <% ctx(experiment_folder) %>/fastq"
+        do:
+         - bioinfo_error_notifier
+  
+  get_data:
+    action: core.local
+    input:
+      cmd: echo "<% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_files
+    
+  transfer_fastq_file:
+    with:
+      items: <% ctx(experiment_information).get('samples') %>
+      concurrency: 4
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(experiment_folder) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_fastq_file -- couldn't transfer fastq-file(s) to  <% ctx(experiment_folder) %>/fastq"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+
+  transfer_files:   
+    with:
+      items: <% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(runfolder) %>/<% item() %>" -t <% ctx(experiment_folder) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "fastq_files --transfer files  <% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')) %>"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+
+  
+  create_transfer_complete_file:
+    action: core.remote
+    join: all
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(experiment_folder) %>
+      cmd: echo "`date`" > Done.txt;
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(experiment_folder) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder) %>"
+      body: Something went wrong during the pre-processing of <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+    next:
+      - do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

@@ -23,7 +23,7 @@
     type: integer
     default: 300
 
-  wp1_path_run_statistics:
+  path_run_statistics:
     description: folder path
     required: true
     type: string
@@ -32,42 +32,33 @@
     description: list of addresses for arteria-runfolder services
     type: array
     required: true
-  wp1_preprocess_transfer_user:
+  preprocess_transfer_user:
     description: The user that will be used to push data.
     type: string
     required: true
     default: "stanley"
-  wp1_preprocess_transfer_key:
+  preprocess_transfer_key:
     description: The key that will be used transfer data.
     type: string
     required: true
     default: "~/.ssh/id_rsa"
-  wp1_preprocess_transfer_ip:
+  preprocess_transfer_ip:
     description: The host where pre-process data should be pushed to.
     type: string
     required: true
     default: "130.238.54.142"
-  wp1_preprocess_transfer_prefix_location:
-    description: Location on transfer host where data will be stored.
-    type: string
-    required: true
-    default: "/projects/wp1/nobackup"
-  wp1_preprocess_storage_path:
-    description: Location on transfer host where data will be stored.
-    type: string
-    required: true
-    default: "/data/wp1"
-  wp1_check_demultiplexing_completed_delay:
+      
+  check_demultiplexing_completed_delay:
     description: Delay times (seconds) before starting to check for CompletedJobInfo.xml.
     type: integer
     required: true
     default: 1800
-  wp1_num_check_demultiplexing_completed:
+  num_check_demultiplexing_completed:
     description: Number of times stackstorm should retry to validate that CompletedJobInfo.xml file has been created.
     type: integer
     required: true
     default: 24
-  wp1_check_demultiplexing_retry_delay:
+  check_demultiplexing_retry_delay:
     description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
     type: integer
     required: true

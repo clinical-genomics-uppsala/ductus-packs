@@ -62,3 +62,15 @@ parameters:
     required: true
     type: array
     default: "{{ config_context.fastq_complete_file_dict }}"
+  transfer_to_host:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_ip }}"
+  transfer_key:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_key }}"
+  transfer_user:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_user }}"
