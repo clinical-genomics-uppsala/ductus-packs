@@ -1,0 +1,19 @@
+---
+name: "process_inbox_compute"
+pack: "ductus"
+description: "Rule that triggers a processing action, when a experiment has been submitted to the inbox"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "/projects/INBOX/"
+
+action:
+    ref: "ductus.process_inbox_action"
+    parameters:
+        runfolder: "{{trigger.runfolder}}"
+        host: "{{trigger.host}}"

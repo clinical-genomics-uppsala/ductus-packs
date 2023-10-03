@@ -1,0 +1,147 @@
+version: "1.0" # mistral version
+
+description: Will archive data runfolders and fastq files
+
+input:
+    - samplesheet_file
+    - runfolder_path
+    - runfolder_name
+    - experiment_name
+    - storage_path_fastq   
+    - fastq_files_path
+    - mail_bioinfo
+    - archive_settings
+
+vars:
+  - experiment_information: null
+  - fastq_storage_path_experiment: null
+  - list_of_extra_files_to_backup: null
+  - stderr: null
+
+tasks:
+  get_experiment_information:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      cmd: python3 -c 'from ductus.tools.utils import get_experiments; import json; print(json.dumps(get_experiments("<% ctx(samplesheet_file) %>")["<% ctx(experiment_name) %>"]))'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_information=<% result().stdout %>
+        do:
+          - generate_fastq_file_storage_path
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_experiment_information -- couldn't get experiment information for <% ctx(experiment_name) %>"
+        do:
+         - bioinfo_error_notifier
+  
+  generate_fastq_file_storage_path:
+    action: core.local
+    input:
+      cmd: echo "<% ctx(storage_path_fastq) %>/<% ctx(experiment_information).get('wp') %>_<% ctx(experiment_information).get('analysis') %>/<% ctx(runfolder_name) %>__<% ctx(experiment_name) %>"
+    next:
+      - when: <% succeeded() %>
+        publish: fastq_storage_path_experiment=<% result().stdout %>
+        do:
+          - create_fastq_file_storage
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "fastq_file_storage_path -- couldn't generate fastq storage path for experiment"
+        do:
+         - bioinfo_error_notifier
+
+  create_fastq_file_storage:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(fastq_storage_path_experiment) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fastq_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_fastq_file_storage -- couldn't create <% ctx(fastq_storage_path_experiment) %>"
+        do:
+         - bioinfo_error_notifier
+
+  fastq_files:
+    with:
+      items: <% ctx(experiment_information).get('samples') %>
+      concurrency: 4
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(fastq_storage_path_experiment) %>/  -l
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "fastq_files -- Could not archive fastq files <% ctx(fastq_files_path) %>"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_list_of_extra_files_to_backup
+
+  create_list_of_extra_files_to_backup:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>
+      cmd: python3 -c "import json; wp=\"<% ctx(experiment_information).get('wp') %>\"; analysis=\"<% ctx(experiment_information).get('analysis') %>\"; print(json.dumps([file.replace(\"'\",'') for file in json.loads(\"<% ctx().archive_settings %>\".replace(\"'\", '\"')).get(wp, {}).get(analysis, {}).get('files', [])]))"
+    next:
+      - when: <% succeeded() %>
+        publish: list_of_extra_files_to_backup=<% result().stdout %>
+        do:
+          - backup_extra_files
+
+  backup_extra_files:   
+    with:
+      items: <% ctx('list_of_extra_files_to_backup') %>
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% ctx(runfolder_path) %>/<% ctx(runfolder_name) %>/<% item() %>" -t <% ctx(fastq_storage_path_experiment) %>/ -l
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "backup_extra_files --transfer files  <% ctx('list_of_extra_files_to_backup') %>"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_archive_done
+
+  create_archive_done:
+    join: all
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder_path) %>
+      cmd: echo "<% ctx(runfolder_name) %>" >> archived_fastq_<% ctx(experiment_name) %>.txt
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_archive_don  -- Could not add entries to <% ctx(runfolder_path) %>/archived_<% ctx(experiment_name) %>.txt"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: "stanley@clinicalgenomics-as.se"
+      subject: "'[DUCTUS][WP][ERROR] - Archiving, <% ctx(runfolder_name) %>'"
+      body: Something went wrong during the archiving of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr)% >
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

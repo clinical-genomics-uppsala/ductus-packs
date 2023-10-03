@@ -27,10 +27,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.preprocess_transfer_key }}"
-  preprocessing_analysis:
+  preprocessing_settings:
     required: true 
     type: object
-    default: "{{ config_context.preprocessing_analysis }}"
+    default: "{{ config_context.preprocess_settings }}"
   runfolder:
     required: true
     type: string

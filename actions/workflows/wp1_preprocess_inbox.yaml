@@ -66,7 +66,7 @@ tasks:
   get_csv_file_name:
     action: core.local
     input:
-      cmd: ls *.csv
+      cmd: ls *index.csv
       cwd: <% ctx(runfolder) %>
     next:
       - when: <% succeeded() %>
@@ -224,7 +224,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -243,7 +243,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -262,7 +262,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -281,7 +281,7 @@ tasks:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/INBOX/wp1_sera/<% ctx(experiment_name) %> -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded %>
@@ -404,7 +404,6 @@ tasks:
     action: ductus.wp1_archive_data
     input:
       experiment_name: <% ctx(experiment_name) %>
-      storage_path: <% ctx(storage_path) %>
       project_type: <% ctx(project_type) %>
       raw_inbox_storage_path: <% ctx(runfolder) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>

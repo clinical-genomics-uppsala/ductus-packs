@@ -42,6 +42,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.workspace_runfolder_api_version }}"
+  storage_path_runfolder:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_storage_path_runfolder }}"
+  storage_path_fastq:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_storage_path_fastq }}"
   mail_bioinfo:
     required: true
     type: string

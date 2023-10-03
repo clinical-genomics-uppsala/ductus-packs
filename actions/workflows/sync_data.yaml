@@ -7,7 +7,7 @@ input:
   - transfer_user
   - transfer_key
   - fastq_files_path
-  - preprocessing_analysis
+  - preprocessing_settings
   - runfolder
   - samplesheet_file
   - experiment_name
@@ -77,7 +77,7 @@ tasks:
   get_data:
     action: core.local
     input:
-      cmd: echo "<% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>"
+      cmd: echo "<% ctx(preprocessing_settings).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>"
     next:
       - when: <% succeeded() %>
         do:
@@ -105,7 +105,7 @@ tasks:
 
   transfer_files:   
     with:
-      items: <% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>
+      items: <% ctx(preprocessing_settings).get(ctx(experiment_information).get('wp')).get(ctx(experiment_information).get('analysis')).get('files') %>
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
@@ -115,7 +115,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "fastq_files --transfer files  <% ctx(preprocessing_analysis).get(ctx(experiment_information).get('wp')) %>"
+          - failed_step: "fastq_files --transfer files  <% ctx(preprocessing_settings).get(ctx(experiment_information).get('wp')) %>"
         do:
           - bioinfo_error_notifier
       - when: <% succeeded() %>

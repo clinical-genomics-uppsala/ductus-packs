@@ -1,0 +1,61 @@
+---
+name: run_analysis_action
+description: >
+  run a pipeline 
+enabled: true
+runner_type: orquesta
+entry_point: workflows/run_analysis.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.run_analysis.yaml
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_api_version }}"
+  process_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_ip }}"
+  process_key:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_key }}"
+  process_user:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_user }}"
+  experiment_name:
+    required: true
+    type: string
+  experiment_information:
+    required: true 
+    type: object
+  process_settings:
+    required: true 
+    type: object
+    default: "{{ config_context.process_settings }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

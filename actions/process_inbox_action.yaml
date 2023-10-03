@@ -1,0 +1,55 @@
+---
+name: process_inbox_action
+description: >
+  run a pipeline 
+enabled: true
+runner_type: orquesta
+entry_point: workflows/process_inbox_compute.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.process_inbox_compute
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  host:
+    required: true
+    type: string
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.process_runfolder_api_version }}"
+  processing_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_ip }}"
+  processing_key:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_key }}"
+  processing_user:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_user }}"
+  process_settings:
+    required: true 
+    #type: object
+    default: "{{ config_context.process_settings }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

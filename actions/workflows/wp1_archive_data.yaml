@@ -37,14 +37,13 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}_[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
+      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{4})\d{4}-[a-zA-Z]{2}");sys.stdout.write(p.search("<% ctx(experiment_name) %>").group(1))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
         do:
           - get_machine_type
-          - create_year_index_folder
-          - create_year_runfolder_folder
+          - create_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -71,17 +70,18 @@ tasks:
   create_fastq_sample_folder:
     action: core.local
     input:
-      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq
-      cmd: mkdir -p <% ctx(run_year) %>/<% ctx(experiment_name) %>
+      cwd: <% ctx(storage_path) %>/
+      cmd: mkdir -p fastq/wp1_sera/<% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
-        publish: fastq_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>/"
+        publish: fastq_folder="<% ctx(storage_path) %>/fastq/wp1_sera/<% ctx(runfolder_name) %>_<% ctx(experiment_name) %>/"
         do:
           - sync_run_info
+          - sync_index_file
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/ngs//<% ctx(project_type) %>/archive/fastq<% ctx(run_year) %>/<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>"
+          - failed_step: "create_fastq_sample_folder  -- Couldn't create fastq folder, <% ctx(storage_path) %>/fastq/wp1_sera/<% ctx(runfolder_name) %>_<% ctx(experiment_name) %> , <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
 
@@ -176,28 +176,11 @@ tasks:
         do:
           - bioinfo_error_notifier
 
-  create_year_index_folder:
-    action: core.local
-    input:
-      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles
-      cmd: mkdir -p <% ctx(run_year) %>
-    next:
-      - when: <% succeeded() %>
-        publish: index_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/"
-        do:
-          - sync_index_file
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "create_year_index_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/indexfiles/<% ctx(run_year) %>/"
-        do:
-          - bioinfo_error_notifier
-
   sync_index_file:
     action: core.local
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/*index.csv" -t "<% ctx(index_folder) %>" -l
+      cmd: python3 rsync.py -c -f "<% ctx(raw_inbox_storage_path) %>/*index.csv" -t "<% ctx(fastq_folder) %>" -l
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -210,20 +193,20 @@ tasks:
         do:
           - bioinfo_error_notifier
 
-  create_year_runfolder_folder:
+  create_runfolder_folder:
     action: core.local
     input:
-      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders
-      cmd: mkdir -p <% ctx(run_year) %>
+      cwd: <% ctx(storage_path) %>
+      cmd: mkdir -p runfolders
     next:
       - when: <% succeeded() %>
-        publish: archive_runfolder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
+        publish: archive_runfolder="<% ctx(storage_path) %>/runfolders/"
         do:
           - compress_runfolder_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/runfolders/<% ctx(run_year) %>/"
+          - failed_step: "create_year_runfolder_folder  -- Couldn't create folder <% ctx(storage_path) %>/runfolders/"
         do:
           - bioinfo_error_notifier
 
