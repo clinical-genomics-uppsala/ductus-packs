@@ -22,7 +22,6 @@ vars:
   - run_year: null
   - result_storage_folder: null
   - result_qc_storage_folder: null
-  - result_inheritedGene_storage_folder: null
   - stderr: null
 
 tasks:
@@ -90,30 +89,11 @@ tasks:
       - when: <% succeeded() %>
         publish: result_storage_folder="<% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker/<% ctx(run_year) %>"
         do:
-          - create_inheritedGenes_year_folder
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker/<% ctx(run_year) %>'
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
-          - wp2_error_notifier
-
-  create_inheritedGenes_year_folder:
-    action: core.local
-    input:
-      cwd: <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/
-      cmd: mkdir -p <% ctx(run_year) %>
-    next:
-      - when: <% succeeded() %>
-        publish: result_inheritedGene_storage_folder="<% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/<% ctx(run_year) %>"
-        do:
           - transfer_result
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_inheritedGenes_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Reports_inherited_genes/<% ctx(run_year) %>'
+          - failed_step: 'create_year_folder  -- Could not create year folder <% ctx(storage_path) %>/Twist_Myeloid/Resultat/Resultat_fran_bioinformatiker/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -128,30 +108,11 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - transfer_stats
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result  -- Could not transfer result'
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
-          - wp2_error_notifier
-
-  transfer_stats:
-    action: core.local
-    input:
-      timeout: 86400
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3  rsync.py -c  -f '<% ctx(processing_location) %>/Twist_Myeloid/Workarea/InheritedGenes/<% ctx(run_year) %>-*.txt' -t  <% ctx(result_inheritedGene_storage_folder) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
-    next:
-      - when: <% succeeded() %>
-        do:
           - create_qc_year_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'transfer_stats  -- Could not transfer stats'
+          - failed_step: 'transfer_result  -- Could not transfer result'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -225,7 +186,6 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
           - wp2_error_notifier
-
 
   wp2_error_notifier:
     action: core.sendmail
