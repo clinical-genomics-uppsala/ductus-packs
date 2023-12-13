@@ -77,10 +77,16 @@
     default: "api/analysis/next"
 
   process_api_upload_illumina_run_url: 
-    description: url after address used to upload illumina data, ex sequencerun/upload/illumina/
+    description: url after address used to upload illumina data, ex api/sequencerun/upload/illumina/
     type: string
     required: true
-    default: "sequencerun/upload/illumina/"
+    default: "api/sequencerun/upload/illumina/"
+
+  processing_api_upload_analysis_url:
+    description: url after address used to upload new analysis file, ex analysis/upload/
+    type: string
+    required: true
+    default: "api/analysis/upload/"
 
   analysis_csv_folder_path:
     description: path to location of analysis.csv files

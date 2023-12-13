@@ -100,7 +100,7 @@ tasks:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
         do:
-          - convert_old_samplesheet_to_new
+          - create_analysis_file
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -108,6 +108,15 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+  
+  create_analysis_file:
+    action: core.local
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - convert_old_samplesheet_to_new
 
   convert_old_samplesheet_to_new:
     action: core.local
@@ -116,15 +125,6 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: samplesheet_file="<% ctx(converted_samplesheet_folder_path)%>/<% ctx(runfolder_name)%>_samplesheeet.csv"
-        do:
-          - create_analysis_file
-  
-  create_analysis_file:
-    action: core.local
-    input:
-      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")'
-    next:
-      - when: <% succeeded() %>
         do:
           - upload_sequencerun
 
