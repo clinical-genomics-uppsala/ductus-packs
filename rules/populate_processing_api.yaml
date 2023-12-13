@@ -1,7 +1,7 @@
 ---
-name: "process_workspace"
+name: "populate_processing_api"
 pack: "ductus"
-description: "Rule that triggers move action, will move clincal wp1  data to the inbox folder"
+description: "Trigger workflow to populate processing api"
 enabled: false
 
 trigger:
@@ -13,7 +13,7 @@ criteria:
       pattern: "workspace/INBOX"
 
 action:
-    ref: "ductus.process_workspace"
+    ref: "ductus.populate_processing_api"
     parameters:
         runfolder: "{{trigger.runfolder}}"
         runfolder_host: "{{trigger.host }}"

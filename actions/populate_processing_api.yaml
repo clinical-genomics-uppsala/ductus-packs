@@ -1,0 +1,65 @@
+---
+name: populate_processing_api
+description: >
+  This workflow will process a new sequencerun folder and populate the processing api
+enabled: true
+runner_type: orquesta
+entry_point: workflows/populate_processing_api.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.populate_processing_api
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_service_address }}"
+  runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_service_port }}"
+  demultiplexing_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_address }}"
+  demultiplexing_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_port }}"
+  demultiplexing_output_folder:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_output_folder }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_api_version }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_upload_illumina_run_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_upload_illumina_run_url }}"
+  analysis_csv_folder_path:
+    required: true
+    type: string
+    default: "{{ config_context.analysis_csv_folder_path }}"
+  converted_samplesheet_folder_path:
+    required: true
+    type: string
+    default: "{{ config_context.converted_samplesheet_folder_path }}"
+  

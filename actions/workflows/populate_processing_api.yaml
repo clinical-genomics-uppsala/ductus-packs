@@ -1,0 +1,160 @@
+version: "1.0" # Orquest version
+
+description: Will process a new sequence run
+
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_host_port
+  - demultiplexing_host
+  - demultiplexing_host_port
+  - demultiplexing_output_folder
+  - api_version
+  - mail_bioinfo
+  - processing_api_service_url
+  - processing_api_upload_illumina_run_url
+  - analysis_csv_folder_path
+  - converted_samplesheet_folder_path
+
+vars:
+  - samplesheet_file: null
+  - runinfo_file: null
+  - experiments: null
+  - runfolder_path: null
+  - runfolder_name: null
+  - experiments_folder: null
+  - failed_step: null
+  - stderr: null
+  - machine_name: null
+
+tasks:
+  check_for_samplesheet:
+    action: core.local
+    input:
+      cmd: ls <% ctx(runfolder) %>/SampleSheet.csv
+    next:
+      - when: <% succeeded() %>
+        publish: samplesheet_file=<% result().stdout %>
+        do:
+          - check_for_runinfo
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "check_for_samplesheet  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  check_for_runinfo:
+    action: core.local
+    input:
+      cmd: ls <% ctx(runfolder) %>/RunInfo.xml
+    next:
+      - when: <% succeeded() %>
+        publish: runinfo_file=<% result().stdout %>
+        do:
+          - dos2unix
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "check_for_runinfo  -- Couldn't locate a RunInfo.xml file in folder <% ctx(runfolder) %>, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  dos2unix:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: mv <% ctx(samplesheet_file)%> <% ctx(samplesheet_file)%>.copy && dos2unix -n <% ctx(samplesheet_file)%>.copy <% ctx(samplesheet_file)%>
+    next:
+      - when: <% succeeded %>
+        do:
+          - detect_old_samplesheet_format
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "dos2unix -- Could not run dos2unix on ctx(samplesheet_file)%>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  detect_old_samplesheet_format:
+    action: core.local
+    input:
+      cwd:  <% ctx(runfolder) %>
+      cmd: python3 -c 'from ductus.tools.utils import is_old_ductus_format; exit(0) if is_old_ductus_format("<% ctx(samplesheet_file) %>") == 1 else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - get_runfolder_name
+      - when: <% failed() %>
+        do:
+          - upload_sequencerun
+
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: basename <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - convert_old_samplesheet_to_new
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  convert_old_samplesheet_to_new:
+    action: core.local
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import convert_old_cgu_samplesheet_format_to_new; convert_old_cgu_samplesheet_format_to_new("<% ctx(samplesheet_file)%>", "<% ctx(converted_samplesheet_folder_path)%>/<% ctx(runfolder_name)%>_samplesheeet.csv")'
+    next:
+      - when: <% succeeded() %>
+        publish: samplesheet_file="<% ctx(converted_samplesheet_folder_path)%>/<% ctx(runfolder_name)%>_samplesheeet.csv"
+        do:
+          - create_analysis_file
+  
+  create_analysis_file:
+    action: core.local
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - upload_sequencerun
+
+  upload_sequencerun:
+    join: 1
+    action: core.local
+    input:
+      cmd: curl -X POST -F "samplesheet=@<% ctx(samplesheet_file) %>" -F "runinfo=@<% ctx(runinfo_file) %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_upload_illumina_run_url) %> 
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+    next:
+      - do:
+          - fail
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

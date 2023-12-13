@@ -64,6 +64,34 @@
     required: true
     default: 300
 
+  process_api_service_url: 
+    description: url to processing api, ex http://127.0.0.1:8000 
+    type: string
+    required: true
+    default: "http://127.0.0.1:8000"
+
+  process_api_next_task_query_url: 
+    description: url after address used to query for next task, ex api/analysis/next
+    type: string
+    required: true
+    default: "api/analysis/next"
+
+  process_api_upload_illumina_run_url: 
+    description: url after address used to upload illumina data, ex sequencerun/upload/illumina/
+    type: string
+    required: true
+    default: "sequencerun/upload/illumina/"
+
+  analysis_csv_folder_path:
+    description: path to location of analysis.csv files
+    type: string
+    required: true
+
+  converted_samplesheet_folder_path:
+    description: path to location of storage location of converted SampleSheets
+    type: string
+    required: true
+
   wp1_process_inbox_runfolder_service_address:
     description: Location on transfer host where data will be stored.
     type: string

@@ -18,7 +18,7 @@ class ProcessingApiSensor(PollingSensor):
 
     def setup(self):
         self._infolog("setup")
-        client_urls = self._config["processing_api_service_url"]
+        client_urls = self._config["process_api_service_url"] + "/" + self._config["process_api_next_task_query_url"]
         self._client = ProcessingApiClient(client_urls, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
@@ -61,7 +61,7 @@ class ProcessingApiSensor(PollingSensor):
         #     'workpackage': result['response']['workpackage'],
         #     'timestamp': datetime.utcnow().isoformat(),
         # }
-        analysis_data = result['response'].json()
+        analysis_data = result['response']
         payload = {
             **analysis_data,
             'timestamp': datetime.utcnow().isoformat(),

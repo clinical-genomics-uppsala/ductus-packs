@@ -1,10 +1,10 @@
 ---
-name: preprocess_workspace
+name: process_workspace
 description: >
   This workflow will move data from workspace into the inbox folder.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/preprocess_workspace.yaml
+entry_point: workflows/process_workspace.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.preprocess_workspace
+    default: ductus.process_workspace
     immutable: true
     type: string
   runfolder:
