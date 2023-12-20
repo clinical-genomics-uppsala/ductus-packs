@@ -88,6 +88,18 @@
     required: true
     default: "api/analysis/upload/"
 
+  processing_api_list_samples_url:
+    description: url after address used to get samples
+    type: string
+    required: true
+    default: "api/samples/list"
+
+  processing_api_update_fastq_info_url:
+    description: update fastq information for sample
+    type: string
+    required: true
+    default: "samples/fastq/update/"
+
   analysis_csv_folder_path:
     description: path to location of analysis.csv files
     type: string

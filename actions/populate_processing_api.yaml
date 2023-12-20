@@ -54,6 +54,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_upload_illumina_run_url }}"
+  processing_api_list_samples_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_list_samples_url }}"
+  processing_api_update_fastq_info_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_update_fastq_info_url }}"
   analysis_csv_folder_path:
     required: true
     type: string
