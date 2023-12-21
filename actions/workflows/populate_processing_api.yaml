@@ -6,6 +6,7 @@ input:
   - runfolder
   - runfolder_host
   - runfolder_host_port
+  - runfolder_api_version
   - demultiplexing_host
   - demultiplexing_host_port
   - demultiplexing_output_folder
@@ -32,6 +33,24 @@ vars:
   - machine_name: null
 
 tasks:
+  mark_as_atarted:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - check_for_samplesheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'mark_as_started_processing -- Could not mark <% ctx(runfolder) %> with processing started'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
   check_for_samplesheet:
     action: core.local
     input:
@@ -74,11 +93,28 @@ tasks:
     next:
       - when: <% succeeded %>
         do:
-          - detect_old_samplesheet_format
+          - get_runfolder_name
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "dos2unix -- Could not run dos2unix on ctx(samplesheet_file)%>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+  
+  get_runfolder_name:
+    action: core.local
+    input:
+      cmd: basename <% ctx(runfolder) %>
+    next:
+      - when: <% succeeded() %>
+        publish: runfolder_name=<% result().stdout %>
+        do:
+          - detect_old_samplesheet_format
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -91,28 +127,11 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - get_runfolder_name
+          - create_analysis_file
       - when: <% failed() %>
         do:
           - upload_sequencerun
 
-  get_runfolder_name:
-    action: core.local
-    input:
-      cmd: basename <% ctx(runfolder) %>
-    next:
-      - when: <% succeeded() %>
-        publish: runfolder_name=<% result().stdout %>
-        do:
-          - create_analysis_file
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
-  
   create_analysis_file:
     action: core.local
     input:
@@ -121,6 +140,13 @@ tasks:
       - when: <% succeeded() %>
         do:
           - convert_old_samplesheet_to_new
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_analysis_file --Couldn't create an analysis file from ctx(samplesheet_file)%>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   convert_old_samplesheet_to_new:
     action: core.local
@@ -131,6 +157,13 @@ tasks:
         publish: samplesheet_file="<% ctx(converted_samplesheet_folder_path)%>/<% ctx(runfolder_name)%>_samplesheeet.csv"
         do:
           - upload_sequencerun
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "convert_old_samplesheet_to_new -- Couldn't convert old samplesheet to new format: ctx(samplesheet_file)%>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   upload_sequencerun:
     join: 1
@@ -141,6 +174,13 @@ tasks:
       - when: <% succeeded() %>
         do:
           - get_samples
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "upload_sequencerun -- Couldnt upload sequencerun <% ctx(runfolder_name) %> to processing api"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   get_samples:
     action: core.local
@@ -151,6 +191,13 @@ tasks:
         publish: samples=<% result().stdout %>
         do:
           - create_fastq_update_query
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   create_fastq_update_query:
     join: 1
@@ -163,19 +210,34 @@ tasks:
         publish: fastq_update_query=<% result().stdout %>
         do:
           - add_fastq_information
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_fastq_update_query -- Could not create update query for <% ctx(runfolder_name) %> to update fastq information"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
     
   add_fastq_information:
     action: core.local
     input:
       cmd: curl -F "update_json=<% ctx(fastq_update_query) %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_update_fastq_info_url) %>
-      
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "add_fastq_information -- Could not add fastq information to processing api for <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
   bioinfo_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+      body: Something went wrong during the population of the processing api with <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
     next:
       - do:
           - fail

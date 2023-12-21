@@ -26,6 +26,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.workspace_runfolder_service_port }}"
+  runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_api_version }}"
   demultiplexing_host:
     required: true
     type: string
@@ -38,10 +42,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.demultiplexing_output_folder }}"
-  runfolder_api_version:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_runfolder_api_version }}"
   mail_bioinfo:
     required: true
     type: string
