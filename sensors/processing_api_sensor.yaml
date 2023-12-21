@@ -5,26 +5,26 @@
   poll_interval: 15 # Every 15 s
   trigger_types:
     -
-      name: "processing_api_created"
+      name: "processing_api"
       description: "Trigger which indicates that a analysis task is available"
       payload_schema:
         type: "object"
         properties:
          analysis_name:
            type: "string"
-         analysis:
-           type: "string"
-         done_date:
-           type: "string"
-         created_date:
-           type: "string"
-         last_update:
-           type: "string"
-         priority:
-           type: "string"
-         status:
-           type: "string"
-         workpackage:
-           type: "string"
-         progress:
-           type: "string"
+        #  analysis:
+        #    type: "string"
+        #  done_date:
+        #    type: "string"
+        #  created_date:
+        #    type: "string"
+        #  last_update:
+        #    type: "string"
+        #  priority:
+        #    type: "string"
+        #  status:
+        #    type: "string"
+        #  workpackage:
+        #    type: "string"
+        #  progress:
+        #    type: "string"

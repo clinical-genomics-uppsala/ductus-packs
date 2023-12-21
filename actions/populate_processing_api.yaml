@@ -70,4 +70,8 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.converted_samplesheet_folder_path }}"
+  sample_update_json_folder_path:
+    required: true
+    type: string
+    default: "{{ config_context.sample_update_json_folder_path }}"
   

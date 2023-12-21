@@ -18,12 +18,13 @@ input:
   - processing_api_update_fastq_info_url
   - analysis_csv_folder_path
   - converted_samplesheet_folder_path
+  - sample_update_json_folder_path
 
 vars:
   - samplesheet_file: null
   - runinfo_file: null
   - experiments: null
-  - fastq_update_query: null
+  - fastq_update_file: null
   - runfolder_path: null
   - runfolder_name: null
   - experiments_folder: null
@@ -203,11 +204,10 @@ tasks:
     join: 1
     action: core.local
     input:
-      cwd: <% ctx(runfolder) %>
-      cmd:  echo "<% ctx(samples) %>" | sed 's/\x27/"/g' | python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.stdin.read()), glob.glob("**/*.fastq.gz", recursive=True)))))'
+      cmd:  echo "<% ctx(samples) %>" | sed 's/\x27/"/g' | python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.stdin.read()), glob.glob("<% ctx(runfolder) %>/**/*.fastq.gz", recursive=True)))))' > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json
     next:
       - when: <% succeeded %>
-        publish: fastq_update_query=<% result().stdout %>
+        publish: fastq_update_file="<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json"
         do:
           - add_fastq_information
       - when: <% failed() %>
@@ -221,7 +221,7 @@ tasks:
   add_fastq_information:
     action: core.local
     input:
-      cmd: curl -F "update_json=<% ctx(fastq_update_query) %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_update_fastq_info_url) %>
+      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}"  -X POST -F "update_json=@<% ctx(fastq_update_file) %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_update_fastq_info_url) %>); echo $status; [ $status -eq "201" ]'
     next:
       - when: <% failed() %>
         publish:

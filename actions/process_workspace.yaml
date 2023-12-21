@@ -15,33 +15,9 @@ parameters:
     default: ductus.process_workspace
     immutable: true
     type: string
-  runfolder:
+  analysis_name:
     required: true
     type: string
-  runfolder_host:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_runfolder_service_address }}"
-  runfolder_host_port:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_runfolder_service_port }}"
-  demultiplexing_host:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_demultiplexing_service_address }}"
-  demultiplexing_host_port:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_demultiplexing_service_port }}"
-  demultiplexing_output_folder:
-    required: true
-    type: string
-    default: "{{ config_context.demultiplexing_output_folder }}"
-  api_version:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_runfolder_api_version }}"
   storage_path_runfolder:
     required: true
     type: string

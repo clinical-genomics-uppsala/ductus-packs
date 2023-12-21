@@ -5,16 +5,15 @@ description: "Rule that triggers move action, will move clincal wp1  data to the
 enabled: false
 
 trigger:
-    type: "arteria.runfolder_ready"
+    type: "ductus.processing_api"
 
 criteria:
-    trigger.runfolder:
-      type: "contains"
-      pattern: "workspace/INBOX"
+    trigger.event:
+      type: "equals"
+      pattern: "analysis_waiting"
 
 action:
     ref: "ductus.process_workspace"
     parameters:
-        runfolder: "{{trigger.runfolder}}"
-        runfolder_host: "{{trigger.host }}"
+        analysis_name: "{{trigger.analysis_name}}"
         #project_type: "klinik"

@@ -6,7 +6,7 @@ import os
 
 class ProcessingApiSensor(PollingSensor):
 
-    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.processing_api_created'):
+    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.processing_api'):
         super(ProcessingApiSensor, self).__init__(sensor_service=sensor_service,
                                               config=config,
                                               poll_interval=poll_interval)
@@ -18,7 +18,7 @@ class ProcessingApiSensor(PollingSensor):
 
     def setup(self):
         self._infolog("setup")
-        client_urls = self._config["process_api_service_url"] + "/" + self._config["process_api_next_task_query_url"]
+        client_urls = self._config["processing_api_service_url"] + "/" + self._config["processing_api_next_task_query_url"]
         self._client = ProcessingApiClient(client_urls, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
@@ -64,6 +64,7 @@ class ProcessingApiSensor(PollingSensor):
         analysis_data = result['response']
         payload = {
             **analysis_data,
+            'event': 'analysis_waiting',
             'timestamp': datetime.utcnow().isoformat(),
         }
         self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['analysis_name'])
