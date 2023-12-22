@@ -1,0 +1,49 @@
+---
+name: copy_data_to_cluster_for_processing
+description: >
+  Will move necessary files for a requested analysis to a processing cluster
+enabled: true
+runner_type: orquesta
+name: copy_data_to_cluster_for_processing
+entry_point: workflows/copy_data_to_cluster_for_processing.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.copy_data_to_cluster_for_processing
+    immutable: true
+    type: string
+  analysis_name:
+    required: true
+    type: string
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_get_fastq_files:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_get_fastq_files }}"
+  processing_api_get_task:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_get_task }}"
+  transfer_to_host:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_ip }}"
+  transfer_key:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_key }}"
+  transfer_user:
+    required: true
+    type: string
+    default: "{{ config_context.preprocess_transfer_user }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

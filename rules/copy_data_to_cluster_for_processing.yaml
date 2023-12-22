@@ -1,0 +1,19 @@
+---
+name: "copy_data_to_cluster_for_processing"
+pack: "ductus"
+description: "Rule that triggers  workflow that will move files to processing cluster"
+enabled: false
+
+trigger:
+    type: "ductus.processing_api"
+
+criteria:
+    trigger.event:
+      type: "equals"
+      pattern: "analysis_waiting"
+
+action:
+    ref: "ductus.copy_data_to_cluster_for_processing"
+    parameters:
+        analysis_name: "{{trigger.analysis_name}}"
+        #project_type: "klinik"

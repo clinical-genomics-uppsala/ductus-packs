@@ -22,6 +22,7 @@ input:
 
 vars:
   - samplesheet_file: null
+  - analysis_files: null
   - runinfo_file: null
   - experiments: null
   - fastq_update_file: null
@@ -136,7 +137,27 @@ tasks:
   create_analysis_file:
     action: core.local
     input:
-      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")'
+      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; import json; print(json.dumps(create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")))'
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_files=<% result().stdout %>
+        do:
+          - upload_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_analysis_file --Couldn't create an analysis file from ctx(samplesheet_file)%>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  upload_analysis:
+    with:
+      items: <% ctx(analysis_files) %>
+      concurrency: 1
+    action: core.local
+    input:
+      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -X POST -F "analysis=@<% item() %>" <% ctx(processing_api_service_url) %>/api/analysis/upload/); echo $status; [ $status -eq "201" ]'
     next:
       - when: <% succeeded() %>
         do:
@@ -144,7 +165,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "create_analysis_file --Couldn't create an analysis file from ctx(samplesheet_file)%>"
+          - failed_step: "upload_analyis -- Couldnt upload analysis <% ctx(runfolder_name) %> to processing api"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
