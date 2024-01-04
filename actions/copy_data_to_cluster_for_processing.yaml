@@ -23,14 +23,18 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
-  processing_api_get_fastq_files:
+  processing_api_get_fastq_files_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_fastq_files }}"
-  processing_api_get_task:
+    default: "{{ config_context.processing_api_get_fastq_files_url }}"
+  processing_api_get_task_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_task }}"
+    default: "{{ config_context.processing_api_get_task_url }}"
+  processing_api_get_samples_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_get_samples_url }}"
   transfer_to_host:
     required: true
     type: string

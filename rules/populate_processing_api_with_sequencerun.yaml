@@ -1,7 +1,7 @@
 ---
-name: "populate_processing_api"
+name: "populate_processing_api_with_sequencerun"
 pack: "ductus"
-description: "Trigger workflow to populate processing api"
+description: "Trigger workflow to populate processing api with sequencing data"
 enabled: false
 
 trigger:
@@ -13,7 +13,7 @@ criteria:
       pattern: "workspace/INBOX"
 
 action:
-    ref: "ductus.populate_processing_api"
+    ref: "ductus.populate_processing_api_with_sequencerun"
     parameters:
         runfolder: "{{trigger.runfolder}}"
         runfolder_host: "{{trigger.host }}"

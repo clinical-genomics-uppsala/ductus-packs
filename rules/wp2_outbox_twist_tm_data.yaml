@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/nobackup/Twist_Myeloid/OUTBOX/"
+      pattern: "OUTBOX/wp2_tm"
 
 action:
     ref: "ductus.retrieve_wp2_twist_tm_result"

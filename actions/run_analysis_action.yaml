@@ -12,27 +12,12 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.run_analysis.yaml
+    default: ductus.run_analysis
     immutable: true
     type: string
   runfolder:
     required: true
     type: string
-  host:
-    required: true
-    type: string
-  runfolder_host:
-    required: true
-    type: string
-    default: "{{ config_context.process_runfolder_service_address }}"
-  runfolder_host_port:
-    required: true
-    type: string
-    default: "{{ config_context.process_runfolder_service_port }}"
-  runfolder_api_version:
-    required: true
-    type: string
-    default: "{{ config_context.process_runfolder_api_version }}"
   process_host:
     required: true
     type: string
@@ -48,9 +33,12 @@ parameters:
   experiment_name:
     required: true
     type: string
-  experiment_information:
+  workpackage:
+    required: true
+    type: string
+  analysis:
     required: true 
-    type: object
+    type: string
   process_settings:
     required: true 
     type: object

@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "/projects/OUTBOX/wp1_"
+      pattern: "projects/OUTBOX/wp1_"
 
 action:
     ref: "ductus.wp1_fetch_outbox"

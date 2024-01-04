@@ -5,8 +5,9 @@ description: Will move necessary files for a requested analysis to a processing 
 input:
   - analysis_name
   - processing_api_service_url
-  - processing_api_get_fastq_files
-  - processing_api_get_task
+  - processing_api_get_fastq_files_url
+  - processing_api_get_task_url
+  - processing_api_get_samples_url
   - transfer_to_host
   - transfer_key
   - transfer_user
@@ -25,7 +26,7 @@ tasks:
   get_fastq_file_list:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_fastq_files) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; print(json.dumps([d["path"] for d in json.load(sys.stdin)]))'
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_fastq_files_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; print(json.dumps([d["path"] for d in json.load(sys.stdin)]))'
     next:
       - when: <% succeeded() %>
         publish: fastq_files=<% result().stdout %>
@@ -41,7 +42,7 @@ tasks:
   get_analysis_path:
     action: core.local
     input:
-      cmd: curl http://processingapi:8000/api/analysis/task/?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; data=json.load(sys.stdin)[0]["analysis_id"]; print(f"""/projects/INBOX/{data["workpackage"]}/{data["analysis"]}/{data["analysis_name"]}""")'
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; data=json.load(sys.stdin)[0]["analysis_id"]; print(f"""/projects/INBOX/{data["workpackage"]}_{data["analysis"]}/{data["analysis_name"]}""")'
     next:
       - when: <% succeeded() %>
         publish: upload_path=<% result().stdout %>
@@ -51,22 +52,6 @@ tasks:
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "get_analysis_path  -- Couldn't generate analysis path <% ctx(analysis_name) %>, <% result().stdout %>"
-        do:
-          - bioinfo_error_notifier
-  
-  get_analysis_settings:
-    action: core.local
-    input:
-      cmd: curl http://processingapi:8000/api/analysis/samples/?analysis_id__analysis_name=<% ctx(analysis_name) %>
-    next:
-      - when: <% succeeded() %>
-        publish: samples_and_settings=<% result().stdout %>
-        do:
-          - create_analysis_folder
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_analysis_settings  -- Couldn't samples and settings for <% ctx(analysis_name) %>, <% result().stdout %>"
         do:
           - bioinfo_error_notifier
   
@@ -97,12 +82,12 @@ tasks:
       private_key: <% ctx(transfer_key) %>
       hosts: <% ctx(transfer_to_host) %>
       cwd: <% ctx(upload_path) %>
-      cmd: echo "<% ctx(samples_and_settings) %>" > samples_and_settings.json
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > samples_and_settings.json
       timeout: 60
     next:
       - when: <% succeeded() %>
-        # do:
-        #   - generate_outbox_path
+        do:
+          - create_transfer_complete_file
       - when: <% failed() %>
         publish:
           - stderr: "run_analysis failed"
@@ -126,10 +111,26 @@ tasks:
           - failed_step: "transfer_fastq_file -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %>/fastq/"
         do:
           - bioinfo_error_notifier
-      # - when: <% succeeded() %>
-      #   do:
-      #     - create_transfer_complete_file
-
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+  
+  create_transfer_complete_file:
+    action: core.remote
+    join: all
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(upload_path) %>
+      cmd: echo "`date`" > Done.txt;
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(upload_path) %>"
+        do:
+          - bioinfo_error_notifier
 
   bioinfo_error_notifier:
     action: core.sendmail

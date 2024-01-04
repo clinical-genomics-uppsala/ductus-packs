@@ -1,10 +1,10 @@
 ---
-name: populate_processing_api
+name: populate_processing_api_with_sequencerun
 description: >
   This workflow will process a new sequencerun folder and populate the processing api
 enabled: true
 runner_type: orquesta
-entry_point: workflows/populate_processing_api.yaml
+entry_point: workflows/populate_processing_api_with_sequencerun.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.populate_processing_api
+    default: ductus.populate_processing_api_with_sequencerun
     immutable: true
     type: string
   runfolder:

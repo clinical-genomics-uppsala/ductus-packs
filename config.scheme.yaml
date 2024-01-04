@@ -64,6 +64,11 @@
     required: true
     default: 300
 
+  analysis_file_folders:
+    description: list of folder path that will be checked for new tsv files 
+    type: array
+    required: true
+
   processing_api_service_url: 
     description: url to processing api, ex http://127.0.0.1:8000 
     type: string
@@ -100,17 +105,35 @@
     required: true
     default: "samples/fastq/update/"
 
-  processing_api_get_fastq_files:
+  processing_api_upload_analysis:
+    description: url after address used to upload analysis files
+    type: string
+    required: true
+    default: "api/analysis/upload/"
+
+  processing_api_get_fastq_files_url:
     description: get fastq files for a analysis
     type: string
     required: true
-    default: "api/analysis/fastqs"
+    default: "api/analysis/fastqs/"
 
-  processing_api_get_task:
+  processing_api_get_task_url:
     description: get analysis task and sample information
     type: string
     required: true
-    default: "api/analysis/task"
+    default: "api/analysis/task/"
+
+  processing_api_get_tasks_url:
+    description: get analysis tasks
+    type: string
+    required: true
+    default: "api/analysis/tasks/"
+
+  processing_api_get_samples_url:
+    description: get analysis samples
+    type: string
+    required: true
+    default: "api/analysis/samples/"
 
   analysis_csv_folder_path:
     description: path to location of analysis.csv files

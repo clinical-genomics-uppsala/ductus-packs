@@ -4,15 +4,12 @@ description: Will analyse data found in the inbox folder using ...
 
 input:
     - runfolder
-    - host
-    - runfolder_host
-    - runfolder_host_port
-    - runfolder_api_version
     - process_host
     - process_key
     - process_user
     - experiment_name
-    - experiment_information
+    - workpackage
+    - analysis
     - process_settings
     - mail_bioinfo
 
@@ -23,46 +20,12 @@ vars:
   - failed_step: null
   - stderr: null
   - wp: null
-  - analysis: null
-
-tasks:
-  get_wp:
-    action: core.local
-    input:
-      cmd: echo <% ctx(experiment_information).get('wp') %>
-    next:
-      - when: <% succeeded() %>
-        publish: wp=<% result().stdout %>
-        do:
-          - analysis_folder_path
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_wp -- could not get wp from <% ctx(experiment_information) %>"
-        do:
-          - bioinfo_error_notifier
   
-  get_analysis:
-    action: core.local
-    input:
-      cmd: echo <% ctx(experiment_information).get('analysis') %>
-    next:
-      - when: <% succeeded() %>
-        publish: analysis=<% result().stdout %>
-        do:
-          - analysis_folder_path
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_analysis -- could not get analysis from <% ctx(experiment_information) %>"
-        do:
-          - bioinfo_error_notifier
-
+tasks:
   analysis_folder_path:
-    join: all
     action: core.local
     input:
-      cmd: echo /scratch/<% ctx(wp) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+      cmd: echo /scratch/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
     next:
       - when: <% succeeded() %>
         publish: analysis_folder_path=<% result().stdout %>
@@ -94,7 +57,7 @@ tasks:
   run_statistics_path:
     action: core.local
     input:
-      cmd: echo /projects/statistics/<% ctx(wp) %>_<% ctx(analysis) %> 
+      cmd: echo /projects/statistics/<% ctx(workpackage) %>_<% ctx(analysis) %> 
     next:
       - when: <% succeeded() %>
         publish: run_statistics_path=<% result().stdout %>
@@ -126,7 +89,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics; writer=open("<% ctx(run_statistics_path) %>/<% ctx(experiment_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics(samplesheet="SampleSheet.csv", workpackage="<% ctx(wp) %>", tool="<% ctx(analysis) %>", analysis="<% ctx(analysis) %>", project="klinik", prep="DNA")]; writer.close()'
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics_from_api_data; writer=open("<% ctx(run_statistics_path) %>/<% ctx(experiment_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics_from_api_data(json.load(open("samples_and_settings.json")))]; writer.close()'
 
   run_analysis:
     action: core.remote
@@ -135,8 +98,8 @@ tasks:
       private_key: <% ctx(process_key) %>
       hosts: <% ctx(process_host) %>
       cwd: <% ctx(analysis_folder_path) %>
-      cmd: bash <% ctx(process_settings).get(ctx(wp)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> --analysis-path <% ctx(analysis_folder_path) %> <% ctx(process_settings).get(ctx(wp)).get(ctx(analysis)).get('parameters') %>
-      timeout: <% ctx(process_settings).get(ctx(wp)).get(ctx(analysis)).get('timeout', 178200) %>
+      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> --analysis-path <% ctx(analysis_folder_path) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
+      timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
       hosts: <% ctx(process_host) %>
     next:
       - when: <% succeeded() %>
@@ -145,7 +108,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: "run_analysis failed"
-          - failed_step: run_analysis= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(wp) %>, <% ctx(analysis) %>'
+          - failed_step: run_analysis= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>'
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
@@ -153,7 +116,7 @@ tasks:
   generate_outbox_path:
     action: core.local
     input:
-      cmd: echo /projects/OUTBOX/<% ctx(wp) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+      cmd: echo /projects/OUTBOX/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
         publish: outbox_folder=<% result().stdout %>
@@ -174,7 +137,6 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - copy_sampleseheet
           - sync_data_to_outbox
       - when: <% failed() %>
         publish:
@@ -184,21 +146,9 @@ tasks:
           - bioinfo_error_notifier
           - wp_error_notifier
   
-  copy_sampleseheet:
-    action: core.local
-    input:
-      cmd: cp <% ctx(runfolder) %>/SampleSheet.csv  <% ctx(outbox_folder) %>/
-    next:
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "copy_sampleseheet  -- Could not copy SampleSheet to <% ctx(outbox_folder) %>"
-        do:
-          - bioinfo_error_notifier
-
   sync_data_to_outbox:
     with:
-      items: <% ctx(process_settings).get(ctx(wp)).get(ctx(analysis)).get('outbox_files_and_folders') %>
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders') %>
       concurrency: 2
     action: core.local
     input:
@@ -224,7 +174,7 @@ tasks:
   wp_error_notifier:
     action: core.sendmail
     input:
-      to: <% ctx(process_analysis).get(ctx(wp)).get(ctx(analysis)).get('mail_lab')
+      to: <% ctx(process_analysis).get(ctx(workpackage)).get(ctx(analysis)).get('mail_lab')
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
