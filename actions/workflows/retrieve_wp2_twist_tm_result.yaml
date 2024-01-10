@@ -13,6 +13,8 @@ input:
   - storage_path
   - processing_location
   - project_type
+  - processing_api_service_url
+  - processing_api_get_task_url
   - mail_lab
   - mail_bioinfo
 
@@ -46,7 +48,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: python3 -c 'import sys;import re; p = re.compile("^(\d{2})\d{4}_[0-9A-Z_]+$");sys.stdout.write("20" + p.search("<% ctx(experiment_name) %>").group(1))'
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0]["analysis_id"]["created_date"].split("-")[0]))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
@@ -55,7 +57,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'get_run_year  -- Could not extract run year'
+          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - wp2_error_notifier

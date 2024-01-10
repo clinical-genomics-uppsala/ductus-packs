@@ -12,8 +12,6 @@ input:
     - process_key
     - process_user
     - process_settings
-    - processing_api_service_url
-    - processing_api_get_tasks_url
     - run_statistics_path
     - mail_bioinfo
 

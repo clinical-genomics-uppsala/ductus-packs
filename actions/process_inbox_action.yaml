@@ -48,14 +48,6 @@ parameters:
   process_settings:
     required: true 
     default: "{{ config_context.process_settings }}"
-  processing_api_service_url:
-    required: true
-    type: string
-    default: "{{ config_context.processing_api_service_url }}"
-  processing_api_get_tasks_url:
-    required: true
-    type: string
-    default: "{{ config_context.processing_api_get_tasks_url }}"
   mail_bioinfo:
     required: true
     type: string
