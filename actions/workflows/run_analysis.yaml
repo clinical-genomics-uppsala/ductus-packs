@@ -16,6 +16,7 @@ input:
 vars:
   - analysis_folder_path: null
   - run_statistics_path: null
+  - cold_storage_folder: null
   - outbox_folder: null
   - failed_step: null
   - stderr: null
@@ -105,6 +106,7 @@ tasks:
       - when: <% succeeded() %>
         do:
           - generate_outbox_path
+          - perform_cold_storage
       - when: <% failed() %>
         publish:
           - stderr: "run_analysis failed"
@@ -113,6 +115,66 @@ tasks:
           - bioinfo_error_notifier
           - wp_error_notifier
 
+  perform_cold_storage:
+    input:
+      cmd: [ -n "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('files_and_folders', '') %>" ]
+    next:
+      - when: <% succeeded() %>
+        do:
+          - generate_cold_storage_path
+
+  generate_cold_storage_path:
+    action: core.local
+    input:
+      cmd: echo /projects/cold_storage/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: cold_storage_folder=<% result().stdout %>
+        do:
+          - create_cold_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: "generate cold storage path failed"
+          - failed_step: generate_cold_storage_path=Couldn't generate cold storage path
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  create_cold_storage_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(cold_storage_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_data_to_cold_storage
+      - when: <% failed() %>
+        publish:
+          - stderr: "create cold storage failed"
+          - failed_step: create_cold_storage_folder=Couldn't create cold storage <% ctx(cold_storage_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  sync_data_to_cold_storage:
+    with:
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders') %>
+      concurrency: 2
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_done_txt
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: sync_data_to_outbox=Couldn't not sync to outbox <% ctx(cold_storage_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
 
   generate_outbox_path:
     action: core.local
