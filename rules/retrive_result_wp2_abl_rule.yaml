@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "OUTBOX/wp2_abl"
+      pattern: "outbox/wp2_abl"
 
 action:
     ref: "ductus.retrieve_result_wp2_abl_action"

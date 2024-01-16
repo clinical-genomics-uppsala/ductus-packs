@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "/projects/INBOX/"
+      pattern: "/projects/inbox/"
 
 action:
     ref: "ductus.process_inbox_action"

@@ -113,10 +113,11 @@ tasks:
           - bioinfo_error_notifier
           - wp_error_notifier
 
+
   generate_outbox_path:
     action: core.local
     input:
-      cmd: echo /projects/OUTBOX/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+      cmd: echo /projects/outbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
     next:
       - when: <% succeeded() %>
         publish: outbox_folder=<% result().stdout %>

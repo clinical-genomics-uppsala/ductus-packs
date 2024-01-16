@@ -42,7 +42,7 @@ tasks:
   get_analysis_path:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; data=json.load(sys.stdin)[0]["analysis_id"]; print(f"""/projects/INBOX/{data["workpackage"]}_{data["analysis"]}/{data["analysis_name"]}""")'
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; data=json.load(sys.stdin)[0]["analysis_id"]; print(f"""/projects/inbox/{data["workpackage"]}_{data["analysis"]}/{data["analysis_name"]}""")'
     next:
       - when: <% succeeded() %>
         publish: upload_path=<% result().stdout %>
