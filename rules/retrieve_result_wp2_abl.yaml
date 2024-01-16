@@ -1,5 +1,5 @@
 ---
-name: "retrieve_result_wp2_abl_rule"
+name: "retrieve_result_wp2_abl"
 pack: "ductus"
 description: "Rule that triggers retriving of wp2 abl results from compute"
 enabled: false

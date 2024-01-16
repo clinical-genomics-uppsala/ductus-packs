@@ -1,5 +1,5 @@
 ---
-name: "wp2_outbox_twist_tm_data"
+name: "retrieve_result_wp2_tm"
 pack: "ductus"
 description: "..."
 enabled: false
@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "OUTBOX/wp2_tm"
+      pattern: "outbox/wp2_tm"
 
 action:
     ref: "ductus.retrieve_wp2_twist_tm_result"

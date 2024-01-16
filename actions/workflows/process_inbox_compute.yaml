@@ -27,7 +27,7 @@ tasks:
     action: core.local
     input:
       cwd:  <% ctx(runfolder) %>
-      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))[0]["analysis_id"]["analysis_name"])'
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis_name"])'
     next:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
@@ -45,7 +45,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))[0]["analysis_id"]["analysis"])'
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis"])'
     next:
       - when: <% succeeded() %>
         publish: analysis=<% result().stdout %>
@@ -63,7 +63,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))[0]["analysis_id"]["workpackage"])'
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["workpackage"])'
     next:
       - when: <% succeeded() %>
         publish: workpackage=<% result().stdout %>

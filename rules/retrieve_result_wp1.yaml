@@ -1,5 +1,5 @@
 ---
-name: "wp1_clinic_fetch_outbox"
+name: "retrieve_result_wp1"
 pack: "ductus"
 description: "Rule that triggers a fetching action, when a clincal wp1 experiment has been submitted to the outbox"
 enabled: false
@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "projects/outbox/wp1_"
+      pattern: "outbox/wp1_"
 
 action:
     ref: "ductus.wp1_fetch_outbox"

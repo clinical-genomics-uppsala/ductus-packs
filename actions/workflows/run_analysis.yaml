@@ -103,25 +103,19 @@ tasks:
       timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
       hosts: <% ctx(process_host) %>
     next:
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
         do:
-          - generate_outbox_path
-          - perform_cold_storage
+          - generate_outbox_path         
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders', null) %>
+        do:
+          - generate_cold_storage_path
       - when: <% failed() %>
         publish:
           - stderr: "run_analysis failed"
-          - failed_step: run_analysis= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>'
+          - failed_step: "run_analysis= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>"
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
-
-  perform_cold_storage:
-    input:
-      cmd: [ -n "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('files_and_folders', '') %>" ]
-    next:
-      - when: <% succeeded() %>
-        do:
-          - generate_cold_storage_path
 
   generate_cold_storage_path:
     action: core.local
@@ -165,9 +159,6 @@ tasks:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/
     next:
-      - when: <% succeeded() %>
-        do:
-          - create_done_txt
       - when: <% failed() %>
         publish:
           - stderr: "couldn't sync data"
