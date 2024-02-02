@@ -3,6 +3,7 @@ version: "1.0" # Orquest version
 description: Will process data written to Workarea by Illumina machines
 
 input:
+  - analysis_name
   - runfolder
   - runfolder_host
   - runfolder_host_port

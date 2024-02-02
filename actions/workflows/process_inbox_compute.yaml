@@ -17,48 +17,67 @@ input:
 
 vars:
   - failed_step: null
-  - experiment_names: null
-  - experiment_information: null
+  - analysis: null
+  - workpackage: null
+  - experiment_name: null
   - stderr: "ERROR"
 
 tasks:
-  get_experiments:
+  get_experiment:
     action: core.local
     input:
       cwd:  <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import get_experiments; import json; print(json.dumps([experiment for experiment in get_experiments("SampleSheet.csv")]))'
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis_name"])'
     next:
       - when: <% succeeded() %>
-        publish: experiment_names=<% result().stdout %>
+        publish: experiment_name=<% result().stdout %>
         do:
-          - get_experiment_information
+          - get_analysis
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_experiments  -- couldn't fetch experiment information from SampleSheet.csv in <% ctx(runfolder) %>"
+          - failed_step: "get_experiment  -- couldn't access experiment id from samples_and_settings.json, in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
-
-  get_experiment_information:
+  
+  get_analysis:
     action: core.local
     input:
       cwd: <% ctx(runfolder) %>
-      cmd: python3 -c 'from ductus.tools.utils import get_experiments; import json; print(json.dumps(get_experiments("SampleSheet.csv")))'
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis"])'
     next:
       - when: <% succeeded() %>
-        publish: experiment_information=<% result().stdout %>
+        publish: analysis=<% result().stdout %>
+        do:
+          - get_workpackage
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_analysis  -- couldn't get analysis type (ex gms560, tm, te) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+    
+  get_workpackage:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["workpackage"])'
+    next:
+      - when: <% succeeded() %>
+        publish: workpackage=<% result().stdout %>
         do:
           - mark_as_started
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: "get_experiment_information -- couldn't get experiment information for <% ctx(runfolder) %>"
+          - failed_step: "get_workpackage  -- couldn't get workpackage information (ex wp1, wp2, wp3) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
         do:
-         - bioinfo_error_notifier
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   mark_as_started:
-    join: all
     action: core.http
     input:
       url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
@@ -76,14 +95,12 @@ tasks:
           - bioinfo_error_notifier
     
   run_analysis:
-    with: 
-      items: <% ctx(experiment_names) %> 
     action: ductus.run_analysis_action
     input:
       runfolder: <% ctx(runfolder) %>
-      host: <% ctx(host) %>
-      experiment_name: <% item() %>
-      experiment_information: <% ctx(experiment_information).get(item()) %>
+      experiment_name: <% ctx(experiment_name) %>
+      workpackage: <% ctx(workpackage) %>
+      analysis: <% ctx(analysis) %>
       process_settings: <% ctx(process_settings) %>
       mail_bioinfo: <% ctx(mail_bioinfo) %>
     next:
@@ -93,7 +110,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: "run analysis failed"
-          - failed_step: 'run_analysis  -- Could not start analysis on <% ctx(experiment_names) %>'
+          - failed_step: 'run_analysis  -- Could not start analysis on <% ctx(experiment_name) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed

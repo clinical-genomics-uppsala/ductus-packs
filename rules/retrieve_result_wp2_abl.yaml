@@ -1,7 +1,7 @@
 ---
-name: "wp2_outbox_twist_tm_data"
+name: "retrieve_result_wp2_abl"
 pack: "ductus"
-description: "..."
+description: "Rule that triggers retriving of wp2 abl results from compute"
 enabled: false
 
 trigger:
@@ -10,10 +10,10 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/nobackup/Twist_Myeloid/OUTBOX/"
+      pattern: "outbox/wp2_abl"
 
 action:
-    ref: "ductus.retrieve_wp2_twist_tm_result"
+    ref: "ductus.retrieve_result_wp2_abl_action"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

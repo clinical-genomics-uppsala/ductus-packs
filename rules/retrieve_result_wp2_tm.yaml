@@ -1,5 +1,5 @@
 ---
-name: "wp2_outbox_data"
+name: "retrieve_result_wp2_tm"
 pack: "ductus"
 description: "..."
 enabled: false
@@ -10,10 +10,10 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp2/TruSight_Myeloid/OUTBOX/"
+      pattern: "outbox/wp2_tm"
 
 action:
-    ref: "ductus.retrieve_wp2_result"
+    ref: "ductus.retrieve_wp2_twist_tm_result"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

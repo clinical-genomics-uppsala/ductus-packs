@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "wp3/nobackup/TwistCancer/OUTBOX/"
+      pattern: "outbox/wp3_tc"
 
 action:
     ref: "ductus.retrieve_result_wp3_tc"

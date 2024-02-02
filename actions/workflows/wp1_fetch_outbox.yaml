@@ -12,6 +12,8 @@ input:
   - storage_path
   - preprocessing_storage_path
   - project_type
+  - processing_api_service_url
+  - processing_api_get_tasks_url
   - mail_lab
   - mail_bioinfo
 
@@ -61,11 +63,10 @@ tasks:
           - molpat_error_notifier
           - mark_as_failed
 
-
   get_run_year:
     action: core.local
     input:
-      cmd: python3 -c "import sys;import re; p = re.compile('^(\d{4})\d{4}-[a-zA-Z-]{2,}');sys.stdout.write(p.search(\"<% ctx(experiment_name) %>\").group(1))"
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_tasks_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0]["created_date"].split("-")[0]))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
@@ -74,7 +75,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'get_run_year  -- Could not extract run year from <% ctx(experiment_name) %>'
+          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
           - molpat_error_notifier

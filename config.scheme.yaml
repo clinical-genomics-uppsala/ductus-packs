@@ -64,6 +64,92 @@
     required: true
     default: 300
 
+  analysis_file_folders:
+    description: list of folder path that will be checked for new tsv files 
+    type: array
+    required: true
+
+  processing_api_service_url: 
+    description: url to processing api, ex http://127.0.0.1:8000 
+    type: string
+    required: true
+    default: "http://127.0.0.1:8000"
+
+  processing_api_next_task_query_url: 
+    description: url after address used to query for next task, ex api/analysis/next
+    type: string
+    required: true
+    default: "api/analysis/next"
+
+  process_api_upload_illumina_run_url: 
+    description: url after address used to upload illumina data, ex api/sequencerun/upload/illumina/
+    type: string
+    required: true
+    default: "api/sequencerun/upload/illumina/"
+
+  processing_api_upload_analysis_url:
+    description: url after address used to upload new analysis file, ex analysis/upload/
+    type: string
+    required: true
+    default: "api/analysis/upload/"
+
+  processing_api_list_samples_url:
+    description: url after address used to get samples
+    type: string
+    required: true
+    default: "api/samples/list"
+
+  processing_api_update_fastq_info_url:
+    description: update fastq information for sample
+    type: string
+    required: true
+    default: "samples/fastq/update/"
+
+  processing_api_upload_analysis:
+    description: url after address used to upload analysis files
+    type: string
+    required: true
+    default: "api/analysis/upload/"
+
+  processing_api_get_fastq_files_url:
+    description: get fastq files for a analysis
+    type: string
+    required: true
+    default: "api/analysis/fastqs/"
+
+  processing_api_get_task_url:
+    description: get analysis task and sample information
+    type: string
+    required: true
+    default: "api/analysis/task/"
+
+  processing_api_get_tasks_url:
+    description: get analysis tasks
+    type: string
+    required: true
+    default: "api/analysis/tasks/"
+
+  processing_api_get_samples_url:
+    description: get analysis samples
+    type: string
+    required: true
+    default: "api/analysis/samples/"
+
+  analysis_csv_folder_path:
+    description: path to location of analysis.csv files
+    type: string
+    required: true
+
+  converted_samplesheet_folder_path:
+    description: path to where converted SampleSheets are stored
+    type: string
+    required: true
+  
+  sample_update_json_folder_path:
+    description: path to where sample update jon-files are stored
+    type: string
+    required: true
+
   wp1_process_inbox_runfolder_service_address:
     description: Location on transfer host where data will be stored.
     type: string

@@ -1,0 +1,147 @@
+version: "1.0" # Orquest version
+
+description: Will move necessary files for a requested analysis to a processing cluster
+
+input:
+  - analysis_name
+  - processing_api_service_url
+  - processing_api_get_fastq_files_url
+  - processing_api_get_task_url
+  - processing_api_get_samples_url
+  - transfer_to_host
+  - transfer_key
+  - transfer_user
+  - mail_bioinfo
+  
+
+vars:
+  - failed_step: null
+  - stderr: null
+  - fastq_files: null
+  - analysis_information: null
+  - upload_path: null
+  - samples_and_settings: null
+  
+tasks:
+  get_fastq_file_list:
+    action: core.local
+    input:
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_fastq_files_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; print(json.dumps([d["path"] for d in json.load(sys.stdin)]))'
+    next:
+      - when: <% succeeded() %>
+        publish: fastq_files=<% result().stdout %>
+        do:
+          - create_analysis_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_fastq_file_list  -- Couldn't get fastq files for <% ctx(analysis_name) %>, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+ 
+  get_analysis_path:
+    action: core.local
+    input:
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %> | python3 -c 'import sys; import json; data=json.load(sys.stdin); print(f"""/projects/inbox/{data["workpackage"]}_{data["analysis"]}/{data["analysis_name"]}""")'
+    next:
+      - when: <% succeeded() %>
+        publish: upload_path=<% result().stdout %>
+        do:
+          - create_analysis_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_analysis_path  -- Couldn't generate analysis path <% ctx(analysis_name) %>, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+  
+  create_analysis_folder:
+    join: all
+    action: core.remote
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cmd: mkdir -p <% ctx(upload_path) %>/fastq
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+         - transfer_fastq_file
+         - create_json_file
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_analysis_folder  -- Could not create folder on <% ctx(upload_path) %>/fastq"
+        do:
+         - bioinfo_error_notifier
+
+  create_json_file:
+    action: core.remote
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      hosts: <% ctx(transfer_to_host) %>
+      cwd: <% ctx(upload_path) %>
+      cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > samples_and_settings.json
+      timeout: 60
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+      - when: <% failed() %>
+        publish:
+          - stderr: "run_analysis failed"
+          - failed_step: create_json_file= Couldn't create json file on <% ctx(upload_path)%> at <% ctx(transfer_to_host) %>
+        do:
+          - bioinfo_error_notifier
+      
+  transfer_fastq_file:
+    with:
+      items: <% ctx(fastq_files) %>
+      concurrency: 4
+    action: core.local
+    input:
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      timeout: 86400
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "transfer_fastq_file -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %>/fastq/"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - create_transfer_complete_file
+  
+  create_transfer_complete_file:
+    action: core.remote
+    join: all
+    input:
+      username: <% ctx(transfer_user) %>
+      private_key: <% ctx(transfer_key) %>
+      cwd: <% ctx(upload_path) %>
+      cmd: echo "`date`" > Done.txt;
+      hosts: <% ctx(transfer_to_host) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(upload_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(analysis_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(analysis_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+    next:
+      - do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
