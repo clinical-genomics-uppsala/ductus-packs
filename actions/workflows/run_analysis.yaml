@@ -26,7 +26,7 @@ tasks:
   analysis_folder_path:
     action: core.local
     input:
-      cmd: echo /scratch/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+      cmd: echo /scratch/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
     next:
       - when: <% succeeded() %>
         publish: analysis_folder_path=<% result().stdout %>
