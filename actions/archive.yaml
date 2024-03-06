@@ -1,7 +1,7 @@
 ---
-name: archive_fastq
+name: archive
 description: >
-  Archive fastq
+  Archive fastq and SAVE files
 enabled: true
 runner_type: orquesta
 entry_point: workflows/archive_fastq.yaml
@@ -14,28 +14,20 @@ parameters:
   workflow:
     default: ductus.archive_fastq
     immutable: true
-    type: string
-  samplesheet_file:
-    required: true
-    type: string
   runfolder_path:
     required: true
     type: string
   runfolder_name:
     required: true
     type: string
-  experiment_name:
-    required: true
-    type: string
-  storage_path_fastq:
-    required: true
-    type: string
-  fastq_files_path:
-    type: string
-  mail_bioinfo:
-    required: true
-    type: string
   archive_settings:
     required: true
     default: "{{ config_context.archive_settings }}"
+  processing_api_update_archive_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_update_archive_status_url }}"
+  mail_bioinfo:
+    required: true
+    type: string
 
