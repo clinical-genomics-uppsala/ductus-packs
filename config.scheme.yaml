@@ -14,11 +14,11 @@
   demultiplexing_output_folder:
     required: true
     type: string
-  demultiplexingservice_check_num_retry:
+  demultiplexing_num_retry:
     required: true
     type: integer
     default: 24
-  demultiplexingservice_check_delay:
+  demultiplexing_delay:
     required: true
     type: integer
     default: 300
@@ -47,22 +47,6 @@
     type: string
     required: true
     default: "130.238.54.142"
-      
-  check_demultiplexing_completed_delay:
-    description: Delay times (seconds) before starting to check for CompletedJobInfo.xml.
-    type: integer
-    required: true
-    default: 1800
-  num_check_demultiplexing_completed:
-    description: Number of times stackstorm should retry to validate that CompletedJobInfo.xml file has been created.
-    type: integer
-    required: true
-    default: 24
-  check_demultiplexing_retry_delay:
-    description: Delay times (seconds) between retrying to check for CompletedJobInfo.xml.
-    type: integer
-    required: true
-    default: 300
 
   analysis_file_folders:
     description: list of folder path that will be checked for new tsv files 
@@ -117,6 +101,18 @@
     required: true
     default: "api/analysis/fastqs/"
 
+  processing_api_set_demultiplex:
+    description: set sequence run demultiplexing, 1 perform local demultiplexing, 0 machine demultiplex
+    type: string
+    required: true
+    default: "api/sequencerun/demultiplex/"
+
+  processing_api_get_sequence_runs:
+    description: url for geting samples or sample
+    type: string
+    required: true
+    default: "api/sequencerun/list/"    
+
   processing_api_get_task_url:
     description: get analysis task and sample information
     type: string
@@ -134,6 +130,12 @@
     type: string
     required: true
     default: "api/analysis/samples/"
+
+  processing_api_set_demultiplex_url:
+    description: url used to set if demultiplexing should be performed
+    type: string
+    required: true
+    default: "api/sequencerun/demultiplex/"
 
   analysis_csv_folder_path:
     description: path to location of analysis.csv files

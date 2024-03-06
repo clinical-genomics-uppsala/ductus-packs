@@ -42,6 +42,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.demultiplexing_output_folder }}"
+  demultiplexing_num_retry:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_num_retry }}"
+  demultiplexing_delay:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_delay }}"
   mail_bioinfo:
     required: true
     type: string
@@ -62,6 +70,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_update_fastq_info_url }}"
+  processing_api_set_demultiplex_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_set_demultiplex_url }}"
   analysis_csv_folder_path:
     required: true
     type: string
@@ -70,8 +82,16 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.converted_samplesheet_folder_path }}"
+  processing_api_get_sequence_runs:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_get_sequence_runs }}"
   sample_update_json_folder_path:
     required: true
     type: string
     default: "{{ config_context.sample_update_json_folder_path }}"
+  path_complete_file:
+    required: true
+    type: array
+    default: "{{ config_context.complete_file_dict }}"
   
