@@ -1,0 +1,162 @@
+version: "1.0" # Orquest version
+
+description: Will analyse data found in the inbox folder using ...
+
+input:
+    - runfolder
+    - host
+    - runfolder_host
+    - runfolder_host_port
+    - runfolder_api_version
+    - process_host
+    - process_key
+    - process_user
+    - process_settings
+    - run_statistics_path
+    - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - analysis: null
+  - workpackage: null
+  - experiment_name: null
+  - stderr: "ERROR"
+
+tasks:
+  get_experiment:
+    action: core.local
+    input:
+      cwd:  <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis_name"])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_experiment  -- couldn't access experiment id from samples_and_settings.json, in folder <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+  
+  get_analysis:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["analysis"])'
+    next:
+      - when: <% succeeded() %>
+        publish: analysis=<% result().stdout %>
+        do:
+          - get_workpackage
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_analysis  -- couldn't get analysis type (ex gms560, tm, te) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+    
+  get_workpackage:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; print(json.load(open("samples_and_settings.json"))["workpackage"])'
+    next:
+      - when: <% succeeded() %>
+        publish: workpackage=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_workpackage  -- couldn't get workpackage information (ex wp1, wp2, wp3) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+         - run_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+    
+  run_analysis:
+    action: ductus.run_analysis_action
+    input:
+      runfolder: <% ctx(runfolder) %>
+      experiment_name: <% ctx(experiment_name) %>
+      workpackage: <% ctx(workpackage) %>
+      analysis: <% ctx(analysis) %>
+      process_settings: <% ctx(process_settings) %>
+      mail_bioinfo: <% ctx(mail_bioinfo) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: "run analysis failed"
+          - failed_step: 'run_analysis  -- Could not start analysis on <% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][ERROR] - Failed processing <% ctx(runfolder) %>"
+      body: Something went wrong during processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
+        do:
+          - bioinfo_error_notifier
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
+        do:
+          - bioinfo_error_notifier
+
+# output:
+#   - stderr: <% ctx(stderr) %>

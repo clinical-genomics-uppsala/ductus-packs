@@ -1,0 +1,20 @@
+---
+name: "populate_processing_api_with_sequencerun"
+pack: "ductus"
+description: "Trigger workflow to populate processing api with sequencing data"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "workspace/inbox"
+
+action:
+    ref: "ductus.populate_processing_api_with_sequencerun"
+    parameters:
+        runfolder: "{{trigger.runfolder}}"
+        runfolder_host: "{{trigger.host }}"
+        #project_type: "klinik"

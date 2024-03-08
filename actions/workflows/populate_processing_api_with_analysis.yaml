@@ -1,0 +1,56 @@
+version: "1.0" # Orquest version
+
+description: Will process a new sequence run
+
+input:
+  - analysis_file
+  - mail_bioinfo
+  - processing_api_service_url
+  - processing_api_upload_analysis_url
+  
+vars:
+  - failed_step: null
+  - stderr: null
+  
+tasks:
+  upload_analysis:
+    action: core.local
+    input:
+      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -X POST -F "analysis=@<% ctx(analysis_file) %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_upload_analysis_url) %>); echo $status; [ $status -eq "201" ]'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - move_uploaded_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "upload_analyis -- Couldnt upload analysis <% ctx(analysis_file) %> to processing api"
+        do:
+          - bioinfo_error_notifier
+
+  move_uploaded_analysis:
+    action: core.local
+    input:
+      cmd: filename=$(basename <% ctx(analysis_file) %>) && cd $(dirname <% ctx(analysis_file) %>) && mkdir -p handled && mv ${filename} handled/ && mv .*.${filename} handled/
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "move_uploaded_analysis -- Couldn't  move handled file <% ctx(analysis_file) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - Uploading, <% ctx(analysis_file) %>"
+      body: Something went wrong during the upload of analysis <% ctx(analysis_file) %> to processing api, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+    next:
+      - do:
+          - fail
+
+
+output:
+  - stderr: <% ctx(stderr) %>

@@ -1,0 +1,14 @@
+---
+  class_name: "AnalysisFileSensor"
+  entry_point: "analysis_file_sensor.py"
+  description: "Sensor which monitor folders for new files"
+  poll_interval: 15 # Every 15 s
+  trigger_types:
+    -
+      name: "analysis_file"
+      description: "Trigger which indicates that a analysis file is available for upload"
+      payload_schema:
+        type: "object"
+        properties:
+         analysis_file:
+           type: "string"

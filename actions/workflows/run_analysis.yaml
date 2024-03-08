@@ -1,0 +1,253 @@
+version: "1.0" # Orquest version
+
+description: Will analyse data found in the inbox folder using ...
+
+input:
+    - runfolder
+    - process_host
+    - process_key
+    - process_user
+    - experiment_name
+    - workpackage
+    - analysis
+    - process_settings
+    - mail_bioinfo
+
+vars:
+  - analysis_folder_path: null
+  - run_statistics_path: null
+  - cold_storage_folder: null
+  - outbox_folder: null
+  - failed_step: null
+  - stderr: null
+  - wp: null
+  
+tasks:
+  analysis_folder_path:
+    action: core.local
+    input:
+      cmd: echo /scratch/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder_path=<% result().stdout %>
+        do:
+          - create_analysis_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "analysis_folder_path -- create analysis folder path string"
+        do:
+          - bioinfo_error_notifier
+
+  create_analysis_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(analysis_folder_path) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - run_statistics_path
+          - run_analysis
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_folders -- Couldn't create analysis folder <% ctx(analysis_folder_path) %>"
+        do:
+          - bioinfo_error_notifier  
+
+  run_statistics_path:
+    action: core.local
+    input:
+      cmd: echo /projects/statistics/<% ctx(workpackage) %>_<% ctx(analysis) %> 
+    next:
+      - when: <% succeeded() %>
+        publish: run_statistics_path=<% result().stdout %>
+        do:
+          - create_statistics_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "analysis_folder_path -- create generate statistics folder path"
+        do:
+          - bioinfo_error_notifier
+
+  create_statistics_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(run_statistics_path) %> 
+    next:
+      - when: <% succeeded() %>
+        do:
+          - generate_elastic_statistics
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "create_statistics_folder -- create statistics folder path failed"
+        do:
+          - bioinfo_error_notifier
+
+  generate_elastic_statistics:
+    action: core.local
+    input:
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c 'import json; from ductus.tools.utils import generate_elastic_statistics_from_api_data; writer=open("<% ctx(run_statistics_path) %>/<% ctx(experiment_name) %>.json", "w"); [writer.write(json.dumps(d) + "\n") for d in generate_elastic_statistics_from_api_data(json.load(open("samples_and_settings.json")))]; writer.close()'
+
+  run_analysis:
+    action: core.remote
+    input:
+      username: <% ctx(process_user) %>
+      private_key: <% ctx(process_key) %>
+      hosts: <% ctx(process_host) %>
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> --analysis-path <% ctx(analysis_folder_path) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
+      timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
+      hosts: <% ctx(process_host) %>
+    next:
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
+        do:
+          - generate_outbox_path         
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders', null) %>
+        do:
+          - generate_cold_storage_path
+      - when: <% failed() %>
+        publish:
+          - stderr: "run_analysis failed"
+          - failed_step: "run_analysis= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>"
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  generate_cold_storage_path:
+    action: core.local
+    input:
+      cmd: echo /projects/cold_storage/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: cold_storage_folder=<% result().stdout %>
+        do:
+          - create_cold_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: "generate cold storage path failed"
+          - failed_step: generate_cold_storage_path=Couldn't generate cold storage path
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  create_cold_storage_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(cold_storage_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_data_to_cold_storage
+      - when: <% failed() %>
+        publish:
+          - stderr: "create cold storage failed"
+          - failed_step: create_cold_storage_folder=Couldn't create cold storage <% ctx(cold_storage_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  sync_data_to_cold_storage:
+    with:
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders') %>
+      concurrency: 2
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: sync_data_to_outbox=Couldn't not sync to outbox <% ctx(cold_storage_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  generate_outbox_path:
+    action: core.local
+    input:
+      cmd: echo /projects/outbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: outbox_folder=<% result().stdout %>
+        do:
+          - create_outbox_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: "generate outbox path failed"
+          - failed_step: generate_outbox_path=Couldn't generate outbox path
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  create_outbox_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(outbox_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sync_data_to_outbox
+      - when: <% failed() %>
+        publish:
+          - stderr: "create outbox failed"
+          - failed_step: create_outbox_folder=Couldn't create outbox <% ctx(outbox_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+  
+  sync_data_to_outbox:
+    with:
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders') %>
+      concurrency: 2
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: cp -r <% item() %> <% ctx(outbox_folder) %>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_done_txt
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: sync_data_to_outbox=Couldn't not sync to outbox <% ctx(outbox_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  create_done_txt:
+    action: core.local
+    input:
+      cwd: <% ctx(outbox_folder) %>
+      cmd: touch Done.txt
+  wp_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(process_analysis).get(ctx(workpackage)).get(ctx(analysis)).get('mail_lab')
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

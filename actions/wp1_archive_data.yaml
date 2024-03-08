@@ -24,7 +24,7 @@ parameters:
   storage_path:
     required: true
     type: string
-    default: "{{ config_context.wp1_fetch_to_prefix }}"
+    default: "{{ config_context.preprocess_storage_path }}"
   raw_inbox_storage_path:
     required: true
     type: string

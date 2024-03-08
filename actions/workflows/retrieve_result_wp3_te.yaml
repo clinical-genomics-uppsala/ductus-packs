@@ -179,7 +179,7 @@ tasks:
   mark_as_failed:
     action: core.http
     input:
-      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctrx(runfolder_api_version) %>/rulfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/rulfolders/path<% ctx(runfolder) %>
       body: '{"state": "error"}'
       method: "POST"
     next:
