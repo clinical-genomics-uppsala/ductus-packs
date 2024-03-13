@@ -57,10 +57,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
-  processing_api_get_tasks_url:
+  processing_api_analysis_task_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_tasks_url }}"
+    default: "{{ config_context.processing_api_analysis_task_url }}"
   mail_lab:
     required: true
     type: string

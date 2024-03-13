@@ -26,7 +26,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
-  processing_api_upload_analysis_url:
+  processing_api_analysis_upload_new_task_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_upload_analysis_url }}"
+    default: "{{ config_context.processing_api_analysis_upload_new_task_url }}"

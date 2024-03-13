@@ -18,7 +18,7 @@ class ProcessingApiSensor(PollingSensor):
 
     def setup(self):
         self._infolog("setup")
-        client_urls = self._config["processing_api_service_url"] + "/" + self._config["processing_api_next_task_query_url"]
+        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_analysis_next_url"]
         self._client = ProcessingApiClient(client_urls, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
@@ -47,20 +47,6 @@ class ProcessingApiSensor(PollingSensor):
         self._infolog("_handle_result")
         trigger = self._trigger
         
-        
-        #runfolder_name = os.path.split(runfolder_path)[1]
-        # payload = {
-        #     'analysis': result['response']['analysis'],
-        #     'analysis_name': result['response']['analysis_name'],
-        #     'created_date': result['response']['created_date'],
-        #     'done_date': result['response']['done_date'],
-        #     'last_uodate': result['response']['last_update'],
-        #     'priority': result['response']['priority'],
-        #     'progress': result['response']['progress'],
-        #     'status': result['response']['status'],
-        #     'workpackage': result['response']['workpackage'],
-        #     'timestamp': datetime.utcnow().isoformat(),
-        # }
         analysis_data = result['response']
         payload = {
             **analysis_data,

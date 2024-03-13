@@ -58,22 +58,22 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
-  processing_api_upload_illumina_run_url:
+  processing_api_sequence_run_upload_illumina_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_upload_illumina_run_url }}"
-  processing_api_list_samples_url:
+    default: "{{ config_context.processing_api_sequence_run_upload_illumina_url }}"
+  processing_api_samples_list_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_list_samples_url }}"
-  processing_api_update_fastq_info_url:
+    default: "{{ config_context.processing_api_samples_list_url }}"
+  processing_api_samples_update_fastq_json_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_update_fastq_info_url }}"
-  processing_api_set_demultiplex_url:
+    default: "{{ config_context.processing_api_samples_update_fastq_json_url }}"
+  processing_api_sequence_run_demultiplex_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_set_demultiplex_url }}"
+    default: "{{ config_context.processing_api_sequence_run_demultiplex_url }}"
   analysis_csv_folder_path:
     required: true
     type: string
@@ -82,10 +82,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.converted_samplesheet_folder_path }}"
-  processing_api_get_sequence_runs:
+  processing_api_sequence_run_list_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_sequence_runs }}"
+    default: "{{ config_context.processing_api_sequence_run_list_url }}"
   sample_update_json_folder_path:
     required: true
     type: string

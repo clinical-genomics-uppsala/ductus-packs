@@ -16,7 +16,7 @@ class ArchivingSensor(PollingSensor):
 
     def setup(self):
         self._infolog("setup")
-        client_urls = self._config["processing_api_service_url"] + "/" + self._config["processing_api_sequence_run_next_archive_url"]
+        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_sequence_run_next_archive_url"]
         self._client = ArchivingClient(client_urls, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")

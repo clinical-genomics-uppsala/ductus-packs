@@ -54,89 +54,98 @@
     required: true
 
   processing_api_service_url: 
-    description: url to processing api, ex http://127.0.0.1:8000 
+    description: url to processing api, ex http://127.0.0.1:8000/
     type: string
     required: true
-    default: "http://127.0.0.1:8000"
+    default: "http://127.0.0.1:8000/"
 
-  processing_api_next_task_query_url: 
-    description: url after address used to query for next task, ex api/analysis/next
-    type: string
-    required: true
-    default: "api/analysis/next"
-
-  process_api_upload_illumina_run_url: 
-    description: url after address used to upload illumina data, ex api/sequencerun/upload/illumina/
-    type: string
-    required: true
-    default: "api/sequencerun/upload/illumina/"
-
-  processing_api_upload_analysis_url:
-    description: url after address used to upload new analysis file, ex analysis/upload/
-    type: string
-    required: true
-    default: "api/analysis/upload/"
-
-  processing_api_list_samples_url:
-    description: url after address used to get samples
-    type: string
-    required: true
-    default: "api/samples/list"
-
-  processing_api_update_fastq_info_url:
-    description: update fastq information for sample
-    type: string
-    required: true
-    default: "samples/fastq/update/"
-
-  processing_api_upload_analysis:
-    description: url after address used to upload analysis files
-    type: string
-    required: true
-    default: "api/analysis/upload/"
-
-  processing_api_get_fastq_files_url:
+  # Get all fastq files that should be analyzed, filtering on analysis_name 
+  processing_api_analysis_fastq_files_url:
     description: get fastq files for a analysis
     type: string
     required: true
     default: "api/analysis/fastqs/"
 
-  processing_api_set_demultiplex:
-    description: set sequence run demultiplexing, 1 perform local demultiplexing, 0 machine demultiplex
+  # Get next waiting analysis
+  processing_api_analysis_next_url:
+    description: url to query for next waiting analyis task
     type: string
     required: true
-    default: "api/sequencerun/demultiplex/"
+    default: "api/analysis/next/"
 
-  processing_api_get_sequence_runs:
-    description: url for geting samples or sample
-    type: string
-    required: true
-    default: "api/sequencerun/list/"    
-
-  processing_api_get_task_url:
-    description: get analysis task and sample information
-    type: string
-    required: true
-    default: "api/analysis/task/"
-
-  processing_api_get_tasks_url:
-    description: get analysis tasks
-    type: string
-    required: true
-    default: "api/analysis/tasks/"
-
-  processing_api_get_samples_url:
+  # Get all samples included in an analysis, filter using analysis_name (analysis_id__analysis_name)
+  processing_api_analysis_samples_url:
     description: get analysis samples
     type: string
     required: true
     default: "api/analysis/samples/"
 
-  processing_api_set_demultiplex_url:
-    description: url used to set if demultiplexing should be performed
+  # Get analysis task information
+  processing_api_analysis_task_url: "api/analysis/task/"
+    description: get analysis task and sample information
+    type: string
+    required: true
+    default: "api/analysis/task/"
+
+  # Get list of all tasks
+  processing_api_analysis_tasks_url: "api/analysis/tasks/"
+
+  # Upload information about a new analysis that should be performed
+  processing_api_analysis_upload_new_task_url: 
+    description: url to upload new analysis file, ex analysis/upload/
+    type: string
+    required: true
+    default: "api/analysis/upload/"
+
+  # List all samples, can be filtered using sequence_run__run_id and sequence_run__flowcell
+  processing_api_samples_list_url: "api/samples/list/"
+    description: url after address used to get samples
+    type: string
+    required: true
+    default: "api/samples/list"
+
+  # Add and remove sequence file information for a sample and experiment combination, using a json file
+  processing_api_samples_update_fastq_json_url:
+    description: update fastq information for samples using a json file
+    type: string
+    required: true
+    default: "api/samples/fastq/json_update/"
+
+  # Change variable demultiplex (True, False) for a sequence run, filter using run_id
+  processing_api_sequence_run_demultiplex_url: "api/sequencerun/demultiplex/"
+    description: set sequence run demultiplexing, 1 perform local demultiplexing, 0 machine demultiplex
     type: string
     required: true
     default: "api/sequencerun/demultiplex/"
+    
+  # List all sequence runs, can be filtered using primary key, which is run_id
+  processing_api_sequence_run_list_url:
+    description: url for geting samples or sample
+    type: string
+    required: true
+    default: "api/sequencerun/list/"    
 
+  # Update file using primary key for file, status (IDLE, COPYING, UPDATING) and archived (True, False) can be updated 
+  processing_api_sequence_run_update_url:
+    description: update file using primary key for file, status (IDLE, COPYING, UPDATING) and archived (True, False) can be updated 
+    type: string
+    required: true
+    default: "api/sequencerun/update/"
+
+  # Fetch next sequence run that can be archived
+  processing_api_sequence_run_next_archive_url:
+    description: fetch next sequence run that can be archived
+    type: string
+    required: true
+    default: "api/sequencerun/archive/next/"  
+
+  # Upload new sequence run originating from a Illumina machine
+  processing_api_sequence_run_upload_illumina_url:
+    description: upload new sequence run originating from a Illumina machine
+    type: string
+    required: true
+    default: "api/sequencerun/upload/illumina/"      
+      
   analysis_csv_folder_path:
     description: path to location of analysis.csv files
     type: string
