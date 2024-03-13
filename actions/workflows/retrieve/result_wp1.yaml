@@ -1,5 +1,5 @@
 version: "1.0" # mistral version
-description: Will rsync result back from moriarty
+description: Will rsync result back from compute
 
 input:
   - runfolder
@@ -13,7 +13,7 @@ input:
   - preprocessing_storage_path
   - project_type
   - processing_api_service_url
-  - processing_api_analysis_task_url
+  - processing_api_analysis_tasks_url
   - mail_lab
   - mail_bioinfo
 
@@ -66,7 +66,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0]["created_date"].split("-")[0]))'
+      cmd: curl <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_tasks_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0]["created_date"].split("-")[0]))'
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>

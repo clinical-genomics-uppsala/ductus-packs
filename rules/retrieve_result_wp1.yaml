@@ -13,7 +13,7 @@ criteria:
       pattern: "outbox/wp1_"
 
 action:
-    ref: "ductus.wp1_fetch_outbox"
+    ref: "ductus.retrieve_result_wp1"
     parameters:
         runfolder: "{{trigger.runfolder}}"
         project_type: "klinik"

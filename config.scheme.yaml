@@ -139,6 +139,12 @@
     required: true
     default: "api/sequencerun/archive/next/"  
 
+  processing_api_sequence_run_archive_status_url:
+    description: update archive status for a sequence run
+    type: string
+    required: true
+    default: "api/sequencerun/archive/update/status/"  
+
   # Upload new sequence run originating from a Illumina machine
   processing_api_sequence_run_upload_illumina_url:
     description: upload new sequence run originating from a Illumina machine

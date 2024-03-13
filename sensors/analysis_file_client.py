@@ -24,7 +24,7 @@ class AnalysisFileClient():
             for file in os.listdir(folder):
                 file_full_path = os.path.join(folder, file)
                 processed_indicator = os.path.join(folder ,f".processed.{file}")
-                if os.path.isfile(file_full_path) and not file.startswith(".processed.") and file.endswith('_analysis.csv') and not os.path.exists(processed_indicator):
+                if os.path.isfile(file_full_path) and not file.startswith(".processed.") and file.endswith('.csv') and not os.path.exists(processed_indicator):
                     result = dict()
                     result['analysis_file'] = os.path.join(folder, file)
                     self.touch(processed_indicator)

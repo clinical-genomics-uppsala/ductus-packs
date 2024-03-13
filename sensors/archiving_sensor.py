@@ -50,7 +50,7 @@ class ArchivingSensor(PollingSensor):
             **analysis_data,
             'timestamp': datetime.utcnow().isoformat(),
         }
-        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['analysis_name'])
+        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['run_id'])
 
     def _infolog(self, msg):
         self._logger.info("[ductus-packs." + self.__class__.__name__ + "] " + msg)
