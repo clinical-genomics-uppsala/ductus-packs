@@ -28,7 +28,8 @@ class ArchivingClient():
                     self._logger.error("ArchivingClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))
                 elif resp.status_code == 204:
-                    self._logger.debug("ArchivingClient: No new sequence runs from api call to {0}.".format(url))
+                    self._logger.info("ArchivingClient: No sequence runs found that should be archived, (status: {0} from "
+                                       "endpoint: {1}".format(resp.status_code, url))
                 else:
                     json = resp.text
                     self._logger.debug("ArchivingClient: Successful call to {0}. {1}.".format(url, json))

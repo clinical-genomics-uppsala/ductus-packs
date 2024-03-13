@@ -295,7 +295,7 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_list_samples_url) %>?sequencing_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample["sample_id"], sample["experiment_id"]) for sample in json.load(sys.stdin)]))'
+       cmd: curl <% ctx(processing_api_service_url) %>/<% ctx(processing_api_list_samples_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample["sample_id"], sample["experiment_id"]) for sample in json.load(sys.stdin)]))'
     next:
       - when: <% succeeded %>
         publish: samples=<% result().stdout %>
