@@ -1,0 +1,14 @@
+---
+  class_name: "ArchivingSensor"
+  entry_point: "archiving_sensor.py"
+  description: "Sensor which queries processing api for new sequence runs that should be archived"
+  poll_interval: 15 # Every 15 s
+  trigger_types:
+    -
+      name: "archiving_event"
+      description: "Trigger which indicates that a sequence run is available for archiving"
+      payload_schema:
+        type: "object"
+        properties:
+         sequence_run:
+           type: "string"

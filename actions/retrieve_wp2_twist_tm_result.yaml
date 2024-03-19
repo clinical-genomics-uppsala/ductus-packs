@@ -4,7 +4,7 @@ description: >
   Retrieve processed data for wp2......
 enabled: true
 runner_type: orquesta
-entry_point: workflows/retrieve_wp2_twist_tm_result.yaml
+entry_point: workflows/retrieve/wp2_twist_tm_result.yaml
 pack: ductus
 parameters:
   context:
@@ -57,10 +57,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
-  processing_api_get_tasks_url:
+  processing_api_analysis_task_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_tasks_url }}"
+    default: "{{ config_context.processing_api_analysis_task_url }}"
   mail_lab:
     required: true
     type: string

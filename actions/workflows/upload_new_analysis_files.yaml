@@ -37,7 +37,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(analysis_csv_folder_path) %>
-      cmd: curl -X POST -F "analysis=@<% item() %>" <% ctx(processing_api_service_url) %>/<% ctx(processing_api_upload_analysis_url) %>
+      cmd: curl -X POST -F "analysis=@<% item() %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_upload_analysis_url) %>
     next:
       - when: <% failed() %>
         publish:

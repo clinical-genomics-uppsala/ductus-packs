@@ -1,13 +1,11 @@
 from st2reactor.sensor.base import PollingSensor
-from processing_api_client import ProcessingApiClient
+from archiving_client import ArchivingClient
 from datetime import datetime
-import yaml
-import os
 
-class ProcessingApiSensor(PollingSensor):
+class ArchivingSensor(PollingSensor):
 
-    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.processing_api'):
-        super(ProcessingApiSensor, self).__init__(sensor_service=sensor_service,
+    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.archiving_event'):
+        super(ArchivingSensor, self).__init__(sensor_service=sensor_service,
                                               config=config,
                                               poll_interval=poll_interval)
         self._logger = self._sensor_service.get_logger(__name__)
@@ -18,8 +16,8 @@ class ProcessingApiSensor(PollingSensor):
 
     def setup(self):
         self._infolog("setup")
-        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_analysis_next_url"]
-        self._client = ProcessingApiClient(client_urls, self._logger)
+        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_sequence_run_next_archive_url"]
+        self._client = ArchivingClient(client_urls, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
 
@@ -50,10 +48,9 @@ class ProcessingApiSensor(PollingSensor):
         analysis_data = result['response']
         payload = {
             **analysis_data,
-            'event': 'analysis_waiting',
             'timestamp': datetime.utcnow().isoformat(),
         }
-        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['analysis_name'])
+        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['run_id'])
 
     def _infolog(self, msg):
         self._logger.info("[ductus-packs." + self.__class__.__name__ + "] " + msg)

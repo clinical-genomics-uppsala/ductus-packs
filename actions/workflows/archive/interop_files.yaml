@@ -1,0 +1,92 @@
+version: "1.0" # mistral version
+
+description: Will archive fastq files and SAV files
+
+input:
+  - analysis_id
+  - year
+  - archive_settings
+  - processing_api_service_url
+
+vars:
+  - analysis_information: null
+  - fastq_archive_location: null
+  - sequence_files: null
+  - stderr: null
+
+tasks:
+  get_analysis_information:
+    action: core.local
+    input:
+      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>
+    next:
+      - when: <% succeeded() %>
+        publish: 
+         - analysis_information: <% result().stdout %>
+        do:
+          - generate_sequence_storage_path
+          - get_sequence_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  generate_sequence_storage_path:
+    action: core.local
+    input:
+      cmd: echo "<% ctx(archive_settings).where($.workpackage=ctx(analysis_information)[0].workpackage and $.analysis=ctx(analysis_information)[0].analysis).select($.fastq_files_location).first() %>/<% ctx(year) %>/<% ctx(analysis_id) %>"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - sequence_file_archive_location: <% result().stdout %>
+        do:
+          - create_sequence_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  create_sequence_storage_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(fastq_archive_location) %>
+    next:
+      - when: <% succeeded() %>
+          - archive_create_folders
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  create_interop_storage_folders:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(fastq_archive_location) %>
+    next:
+      - when: <% succeeded() %>
+          - archive_create_folders
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  get_sequence_files:
+    action: core.local
+    input:
+      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - sequence_files=<% result().stdout %>
+        do:
+          - archive_create_folders
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  copy_sequence_files:
+    with:
+      items: <% sequence_files %>
+    action: core.local
+    input:
+      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
+      timeout: 86400
+
+output:
+  - stderr: <% ctx(stderr) %>

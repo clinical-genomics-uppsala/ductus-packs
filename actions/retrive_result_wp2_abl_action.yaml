@@ -4,7 +4,7 @@ description: >
   Retrieve processed data for wp2 BCR::ABL1 results to the hospital.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/retrieve_result_wp2_abl_workflow.yaml
+entry_point: workflows/retrieve/result_wp2_abl_workflow.yaml
 pack: ductus
 parameters:
   context:
