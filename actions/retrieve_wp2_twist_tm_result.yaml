@@ -57,6 +57,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
   processing_api_analysis_task_url:
     required: true
     type: string

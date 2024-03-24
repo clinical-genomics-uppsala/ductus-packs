@@ -19,7 +19,8 @@ class ProcessingApiSensor(PollingSensor):
     def setup(self):
         self._infolog("setup")
         client_urls = self._config["processing_api_service_url"] + self._config["processing_api_analysis_next_url"]
-        self._client = ProcessingApiClient(client_urls, self._logger)
+        api_key = self._config["processing_api_access_key"]
+        self._client = ProcessingApiClient(client_urls, api_key, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
 

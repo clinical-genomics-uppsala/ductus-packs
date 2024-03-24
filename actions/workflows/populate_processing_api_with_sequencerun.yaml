@@ -42,7 +42,7 @@ vars:
   - machine_name: null
 
 tasks:
-  mark_as_atarted:
+  mark_as_started:
     action: core.http
     input:
       url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
@@ -180,7 +180,7 @@ tasks:
     join: 1
     action: core.local
     input:
-      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -H "Authorization: Api-Key <% ctx(processing_api_access_key) %>" -X POST -F "samplesheet=@<% ctx(samplesheet_file) %>" -F "runinfo=@<% ctx(runinfo_file) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq "201" ]'
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq '201' ]"
     next:
       - when: <% succeeded() %>
         do:
@@ -198,7 +198,7 @@ tasks:
     input:
       cmd: > 
         if [ -f <% ctx(runfolder) %>/PerformDemultiplex.txt ]; then 
-          state=$(curl -s --write-out "%{http_code}" -H "Authorization: Api-Key <% ctx(processing_api_access_key) %>" -X PATCH --data '{"run_id":"<% ctx(runfolder_name) %>", "demultiplex": "1"}' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_demultiplex_url) %><% ctx(runfolder_name) %>/);
+          state=$(curl -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PATCH --data '{"run_id":"<% ctx(runfolder_name) %>", "demultiplex": "1"}' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_demultiplex_url) %><% ctx(runfolder_name) %>/);
           [ $status -eq "202" ];
           echo "SERVER_DEMULTIPLEX"
         else
@@ -296,7 +296,7 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: curl -H "Authorization: Api-Key <% ctx(processing_api_access_key) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample["sample_id"], sample["experiment_id"]) for sample in json.load(sys.stdin)]))'
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded %>
         publish: samples=<% result().stdout %>
@@ -331,7 +331,7 @@ tasks:
   add_fastq_information:
     action: core.local
     input:
-      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -H "Authorization: Api-Key <% ctx(processing_api_access_key) %>" -X POST -F "update_json=@<% ctx(fastq_update_file) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq "201" ]'
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'update_json=@<% ctx(fastq_update_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq '201' ]"
     next:
       - when: <% failed() %>
         publish:
