@@ -5,6 +5,7 @@ description: Will process a new sequence run
 input:
   - analysis_file
   - mail_bioinfo
+  - processing_api_access_key
   - processing_api_service_url
   - processing_api_analysis_upload_new_task_url
   
@@ -16,7 +17,7 @@ tasks:
   upload_analysis:
     action: core.local
     input:
-      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -X POST -F "analysis=@<% ctx(analysis_file) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_upload_new_task_url) %>); echo $status; [ $status -eq "201" ]'
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'analysis=@<% ctx(analysis_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_upload_new_task_url) %>); echo $status; [ $status -eq '201' ]"
     next:
       - when: <% succeeded() %>
         do:

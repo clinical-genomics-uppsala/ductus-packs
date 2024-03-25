@@ -3,16 +3,21 @@ version: "1.0" # Orquest version
 description: Will process a new sequence run
 
 input:
+  - service
   - runfolder
-  - runfolder_host
-  - runfolder_host_port
-  - runfolder_api_version
+  - inbox_runfolder_host
+  - inbox_runfolder_host_port
+  - inbox_runfolder_api_version
+  - workspace_runfolder_host
+  - workspace_runfolder_host_port
+  - workspace_runfolder_api_version
   - demultiplexing_host
   - demultiplexing_host_port
   - demultiplexing_output_folder
   - demultiplexing_num_retry
   - demultiplexing_delay
   - mail_bioinfo
+  - processing_api_access_key
   - processing_api_service_url
   - processing_api_sequence_run_upload_illumina_url
   - processing_api_samples_list_url
@@ -25,6 +30,9 @@ input:
   - path_complete_file
 
 vars:
+  - runfolder_host: null
+  - runfolder_host_port: null
+  - runfolder_api_version: null
   - complete_job_file_path: null
   - samplesheet_file: null
   - analysis_files: null
@@ -41,7 +49,25 @@ vars:
   - machine_name: null
 
 tasks:
-  mark_as_atarted:
+  setting_runfolder:
+    action: core.local
+    input:
+      cmd: echo <% ctx(service) %>
+    next:
+      - when: <% succeeded() and result().stdout = "inbox" %>
+        publish:
+          - runfolder_host: <% ctx(inbox_runfolder_host) %>
+          - runfolder_host_port: <% ctx(inbox_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
+        do: mark_as_started
+      - when: <% succeeded() and result().stdout = "workspace" %>
+        publish:
+          - runfolder_host: <% ctx(workspace_runfolder_host) %>
+          - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(workspace_runfolder_api_version) %>
+        do: mark_as_started
+
+  mark_as_started:
     action: core.http
     input:
       url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
@@ -62,7 +88,7 @@ tasks:
   check_for_samplesheet:
     action: core.local
     input:
-      cmd: ls <% ctx(runfolder) %>/SampleSheet.csv
+      cmd: ls <% ctx(runfolder) %>/SampleSheet.csv || ls <% ctx(runfolder) %>/*/SampleSheet.csv
     next:
       - when: <% succeeded() %>
         publish: samplesheet_file=<% result().stdout %>
@@ -79,7 +105,7 @@ tasks:
   check_for_runinfo:
     action: core.local
     input:
-      cmd: ls <% ctx(runfolder) %>/RunInfo.xml
+      cmd: ls <% ctx(runfolder) %>/RunInfo.xml || ls <% ctx(runfolder) %>/*/RunInfo.xml
     next:
       - when: <% succeeded() %>
         publish: runinfo_file=<% result().stdout %>
@@ -113,7 +139,8 @@ tasks:
   get_runfolder_name:
     action: core.local
     input:
-      cmd: basename <% ctx(runfolder) %>
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c "import xml.etree.ElementTree as ET; xml_data = ET.parse('<% ctx(runinfo_file) %>'); print(xml_data.find('Run').get('Id'))"
     next:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
@@ -179,7 +206,7 @@ tasks:
     join: 1
     action: core.local
     input:
-      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}" -X POST -F "samplesheet=@<% ctx(samplesheet_file) %>" -F "runinfo=@<% ctx(runinfo_file) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq "201" ]'
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq '201' ]"
     next:
       - when: <% succeeded() %>
         do:
@@ -197,7 +224,7 @@ tasks:
     input:
       cmd: > 
         if [ -f <% ctx(runfolder) %>/PerformDemultiplex.txt ]; then 
-          state=$(curl -s --write-out "%{http_code}" -X PATCH --data '{"run_id":"<% ctx(runfolder_name) %>", "demultiplex": "1"}' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_demultiplex_url) %><% ctx(runfolder_name) %>/);
+          state=$(curl -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PATCH --data '{"run_id":"<% ctx(runfolder_name) %>", "demultiplex": "1"}' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_demultiplex_url) %><% ctx(runfolder_name) %>/);
           [ $status -eq "202" ];
           echo "SERVER_DEMULTIPLEX"
         else
@@ -295,7 +322,7 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: curl <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample["sample_id"], sample["experiment_id"]) for sample in json.load(sys.stdin)]))'
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded %>
         publish: samples=<% result().stdout %>
@@ -330,7 +357,7 @@ tasks:
   add_fastq_information:
     action: core.local
     input:
-      cmd: sh -c 'status=$(curl -o /dev/null -s --write-out "%{http_code}"  -X POST -F "update_json=@<% ctx(fastq_update_file) %>" <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq "201" ]'
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'update_json=@<% ctx(fastq_update_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq '201' ]"
     next:
       - when: <% failed() %>
         publish:

@@ -1,4 +1,5 @@
 import requests
+from requests.auth import HTTPBasicAuth
 import jsonpickle
 
 
@@ -6,13 +7,14 @@ class ProcessingApiClient():
     """Pulls data from processing api. If there are issues with connecting
        to any of the hosts, it will be logged but processing will continue""" 
 
-    def __init__(self, hosts, logger):
+    def __init__(self, hosts, api_key, logger):
         """Initializes the client with a list of hosts""" 
         logger.info("__init__ ProcessingApiClient")
         if not isinstance(hosts, list):
             self._hosts = [hosts]
         else:
             self._hosts = hosts
+        self.api_key = f"Api-Key {api_key}"
         self._logger = logger
 
     def next_ready(self):
@@ -23,7 +25,7 @@ class ProcessingApiClient():
             self._logger.info("Querying {0}".format(host))
             url = host
             try:
-                resp = requests.get(url)
+                resp = requests.get(url, headers={"Authorization": self.api_key})
                 if resp.status_code != 200:
                     self._logger.error("ProcessingApiClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))

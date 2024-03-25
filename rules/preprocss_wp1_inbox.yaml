@@ -1,7 +1,7 @@
 ---
-name: "populate_processing_api_with_sequencerun"
+name: "preprocss_wp1_inbox"
 pack: "ductus"
-description: "Trigger workflow to populate processing api with sequencing data"
+description: "Rule that triggers preprocessing action, when a clincal wp1 experiment has been manually copied to inbox by lab"
 enabled: false
 
 trigger:
@@ -10,11 +10,11 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "workspace/inbox"
+      pattern: "klinik/inbox"
 
 action:
     ref: "ductus.populate_processing_api_with_sequencerun"
     parameters:
-        service: "workspace"
+        service: "inbox"
         runfolder: "{{trigger.runfolder}}"
         
