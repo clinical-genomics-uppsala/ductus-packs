@@ -1,1 +1,2 @@
 #-e git+git@bitbucket.org:clinsequu/ductus-core.git#egg=ductus-core
+jsonpickle

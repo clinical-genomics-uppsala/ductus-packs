@@ -1,0 +1,13 @@
+---
+name: "archive_sequence_run"
+pack: "ductus"
+description: "Rule that triggers archive of a sequence run"
+enabled: false
+
+trigger:
+    type: "ductus.archiving_event"
+
+action:
+    ref: "ductus.archive_sequence_run"
+    parameters:
+        archive_data: "{{trigger}}"

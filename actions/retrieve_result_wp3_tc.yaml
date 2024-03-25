@@ -4,7 +4,7 @@ description: >
   Retrieve processed data for wp3 Twist Cancer results.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/retrieve_result_wp3_tc.yaml
+entry_point: workflows/retrieve/result_wp3_tc.yaml
 pack: ductus
 parameters:
   context:

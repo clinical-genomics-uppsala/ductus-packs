@@ -1,7 +1,7 @@
 ---
-name: "retrieve_result_wp3_tc"
+name: "retrieve_result_wp2_abl"
 pack: "ductus"
-description: "Rule that triggers retriving of wp3 tc results from compute"
+description: "Rule that triggers retriving of wp2 abl results from compute"
 enabled: false
 
 trigger:
@@ -10,10 +10,10 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "outbox/wp3_tc"
+      pattern: "outbox/wp2_abl"
 
 action:
-    ref: "ductus.retrieve_result_wp3_tc"
+    ref: "ductus.retrieve_result_wp2_abl_action"
     parameters:
         host: "{{trigger.host}}"
         runfolder: "{{trigger.runfolder}}"

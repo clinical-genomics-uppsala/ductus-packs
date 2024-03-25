@@ -1,0 +1,288 @@
+version: "1.0" # mistral version
+description: Will rsync result back from compute
+
+input:
+  - runfolder
+  - runfolder_host
+  - runfolder_port
+  - runfolder_api_version
+  - transfer_from_user
+  - transfer_from_key
+  - transfer_from_host
+  - storage_path
+  - preprocessing_storage_path
+  - project_type
+  - processing_api_service_url
+  - processing_api_access_key
+  - processing_api_analysis_tasks_url
+  - mail_lab
+  - mail_bioinfo
+
+vars:
+  - experiment_name: null
+  - experiment_name_result: null
+  - result_storage_folder: null
+  - fastq_storage_folder: null
+  - samplesheet_storage_folder: null
+  - run_year: null
+  - stderr: null
+
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python3 -c "import sys; sys.stdout.write(\"<% ctx(runfolder) %>\".split('/')[-1])"
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_experiment_name_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_experiment_name  -- Could not get experiment name'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  get_experiment_name_result:
+    action: core.local
+    input:
+      cmd: python3 -c "import sys; import re; sys.stdout.write(re.sub(r'-[RD]NA$', '', '<% ctx(experiment_name) %>'))"
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name_result=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_experiment_name_result  -- Could not get experiment name for result'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  get_run_year:
+    action: core.local
+    input:
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_tasks_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0][\"created_date\"].split(\"-\")[0]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_year_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+
+  create_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: result_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>"
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_storage_folder) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  transfer_result:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(experiment_name_result) %> -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - wp1_tso500
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  wp1_tso500:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("SampleSheet.csv", "wp1", "tso500", "<% ctx(project_type) %>") else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_fastq_folder
+          - result_retrieved_tso500
+      - when: <% failed() %>
+        do:
+          - result_retrieved_sera
+          - mark_as_finished
+
+  create_fastq_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: fastq_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - sync_fastq_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_fastq_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  sync_fastq_files:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: rsync -Prv fastq <% ctx(fastq_storage_folder)%>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_samplesheet_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'sync_fastq_files  -- Could not sync fastq files to <% ctx(fastq_storage_folder) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  create_samplesheet_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p  <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: samplesheet_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
+        do:
+          - sync_samplehseet_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'create_samplesheet_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  sync_samplehseet_files:
+    action: core.local
+    input:
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
+      cmd: rsync -Prv SampleSheet.csv <% ctx(samplesheet_storage_folder)%>/
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'sync_fastq_files  -- Could not sync SampleSheet.csv to <% ctx(samplesheet_storage_folder) %>'
+        do:
+          - bioinfo_error_notifier
+          - molpat_error_notifier
+          - mark_as_failed
+
+  molpat_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Processing failure, <% - ctx(experiment_name) %>"
+      body: "Something went wrong when retrieving sera result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: {"state": "error"}
+      method: "POST"
+    next:
+      - when: <% supposed %>
+        do:
+          - fail
+
+  result_retrieved_sera:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
+      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
+
+  result_retrieved_tso500:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP1][SUCCESS] - TSO500 analysis available, <% ctx(experiment_name) %>"
+      body: The result from TSO500 analysis of <% ctx(experiment_name) %> can now be accessed.
+
+output:
+  - stderr: <% ctx(stderr) %>

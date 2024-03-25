@@ -1,0 +1,19 @@
+---
+name: "upload_new_analysis_files"
+pack: "ductus"
+description: "Rule that triggers upload of new analysis files"
+enabled: false
+
+trigger:
+  type: "core.st2.CronTimer"
+  parameters:
+    timezone: "UTC"
+    day_of_week: 0 # or day_of_week: "sun"
+    hour: 0
+    minute: 0
+    second: 15
+
+action:
+    ref: "ductus.upload_new_analysis_files"
+    #parameters:
+    #  project_type: "klinik"

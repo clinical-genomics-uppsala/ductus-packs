@@ -1,0 +1,168 @@
+version: "1.0" # Orquest version
+
+description: Will rsync result back from moriarty
+
+input:
+  - runfolder
+  - host
+  - runfolder_port
+  - runfolder_api_version
+  - transfer_from_user
+  - transfer_from_key
+  - transfer_from_host
+  - storage_path
+  - project_type
+  - mail_lab
+  - mail_bioinfo
+
+vars:
+  - experiment_name: null
+  - failed_step: null
+  - run_year: null
+
+tasks:
+  get_experiment_name:
+    action: core.local
+    input:
+      cmd: python -c 'import sys; sys.stdout.write("<% ctx(runfolder) %>".split("/")[-1])'
+    next:
+      - when: <% succeeded() %>
+        publish: experiment_name=<% result().stdout %>
+        do:
+          - get_run_year
+      - when: <% failed() %>
+        publish: failed_step='get_experiment_name  -- Couldn't get experiment name, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  get_run_year:
+    action: core.local
+    input:
+      cmd: curl <% ctx(processing_api_service_url) %><% ctx(processing_api_get_task_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0]["analysis_id"]["created_date"].split("-")[0]))'
+    next:
+      - when: <% succeeded() %>
+        publish: run_year=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_year_folder
+      - when: <% failed() %>
+        publish: failed_step='mark_as_started  -- Couldn't extract run year, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+          - mark_as_failed
+
+  create_year_folder:
+    action: core.local
+    input:
+      cwd: <% ctx(storage_path) %>/result
+      cmd: mkdir -p <% ctx(run_year) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - transfer_result
+      - when: <% failed() %>
+        publish: failed_step='create_year_folder  -- Couldn't create year folder, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  transfer_result:
+    action: core.local
+    input:
+      timeout: 86400
+      cwd: /opt/src/ductus-core/ductus/scripts
+      cmd: python rsync.py -c -f '<% ctx(runfolder) %>/*' -t <% ctx(storage_path) %>/result/<% ctx(run_year) %>/ -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %>  -r <% ctx(transfer_from_host) %> -p 1
+    next:
+      - when: <% succeeded() %>
+        do:
+          - result_retrieved
+          - mark_as_finished
+      - when: <% failed() %>
+        publish: failed_step='transfer_result  -- Couldn't transfer result, <% result().stdout %>, <% result().stderr %>'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+          - wp2_error_notifier
+
+  wp2_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_lab) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP2][ERROR] - Processing failure, <% ctx(runfolder) %>"
+      body: Something went wrong when retrieving wp2 result for <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][WP2][ERROR] - WP2 Processing, <% ctx(experiment_name) %>"
+      body: Something went wrong when retrieving truesight wp2 result for <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step)  %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  mark_as_finished:
+    action: core.http
+    input:
+      url: http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "done"}'
+      method: "POST"
+    next:
+      - when: <% failed() %>
+        publish: failed_step="mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+      - when: <% failed() %>
+        publish: failed_step="mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
+        do:
+          - bioinfo_error_notifier
+          - wp2_error_notifier
+
+  result_retrieved:
+     action: core.sendmail
+     input:
+       to: <% ctx(mail_lab) %>
+       from: stanley@clinicalgenomics-as.se
+       subject: "[DUCTUS][WP2][SUCCESS] - WP2 analysis available, <% ctx(experiment_name) %>"
+       body: The result from WP2 analysis of <% ctx(experiment_name) %> can now be accessed.

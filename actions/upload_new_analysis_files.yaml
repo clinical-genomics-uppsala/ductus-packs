@@ -1,0 +1,29 @@
+---
+name: upload_new_analysis_files
+description: >
+  Look configured folder for new analysis_files
+enabled: true
+runner_type: orquesta
+entry_point: workflows/upload_new_analysis_files.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.upload_new_analysis_files
+    immutable: true
+    type: string
+  analysis_csv_folder_path:
+    required: true
+    type: string
+    default: "{{ config_context.analysis_csv_folder_path }}"
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_analysis_upload_new_task_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_upload_analysis_url }}"

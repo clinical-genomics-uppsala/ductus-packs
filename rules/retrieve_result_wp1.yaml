@@ -1,0 +1,19 @@
+---
+name: "retrieve_result_wp1"
+pack: "ductus"
+description: "Rule that triggers a fetching action, when a clincal wp1 experiment has been submitted to the outbox"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "outbox/wp1_"
+
+action:
+    ref: "ductus.retrieve_result_wp1"
+    parameters:
+        runfolder: "{{trigger.runfolder}}"
+        project_type: "klinik"
