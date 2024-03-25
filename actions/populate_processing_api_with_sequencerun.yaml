@@ -15,18 +15,33 @@ parameters:
     default: ductus.populate_processing_api_with_sequencerun
     immutable: true
     type: string
+  service:
+    required: true
+    type: string
   runfolder:
     required: true
     type: string
-  runfolder_host:
+  inbox_runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_service_address }}"
+  inbox_runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_service_port }}"
+  inbox_runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_api_version }}"
+  workspace_runfolder_host:
     required: true
     type: string
     default: "{{ config_context.workspace_runfolder_service_address }}"
-  runfolder_host_port:
+  workspace_runfolder_host_port:
     required: true
     type: string
     default: "{{ config_context.workspace_runfolder_service_port }}"
-  runfolder_api_version:
+  workspace_runfolder_api_version:
     required: true
     type: string
     default: "{{ config_context.workspace_runfolder_api_version }}"

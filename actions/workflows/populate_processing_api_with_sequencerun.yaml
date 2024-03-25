@@ -3,10 +3,14 @@ version: "1.0" # Orquest version
 description: Will process a new sequence run
 
 input:
+  - service
   - runfolder
-  - runfolder_host
-  - runfolder_host_port
-  - runfolder_api_version
+  - inbox_runfolder_host
+  - inbox_runfolder_host_port
+  - inbox_runfolder_api_version
+  - workspace_runfolder_host
+  - workspace_runfolder_host_port
+  - workspace_runfolder_api_version
   - demultiplexing_host
   - demultiplexing_host_port
   - demultiplexing_output_folder
@@ -26,6 +30,9 @@ input:
   - path_complete_file
 
 vars:
+  - runfolder_host: null
+  - runfolder_host_port: null
+  - runfolder_api_version: null
   - complete_job_file_path: null
   - samplesheet_file: null
   - analysis_files: null
@@ -42,6 +49,24 @@ vars:
   - machine_name: null
 
 tasks:
+  setting_runfolder:
+    action: core.local
+    input:
+      cmd: echo <% ctx(service) %>
+    next:
+      - when: <% succeeded() and result().stdout = "inbox" %>
+        publish:
+          - runfolder_host: <% ctx(inbox_runfolder_host) %>
+          - runfolder_host_port: <% ctx(inbox_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
+        do: mark_as_started
+      - when: <% succeeded() and result().stdout = "workspace" %>
+        publish:
+          - runfolder_host: <% ctx(workspace_runfolder_host) %>
+          - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(workspace_runfolder_api_version) %>
+        do: mark_as_started
+
   mark_as_started:
     action: core.http
     input:
@@ -63,7 +88,7 @@ tasks:
   check_for_samplesheet:
     action: core.local
     input:
-      cmd: ls <% ctx(runfolder) %>/SampleSheet.csv
+      cmd: ls <% ctx(runfolder) %>/SampleSheet.csv || ls <% ctx(runfolder) %>/*/SampleSheet.csv
     next:
       - when: <% succeeded() %>
         publish: samplesheet_file=<% result().stdout %>
@@ -80,7 +105,7 @@ tasks:
   check_for_runinfo:
     action: core.local
     input:
-      cmd: ls <% ctx(runfolder) %>/RunInfo.xml
+      cmd: ls <% ctx(runfolder) %>/RunInfo.xml || ls <% ctx(runfolder) %>/*/RunInfo.xml
     next:
       - when: <% succeeded() %>
         publish: runinfo_file=<% result().stdout %>
@@ -114,7 +139,8 @@ tasks:
   get_runfolder_name:
     action: core.local
     input:
-      cmd: basename <% ctx(runfolder) %>
+      cwd: <% ctx(runfolder) %>
+      cmd: python3 -c "import xml.etree.ElementTree as ET; xml_data = ET.parse('<% ctx(runinfo_file) %>'); print(xml_data.find('Run').get('Id'))"
     next:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
