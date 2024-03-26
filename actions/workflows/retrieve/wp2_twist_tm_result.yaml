@@ -11,11 +11,10 @@ input:
   - transfer_from_key
   - transfer_from_host
   - storage_path
-  - processing_location
   - project_type
   - processing_api_service_url
   - processing_api_access_key
-  - processing_api_analysis_task_url
+  - processing_api_analysis_tasks_url
   - mail_lab
   - mail_bioinfo
 
@@ -49,7 +48,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0][\"created_date\"].split("-")[0]))'"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_tasks_url) %>?analysis_name=<% ctx(experiment_name) %> | python3 -c 'import json; import sys; sys.stdout.write(json.dumps(json.load(sys.stdin)[0][\"created_date\"].split(\"-\")[0]))'"
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>

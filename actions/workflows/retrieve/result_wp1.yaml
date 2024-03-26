@@ -10,7 +10,6 @@ input:
   - transfer_from_key
   - transfer_from_host
   - storage_path
-  - preprocessing_storage_path
   - project_type
   - processing_api_service_url
   - processing_api_access_key

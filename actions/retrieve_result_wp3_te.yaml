@@ -45,10 +45,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp3_te_result_location }}"
-  processing_location:
-    required: true
-    type: string
-    default: "{{ config_context.wp3_preprocess_transfer_prefix_location }}"
   project_type:
     required: true
     type: string
