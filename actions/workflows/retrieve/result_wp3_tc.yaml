@@ -11,7 +11,6 @@ input:
   - transfer_from_key
   - transfer_from_host
   - storage_path
-  - processing_location
   - mail_lab
   - mail_bioinfo
 

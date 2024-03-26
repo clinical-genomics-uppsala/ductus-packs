@@ -49,10 +49,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp1_fetch_to_prefix }}"
-  preprocessing_storage_path:
-    required: true
-    type: string
-    default: "{{ config_context.wp1_preprocess_storage_path }}"
   processing_api_service_url:
     required: true
     type: string

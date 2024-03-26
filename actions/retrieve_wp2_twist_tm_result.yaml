@@ -45,10 +45,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.wp2_fetch_to_prefix }}"
-  processing_location:
-    required: true
-    type: string
-    default: "{{ config_context.wp2_preprocess_transfer_prefix_location }}"
   project_type:
     required: true
     type: string
@@ -61,10 +57,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_access_key }}"
-  processing_api_analysis_task_url:
+  processing_api_analysis_tasks_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_analysis_task_url }}"
+    default: "{{ config_context.processing_api_analysis_tasks_url }}"
   mail_lab:
     required: true
     type: string
