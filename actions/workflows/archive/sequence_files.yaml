@@ -6,6 +6,7 @@ input:
   - analysis_id
   - year
   - archive_settings
+  - processing_api_access_key
   - processing_api_service_url
 
 vars:
@@ -18,7 +19,7 @@ tasks:
   get_analysis_information:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -58,16 +59,28 @@ tasks:
   get_sequence_files:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish:
           - sequence_files: <% result().stdout %>
         do:
-          - copy_sequence_files
+          - pre_updating_files
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
+
+  pre_updating_files:
+    with:
+      items: <% ctx(sequence_files).select($.id) %>
+      concurrency: 4
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"U\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% item() %>/); if [[ $status != '201' ]]; then exit 1; fi"
+    next:
+      - when: <% succeeded() %>
+        do:
+         - copy_sequence_files
 
   copy_sequence_files:
     with:
@@ -77,6 +90,7 @@ tasks:
     input:
       cwd: /opt/src/ductus-core/ductus/scripts
       cmd: python3 rsync.py -c -f <% item() %> -t <% ctx(sequence_file_archive_location) %>/ -l
+   
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -102,13 +116,23 @@ tasks:
   export_analysis_information:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>'  <% ctx(processing_api_service_url) %>api/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json"
       cwd: <% ctx(sequence_file_archive_location) %>
     next:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-
+      - when: <% succeeded() %>
+        do:
+          - post_updating_files
+  
+  post_updating_files:
+    with:
+      items: <% ctx(sequence_files).select($.id) %>
+      concurrency: 4
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"I\", \"archived\": 1}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% item() %>/); if [[ $status != '201' ]]; then exit 1; fi"    
 
 output:
   - stderr: <% ctx(stderr) %>

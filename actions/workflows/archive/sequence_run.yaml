@@ -5,6 +5,7 @@ description: Will archive fastq files and SAV files
 input:
   - archive_data
   - archive_settings
+  - processing_api_access_key
   - processing_api_service_url
   - processing_api_sequence_run_archive_status_url
   - mail_bioinfo
@@ -12,6 +13,7 @@ input:
 vars:
   - year: null
   - stderr: null
+  - archive_status: null
 
 tasks:
   get_archive_year:
@@ -32,6 +34,25 @@ tasks:
     input:
       analysis_id: <% item() %>
       year: <% ctx(year) %>
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - archive_status: "AD"
+        do: update_archive_status      
+      - when: <% failed() %>
+        publish: 
+          - archive_status: "FA"
+        do: update_archive_status      
+         
+  update_archive_status:
+    action: core.local
+    input:
+      cmd: "curl -d '{\"archived\": \"<% ctx(archive_status)%>\"}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST  <% ctx(processing_api_service_url) %>api/sequencerun/archive/update/status/<% ctx(archive_data).run_id %>/"
+    next:
+      - when: <% ctx(archive_status) = "FA" %>
+        do: fail
+
+
       
     # next:
     #   - when: <% failed() %>
