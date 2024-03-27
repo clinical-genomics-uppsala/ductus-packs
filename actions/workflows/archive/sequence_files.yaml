@@ -1,6 +1,6 @@
 version: "1.0" # mistral version
 
-description: Will archive fastq files
+description: Will archive sequence files
 
 input:
   - analysis_id
@@ -65,50 +65,24 @@ tasks:
         publish:
           - sequence_files: <% result().stdout %>
         do:
-          - pre_updating_files
+          - update_sequence_files
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-
-  pre_updating_files:
+  
+  update_sequence_files:
     with:
-      items: <% ctx(sequence_files).select($.id) %>
+      items: <% ctx(sequence_files).select([$.id, $.path]) %>
       concurrency: 4
-    action: core.local
+    action: ductus.archive_sequence_file
     input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"U\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% item() %>/); if [[ $status != '201' ]]; then exit 1; fi"
+      file_id: <% item()[0] %>
+      file_path: <% item()[1] %>
+      sequence_file_archive_location: <% ctx(sequence_file_archive_location) %>
     next:
       - when: <% succeeded() %>
         do:
-         - copy_sequence_files
-
-  copy_sequence_files:
-    with:
-      items: <% ctx(sequence_files).select($.path) %>
-      concurrency: 4
-    action: core.local
-    input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% item() %> -t <% ctx(sequence_file_archive_location) %>/ -l
-   
-      timeout: 86400
-    next:
-      - when: <% succeeded() %>
-        do:
-         - create_checksum_sequence_files
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-
-  create_checksum_sequence_files:
-    action: core.local
-    input:
-      cmd: md5sum * > checklist.chk
-      cwd: <% ctx(sequence_file_archive_location) %>
-    next:
-      - when: <% succeeded() %>
-        do:
-         - export_analysis_information
+          - export_analysis_information
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -122,17 +96,6 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-      - when: <% succeeded() %>
-        do:
-          - post_updating_files
-  
-  post_updating_files:
-    with:
-      items: <% ctx(sequence_files).select($.id) %>
-      concurrency: 4
-    action: core.local
-    input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"I\", \"archived\": 1}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% item() %>/); if [[ $status != '201' ]]; then exit 1; fi"    
 
 output:
   - stderr: <% ctx(stderr) %>
