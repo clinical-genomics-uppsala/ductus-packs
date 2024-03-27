@@ -6,13 +6,14 @@ class ArchivingClient():
     """Pulls data from processing api. If there are issues with connecting
        to any of the hosts, it will be logged but processing will continue""" 
 
-    def __init__(self, hosts, logger):
+    def __init__(self, hosts, api_key, logger):
         """Initializes the client with a list of hosts""" 
         logger.info("__init__ ArchivingClient")
         if not isinstance(hosts, list):
             self._hosts = [hosts]
         else:
             self._hosts = hosts
+        self.api_key = f"Api-Key {api_key}"
         self._logger = logger
 
     def next_ready(self):
@@ -23,7 +24,7 @@ class ArchivingClient():
             self._logger.info("Querying {0}".format(host))
             url = host
             try:
-                resp = requests.get(url)
+                resp = requests.get(url, headers={"Authorization": self.api_key})
                 if resp.status_code not in [200, 204]:
                     self._logger.error("ArchivingClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))
