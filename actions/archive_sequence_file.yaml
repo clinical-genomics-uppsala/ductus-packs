@@ -1,10 +1,10 @@
 ---
-name: archive_sequence_files
+name: archive_sequence_file
 description: >
-  Archive sequence files
+  Archive sequence file
 enabled: true
 runner_type: orquesta
-entry_point: workflows/archive/sequence_files.yaml
+entry_point: workflows/archive/sequence_file.yaml
 pack: ductus
 parameters:
   context:
@@ -12,18 +12,17 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.archive_sequence_files
+    default: ductus.archive_sequence_file
     immutable: true
-  analysis_id:
-    required: true
-    type: string
-  year:
+  file_id:
     required: true
     type: integer
-  archive_settings:
+  file_path:
     required: true
-    type: array
-    default: "{{ config_context.archive_settings }}"
+    type: string
+  sequence_file_archive_location:
+    required: true
+    type: string
   processing_api_access_key:
     required: true
     type: string

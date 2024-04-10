@@ -1,11 +1,12 @@
 version: "1.0" # mistral version
 
-description: Will archive fastq files
+description: Will archive sequence files
 
 input:
   - analysis_id
   - year
   - archive_settings
+  - processing_api_access_key
   - processing_api_service_url
 
 vars:
@@ -18,7 +19,7 @@ tasks:
   get_analysis_information:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -58,43 +59,30 @@ tasks:
   get_sequence_files:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish:
           - sequence_files: <% result().stdout %>
         do:
-          - copy_sequence_files
+          - update_sequence_files
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-
-  copy_sequence_files:
+  
+  update_sequence_files:
     with:
-      items: <% ctx(sequence_files).select($.path) %>
+      items: <% ctx(sequence_files).select([$.id, $.path]) %>
       concurrency: 4
-    action: core.local
+    action: ductus.archive_sequence_file
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% item() %> -t <% ctx(sequence_file_archive_location) %>/ -l
-      timeout: 86400
+      file_id: <% item()[0] %>
+      file_path: <% item()[1] %>
+      sequence_file_archive_location: <% ctx(sequence_file_archive_location) %>
     next:
       - when: <% succeeded() %>
         do:
-         - create_checksum_sequence_files
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-
-  create_checksum_sequence_files:
-    action: core.local
-    input:
-      cmd: md5sum * > checklist.chk
-      cwd: <% ctx(sequence_file_archive_location) %>
-    next:
-      - when: <% succeeded() %>
-        do:
-         - export_analysis_information
+          - export_analysis_information
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
@@ -102,13 +90,12 @@ tasks:
   export_analysis_information:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>'  <% ctx(processing_api_service_url) %>api/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json"
       cwd: <% ctx(sequence_file_archive_location) %>
     next:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-
 
 output:
   - stderr: <% ctx(stderr) %>
