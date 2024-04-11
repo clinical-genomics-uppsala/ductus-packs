@@ -341,6 +341,10 @@ tasks:
     action: core.local
     input:
       cmd:  echo "<% ctx(samples) %>" | sed 's/\x27/"/g' | python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.stdin.read()), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)))))' > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json
+    retry:
+      when: <% failed() %>
+      count: 10
+      delay: 300
     next:
       - when: <% succeeded %>
         publish: fastq_update_file="<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json"
