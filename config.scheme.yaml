@@ -23,11 +23,6 @@
     type: integer
     default: 300
 
-  path_run_statistics:
-    description: folder path
-    required: true
-    type: string
-
   arteria_runfolder_addresses:
     description: list of addresses for arteria-runfolder services
     type: array
@@ -178,9 +173,9 @@
     type: string
     requried: true
 
-  undetermined_storage_location:
-    description: location where undetermined files will be stored
-    type: string
+  sav_files:
+    description: list of files and folders that should be archived
+    type: array
     requried: true
 
   wp1_transfer_from_host_ip:

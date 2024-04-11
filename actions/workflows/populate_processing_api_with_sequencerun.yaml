@@ -145,11 +145,27 @@ tasks:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
         do:
-          - detect_old_samplesheet_format
+          - archive_sav_files
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+  
+  archive_sav_files:
+    action: ductus.archive_interop_files
+    input:
+      runinfo_file_path: <% ctx(runinfo_file) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - detect_old_samplesheet_format
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed

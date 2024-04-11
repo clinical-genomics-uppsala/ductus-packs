@@ -1,0 +1,27 @@
+---
+name: archive_interop_files
+description: >
+  Archive interop files
+enabled: true
+runner_type: orquesta
+entry_point: workflows/archive/interop_files.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.archive_interop_files
+    immutable: true
+  runinfo_file_path:
+    required: true
+    type: string
+  sav_storage_location:
+    required: true
+    type: string
+    default: "{{ config_context.sav_storage_location }}"
+  sav_files:
+    required: true
+    type: array
+    default: "{{ config_context.sav_files }}"
