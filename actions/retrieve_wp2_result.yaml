@@ -32,11 +32,11 @@ parameters:
   transfer_from_user:
     required: true
     type: string
-    default: "{{ config_context.wp2_tansfer_from_user }}"
+    default: "{{ config_context.wp2_transfer_from_user }}"
   transfer_from_key:
     required: true
     type: string
-    default: "{{ config_context.wp2_tansfer_from_key }}"
+    default: "{{ config_context.wp2_transfer_from_key }}"
   transfer_from_host:
     required: true
     type: string
