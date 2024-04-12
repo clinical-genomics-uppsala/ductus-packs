@@ -1,92 +1,100 @@
 version: "1.0" # mistral version
 
-description: Will archive fastq files and SAV files
+description: Will archive SAV files
 
 input:
-  - analysis_id
-  - year
-  - archive_settings
-  - processing_api_service_url
+  - runinfo_file_path
+  - sav_storage_location
+  - sav_files
 
 vars:
-  - analysis_information: null
-  - fastq_archive_location: null
-  - sequence_files: null
+  - archive_folder: null
+  - machine_id: null
+  - runfolder_path: null
+  - runfolder_name: null
   - stderr: null
 
 tasks:
-  get_analysis_information:
+  get_runfolder_path:
     action: core.local
     input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>
+      cmd: dirname <% ctx(runinfo_file_path) %>
     next:
       - when: <% succeeded() %>
         publish: 
-         - analysis_information: <% result().stdout %>
+         - runfolder_path: <% result().stdout %>
         do:
-          - generate_sequence_storage_path
-          - get_sequence_files
+          - get_runfolder_name
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
 
-  generate_sequence_storage_path:
+  get_runfolder_name:
     action: core.local
     input:
-      cmd: echo "<% ctx(archive_settings).where($.workpackage=ctx(analysis_information)[0].workpackage and $.analysis=ctx(analysis_information)[0].analysis).select($.fastq_files_location).first() %>/<% ctx(year) %>/<% ctx(analysis_id) %>"
+      cmd: basename <% ctx(runfolder_path) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - sequence_file_archive_location: <% result().stdout %>
+         - runfolder_name: <% result().stdout %>
         do:
-          - create_sequence_storage_folder
+          - get_machine_id
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
 
-  create_sequence_storage_folder:
+  get_machine_id:
     action: core.local
     input:
-      cmd: mkdir -p <% ctx(fastq_archive_location) %>
+      cmd: echo <% ctx(runfolder_name) %> | python3 -c "import sys, re;  print(re.search(r'\d{6,8}_([A-Za-z]+[0-9]+)_[0-9]+_', sys.stdin.read().rstrip()).groups()[0], end='')"
     next:
       - when: <% succeeded() %>
-          - archive_create_folders
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-
-  create_interop_storage_folders:
-    action: core.local
-    input:
-      cmd: mkdir -p <% ctx(fastq_archive_location) %>
-    next:
-      - when: <% succeeded() %>
-          - archive_create_folders
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-
-  get_sequence_files:
-    action: core.local
-    input:
-      cmd: curl <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>
-    next:
-      - when: <% succeeded() %>
-        publish:
-          - sequence_files=<% result().stdout %>
+        publish: 
+         - machine_id: <% result().stdout %>
         do:
-          - archive_create_folders
+          - create_storage_folder_path
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
 
-  copy_sequence_files:
+  create_storage_folder_path:
+    action: core.local
+    input:
+      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish:
+         - archive_folder: <% result().stdout %>
+        do:
+          - create_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  create_storage_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(archive_folder) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - copy_sav_info
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  copy_sav_info:
     with:
-      items: <% sequence_files %>
+      items: <% ctx(sav_files) %>
     action: core.local
     input:
-      cmd: python3 rsync.py -c -f "<% ctx(fastq_files_path) %>/<% item() %>*fastq.gz" -t <% ctx(storage_path_fastq) %> -l
-      timeout: 86400
+      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
+    next:
+      - when: <% succeeded() %>
+          - archive_create_folders
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
 
 output:
   - stderr: <% ctx(stderr) %>

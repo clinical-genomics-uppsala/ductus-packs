@@ -7,11 +7,6 @@ enabled: false
 trigger:
     type: "ductus.analysis_file"
 
-# criteria:
-#     trigger.runfolder:
-#       type: "contains"
-#       pattern: "workspace/INBOX"
-
 action:
     ref: "ductus.populate_processing_api_with_analysis"
     parameters:
