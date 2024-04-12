@@ -103,10 +103,10 @@ tasks:
       timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
       hosts: <% ctx(process_host) %>
     next:
-      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
+      - when: <% succeeded() %>
         do:
           - generate_outbox_path         
-      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders', null) %>
+      - when: <% succeeded() %>
         do:
           - generate_cold_storage_path
       - when: <% failed() %>
@@ -142,6 +142,7 @@ tasks:
       - when: <% succeeded() %>
         do:
           - sync_data_to_cold_storage
+          - sync_data_to_cold_storage_that_may_exist
       - when: <% failed() %>
         publish:
           - stderr: "create cold storage failed"
@@ -152,7 +153,7 @@ tasks:
 
   sync_data_to_cold_storage:
     with:
-      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders') %>
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders', []) %>
       concurrency: 2
     action: core.local
     input:
@@ -162,7 +163,24 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: "couldn't sync data"
-          - failed_step: sync_data_to_outbox=Couldn't not sync to outbox <% ctx(cold_storage_folder) %>
+          - failed_step: sync_data_to_cold_storage=Couldn't not sync to cold storage <% ctx(cold_storage_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  sync_data_to_cold_storage_that_may_exist:
+    with:
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders_that_may_exist', []) %>
+      concurrency: 2
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/ || true
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: sync_data_to_cold_storage_that_may_exist=Couldn't not sync to cold storage <% ctx(cold_storage_folder) %>
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
@@ -202,7 +220,7 @@ tasks:
   
   sync_data_to_outbox:
     with:
-      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders') %>
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []) %>
       concurrency: 2
     action: core.local
     input:
@@ -211,11 +229,31 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_done_txt
+          - sync_data_to_outbox_that_may_exist
       - when: <% failed() %>
         publish:
           - stderr: "couldn't sync data"
           - failed_step: sync_data_to_outbox=Couldn't not sync to outbox <% ctx(outbox_folder) %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  sync_data_to_outbox_that_may_exist:
+    with:
+      items: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', []) %>
+      concurrency: 2
+    action: core.local
+    input:
+      cwd: <% ctx(analysis_folder_path) %>
+      cmd: cp -r <% item() %> <% ctx(outbox_folder) %>/ || true
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_done_txt
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: sync_data_to_outbox_that_may_exist=Couldn't not sync to outbox <% ctx(outbox_folder) %>
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
