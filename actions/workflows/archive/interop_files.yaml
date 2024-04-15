@@ -46,7 +46,7 @@ tasks:
   get_machine_id:
     action: core.local
     input:
-      cmd: echo <% ctx(runfolder_name) %> | python3 -c "import sys, re;  print(re.search(r'\d{6,8}_([A-Za-z]+[0-9]+)_[0-9]+_', sys.stdin.read().rstrip()).groups()[0], end='')"
+      cmd: python3 -c "import re;  print(re.search(r'[0-9]{6,8}_([A-Za-z]+[0-9]+)_', '<% ctx(runfolder_name) %>').groups()[0], end='')"
     next:
       - when: <% succeeded() %>
         publish: 

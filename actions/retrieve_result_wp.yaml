@@ -1,10 +1,10 @@
 ---
-name: retrieve_result_wp1
+name: retrieve_result_wp
 description: >
-  Retrieve processed data for wp1......
+  Retrieve processed data from compute
 enabled: true
 runner_type: orquesta
-entry_point: workflows/retrieve/result_wp1.yaml
+entry_point: workflows/retrieve_result_wp.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.retrieve_result_wp1
+    default: ductus.retrieve_result_wp
     immutable: true
     type: string
   runfolder:
@@ -21,34 +21,27 @@ parameters:
   runfolder_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_transfer_from_host_ip }}"
-  project_type:
-    required: true
-    type: string
+    default: "{{ config_context.transfer_from_host_ip }}"
   runfolder_port:
     required: true
     type: string
-    default: "{{ config_context.wp1_transfer_from_runfolder_port }}"
+    default: "{{ config_context.transfer_from_runfolder_port }}"
   runfolder_api_version:
     required: true
     type: string
-    default: "{{ config_context.wp1_runfolder_api_version }}"
+    default: "{{ config_context.transfer_from_runfolder_api_version }}"
   transfer_from_user:
     required: true
     type: string
-    default: "{{ config_context.wp1_tansfer_from_user }}"
+    default: "{{ config_context.transfer_from_user }}"
   transfer_from_key:
     required: true
     type: string
-    default: "{{ config_context.wp1_tansfer_from_key }}"
+    default: "{{ config_context.transfer_from_key }}"
   transfer_from_host:
     required: true
     type: string
-    default: "{{ config_context.wp1_transfer_from_host_ip }}"
-  storage_path:
-    required: true
-    type: string
-    default: "{{ config_context.wp1_fetch_to_prefix }}"
+    default: "{{ config_context.transfer_from_host_ip }}"
   processing_api_service_url:
     required: true
     type: string
@@ -61,11 +54,11 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_tasks_url }}"
-  mail_lab:
+  result_settings:
     required: true
-    type: string
-    default: "{{ config_context.wp1_notification_mail_lab }}"
-  mail_bioinfo:
+    type: object
+    default: "{{ config_context.result_settings }}"
+  mail_settings:
     required: true
-    type: string
-    default: "{{ config_context.wp1_notification_mail_bioinfo }}"
+    type: object
+    default: "{{ config_context.notification_mail }}"
