@@ -193,7 +193,6 @@ tasks:
         publish: 
           - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_prefix') %>/<% ctx(method) %>/batchQC/<% ctx(run_year) %>
         do:
-          - transfer_result
           - mv_qc_folder
       - when: <% failed() %>
         publish:
@@ -207,7 +206,7 @@ tasks:
   mv_qc_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_storage_folder) %>
+      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
       cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
     next:
       - when: <% failed() %>
