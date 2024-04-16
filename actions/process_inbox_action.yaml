@@ -47,6 +47,7 @@ parameters:
     default: "{{ config_context.process_host_user }}"
   process_settings:
     required: true 
+    type: object
     default: "{{ config_context.process_settings }}"
   mail_bioinfo:
     required: true

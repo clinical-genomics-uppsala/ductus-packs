@@ -1,0 +1,19 @@
+---
+name: "retrieve_result_wp"
+pack: "ductus"
+description: "Rule that triggers a fetching action, when a clincal experiment has been synced to the outbox"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "outbox/wp"
+
+action:
+    ref: "ductus.retrieve_result_wp"
+    parameters:
+      runfolder: "{{trigger.runfolder}}"
+        

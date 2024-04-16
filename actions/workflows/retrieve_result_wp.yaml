@@ -9,21 +9,21 @@ input:
   - transfer_from_user
   - transfer_from_key
   - transfer_from_host
-  - storage_path
-  - project_type
   - processing_api_service_url
   - processing_api_access_key
   - processing_api_analysis_tasks_url
-  - mail_lab
-  - mail_bioinfo
+  - result_settings
+  - mail_settings
 
 vars:
   - experiment_name: null
   - experiment_name_result: null
-  - result_storage_folder: null
+  - workpackage: null
   - fastq_storage_folder: null
-  - samplesheet_storage_folder: null
+  - method: null
+  - result_storage_folder: null
   - run_year: null
+  - samplesheet_storage_folder: null
   - stderr: null
 
 tasks:
@@ -35,16 +35,55 @@ tasks:
       - when: <% succeeded() %>
         publish: experiment_name=<% result().stdout %>
         do:
-          - get_experiment_name_result
+          - get_method
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: 'get_experiment_name  -- Could not get experiment name'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
           - mark_as_failed
 
+  get_method:
+    action: core.local
+    input:
+      cmd: python3 -c "import re; print(re.search(r'.+/wp[0-9i]+_([A-Za-z0-9]+)', '<% ctx(runfolder) %>').groups()[0])"
+    next:
+      - when: <% succeeded() %>
+        publish: method=<% result().stdout %>
+        do:
+          - get_workpackage
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_method  -- Could not extract method'
+        do:
+          - bioinfo_error_notifier
+          - error_notifier
+          - mark_as_failed
+
+  get_workpackage:
+    action: core.local
+    input:
+      cmd: python3 -c "import re; print(re.search(r'.+/(wp[0-9i])+_[A-Za-z0-9]+', '<% ctx(runfolder) %>').groups()[0])"
+    next:
+      - when: <% succeeded() %>
+        publish: workpackage=<% result().stdout %>
+        do:
+          - get_experiment_name_result
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+          - failed_step: 'get_method  -- Could not extract method'
+        do:
+          - bioinfo_error_notifier
+          - error_notifier
+          - mark_as_failed
+
+  # GMS560 can sometimes divide RNA and DNA experiments on multiple sequence runs
+  # which they want to be saved in the same result folder. This experiments will
+  # end with '-DNA' or '-RNA'.
   get_experiment_name_result:
     action: core.local
     input:
@@ -60,7 +99,7 @@ tasks:
           - failed_step: 'get_experiment_name_result  -- Could not get experiment name for result'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
           - mark_as_failed
 
   get_run_year:
@@ -78,7 +117,7 @@ tasks:
           - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
           - mark_as_failed
 
   mark_as_started:
@@ -97,25 +136,26 @@ tasks:
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
 
   create_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result
-      cmd: mkdir -p <% ctx(run_year) %>
+      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_prefix') %>/<% ctx(method) %>
+      cmd: mkdir -p NGS_Resultat/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
-        publish: result_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/NGS_result/<% ctx(run_year) %>"
+        publish: 
+          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_prefix') %>/<% ctx(method) %>/NGS_Resultat/<% ctx(run_year) %>
         do:
           - transfer_result
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_storage_folder) %>'
+          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_prefix") %>/<% ctx(method) %>/NGS_Resultat/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
           - mark_as_failed
 
   transfer_result:
@@ -127,110 +167,64 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - wp1_tso500
+          - mark_as_finished
+          - result_retrieved
+      - when: <% succeeded() and ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("move_qc")  %>
+        do:
+          - create_qc_year_folder
+      - when: <% failed() %>
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
           - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
+          - error_notifier
           - mark_as_failed
 
-  wp1_tso500:
+  # KG wants to gather qc in a common batchQC folder
+  create_qc_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
-      cmd: python3 -c 'from ductus.tools.utils import contains; exit(0) if contains("SampleSheet.csv", "wp1", "tso500", "<% ctx(project_type) %>") else exit(1)'
+      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_prefix') %>/<% ctx(method) %>
+      cmd: mkdir -p batchQC/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
+        publish: 
+          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_prefix') %>/<% ctx(method) %>/batchQC/<% ctx(run_year) %>
         do:
-          - create_fastq_folder
-          - result_retrieved_tso500
-      - when: <% failed() %>
-        do:
-          - result_retrieved_sera
-          - mark_as_finished
-
-  create_fastq_folder:
-    action: core.local
-    input:
-      cmd: mkdir -p <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>
-    next:
-      - when: <% succeeded() %>
-        publish: fastq_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
-        do:
-          - sync_fastq_files
+          - transfer_result
+          - mv_qc_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_fastq_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/fastq/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
+          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_prefix") %>/<% ctx(method) %>/batchQC/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
           - mark_as_failed
+          - error_notifier
 
-  sync_fastq_files:
+  mv_qc_folder:
     action: core.local
     input:
-      timeout: 86400
-      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
-      cmd: rsync -Prv fastq <% ctx(fastq_storage_folder)%>/
+      cwd: <% ctx(result_storage_folder) %>
+      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
     next:
-      - when: <% succeeded() %>
-        do:
-          - create_samplesheet_folder
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'sync_fastq_files  -- Could not sync fastq files to <% ctx(fastq_storage_folder) %>'
+          - failed_step: 'mv_qc_folder  -- Could not move batchQC to  <% ctx(result_qc_storage_folder) %>'
         do:
           - bioinfo_error_notifier
-          - molpat_error_notifier
           - mark_as_failed
+          - error_notifier
 
-  create_samplesheet_folder:
-    action: core.local
-    input:
-      cmd: mkdir -p  <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>
-    next:
-      - when: <% succeeded() %>
-        publish: samplesheet_storage_folder="<% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>"
-        do:
-          - sync_samplehseet_files
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'create_samplesheet_folder  -- Could not create folder <% ctx(storage_path) %>/ngs/<% ctx(project_type) %>/archive/samplesheet/<% ctx(run_year) %>/<% ctx(experiment_name) %>'
-        do:
-          - bioinfo_error_notifier
-          - molpat_error_notifier
-          - mark_as_failed
-
-  sync_samplehseet_files:
-    action: core.local
-    input:
-      cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
-      cmd: rsync -Prv SampleSheet.csv <% ctx(samplesheet_storage_folder)%>/
-    next:
-      - when: <% succeeded() %>
-        do:
-          - mark_as_finished
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'sync_fastq_files  -- Could not sync SampleSheet.csv to <% ctx(samplesheet_storage_folder) %>'
-        do:
-          - bioinfo_error_notifier
-          - molpat_error_notifier
-          - mark_as_failed
-
-  molpat_error_notifier:
+  error_notifier:
     action: core.sendmail
     input:
-      to: <% ctx(mail_lab) %>
+      to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][ERROR] - Processing failure, <% - ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% - ctx(experiment_name) %>"
       body: "Something went wrong when retrieving sera result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
@@ -240,9 +234,9 @@ tasks:
   bioinfo_error_notifier:
     action: core.sendmail
     input:
-      to: <% ctx(mail_bioinfo) %>
+      to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
       body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
@@ -267,21 +261,13 @@ tasks:
         do:
           - fail
 
-  result_retrieved_sera:
+  result_retrieved:
     action: core.sendmail
     input:
-      to: <% ctx(mail_lab) %>
+      to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
       body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
-
-  result_retrieved_tso500:
-    action: core.sendmail
-    input:
-      to: <% ctx(mail_lab) %>
-      from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP1][SUCCESS] - TSO500 analysis available, <% ctx(experiment_name) %>"
-      body: The result from TSO500 analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
   - stderr: <% ctx(stderr) %>

@@ -99,14 +99,14 @@ tasks:
       private_key: <% ctx(process_key) %>
       hosts: <% ctx(process_host) %>
       cwd: <% ctx(analysis_folder_path) %>
-      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> --analysis-path <% ctx(analysis_folder_path) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
+      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
       timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
       hosts: <% ctx(process_host) %>
     next:
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
         do:
           - generate_outbox_path         
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('cold_storage_files_and_folders', null) %>
         do:
           - generate_cold_storage_path
       - when: <% failed() %>
