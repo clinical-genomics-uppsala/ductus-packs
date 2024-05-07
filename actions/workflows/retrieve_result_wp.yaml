@@ -187,32 +187,32 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>
-      cmd: mkdir -p batchQC/<% ctx(run_year) %>
+      cmd: mkdir -p QC/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/batchQC/<% ctx(run_year) %>
+          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/QC/<% ctx(run_year) %>
         do:
-          - mv_qc_folder
+          - mv_multiqc
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/batchQC/<% ctx(run_year) %>'
+          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/QC/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
           - error_notifier
 
-  mv_qc_folder:
+  mv_multiqc:
     action: core.local
     input:
       cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
-      cmd: mv batchQC_<% ctx(experiment_name) %> <% ctx(result_qc_storage_folder) %>/
+      cmd: for filename in $(ls multiqc_*.html); do mv $filename <% ctx(result_qc_storage_folder) %>/<% ctx(experiment_name) %>_${filename:`expr match $filename multiqc_`:-5}_multiqc.html ; done 
     next:
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'mv_qc_folder  -- Could not move batchQC to  <% ctx(result_qc_storage_folder) %>'
+          - failed_step: 'mv_multiqc  -- Could not move multiqc_*.html to  <% ctx(result_qc_storage_folder) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
