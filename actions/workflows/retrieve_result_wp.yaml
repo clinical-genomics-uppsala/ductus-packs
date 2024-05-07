@@ -207,7 +207,7 @@ tasks:
     action: core.local
     input:
       cwd: <% ctx(result_storage_folder) %>/<% ctx(experiment_name) %>
-      cmd: bash -c "for filename in $(ls multiqc_*.html); do mv $filename <% ctx(result_qc_storage_folder) %>/<% ctx(experiment_name) %>_${filename:`expr match $filename multiqc_`:-5}_multiqc.html ; done"
+      cmd: bash -c 'for filename in $(ls multiqc_*.html); do mv $filename <% ctx(result_qc_storage_folder) %>/<% ctx(experiment_name) %>_${filename:$(expr match $filename multiqc_):-5}_multiqc.html ; done'
     next:
       - when: <% failed() %>
         publish:
