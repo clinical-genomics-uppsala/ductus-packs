@@ -1,0 +1,13 @@
+---
+name: "populate_processing_api_with_analysis"
+pack: "ductus"
+description: "Trigger workflow to populate processing api with analysis information"
+enabled: false
+
+trigger:
+    type: "ductus.analysis_file"
+
+action:
+    ref: "ductus.populate_processing_api_with_analysis"
+    parameters:
+        analysis_file: "{{trigger.analysis_file}}"

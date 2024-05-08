@@ -1,0 +1,101 @@
+version: "1.0" # mistral version
+
+description: Will archive sequence files
+
+input:
+  - analysis_id
+  - year
+  - archive_settings
+  - processing_api_access_key
+  - processing_api_service_url
+
+vars:
+  - analysis_information: null
+  - sequence_file_archive_location: null
+  - sequence_files: null
+  - stderr: null
+
+tasks:
+  get_analysis_information:
+    action: core.local
+    input:
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+         - analysis_information: <% result().stdout %>
+        do:
+          - generate_sequence_storage_path
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  generate_sequence_storage_path:
+    action: core.local
+    input:
+      cmd: echo "<% ctx(archive_settings).where($.workpackage=ctx(analysis_information)[0].workpackage and $.analysis=ctx(analysis_information)[0].analysis).select($.fastq_files_location).first() %>/<% ctx(year) %>/<% ctx(analysis_id) %>"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - sequence_file_archive_location: <% result().stdout %>
+        do:
+          - create_sequence_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  create_sequence_storage_folder:
+    action: core.local
+    input:
+      cmd: mkdir -p <% ctx(sequence_file_archive_location) %>
+    next:
+      - when: <% succeeded() %>
+        do: 
+          - get_sequence_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+  get_sequence_files:
+    action: core.local
+    input:
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>"
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - sequence_files: <% result().stdout %>
+        do:
+          - update_sequence_files
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+  
+  update_sequence_files:
+    with:
+      items: <% ctx(sequence_files).select([$.id, $.path]) %>
+      concurrency: 4
+    action: ductus.archive_sequence_file
+    input:
+      file_id: <% item()[0] %>
+      file_path: <% item()[1] %>
+      sequence_file_archive_location: <% ctx(sequence_file_archive_location) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - export_analysis_information
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+  
+  export_analysis_information:
+    action: core.local
+    input:
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>'  <% ctx(processing_api_service_url) %>api/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json"
+      cwd: <% ctx(sequence_file_archive_location) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result().stderr %>
+
+output:
+  - stderr: <% ctx(stderr) %>

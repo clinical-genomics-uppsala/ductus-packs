@@ -1,0 +1,20 @@
+---
+name: "preprocss_wp1_inbox"
+pack: "ductus"
+description: "Rule that triggers preprocessing action, when a clincal wp1 experiment has been manually copied to inbox by lab"
+enabled: false
+
+trigger:
+    type: "arteria.runfolder_ready"
+
+criteria:
+    trigger.runfolder:
+      type: "contains"
+      pattern: "klinik/inbox"
+
+action:
+    ref: "ductus.populate_processing_api_with_sequencerun"
+    parameters:
+        service: "inbox"
+        runfolder: "{{trigger.runfolder}}"
+        

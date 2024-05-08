@@ -1,0 +1,37 @@
+---
+name: populate_processing_api_with_analysis
+description: >
+  This workflow will upload analysis information to processing api
+enabled: true
+runner_type: orquesta
+entry_point: workflows/populate_processing_api_with_analysis.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.populate_processing_api_with_analysis
+    immutable: true
+    type: string
+  analysis_file:
+    required: true
+    type: string
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
+    secret: true
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_analysis_upload_new_task_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_upload_new_task_url }}"
