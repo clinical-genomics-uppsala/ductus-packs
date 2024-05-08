@@ -10,7 +10,7 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "workspace/inbox"
+      pattern: "workarea/inbox"
 
 action:
     ref: "ductus.populate_processing_api_with_sequencerun"
