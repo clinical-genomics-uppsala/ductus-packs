@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.14.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.13.1...v2.14.0) (2024-05-08)
+
+
+### Features
+
+* add a delay to detection of fastq-files ([0e8e76f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/0e8e76f5f2dec3dfa28f1b8d38fee060288b0808))
+* add access key to curl commands ([6463cd9](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/6463cd9901c52bebe7ba9b76c9d01419a8a92bdf))
+* add analysis file sensor and rules/action for it ([1478e2f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/1478e2fac9ae62b78ead0770af4665ddc366ba30))
+* add api-key to archive workflow ([e50abc4](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/e50abc4c6fa66befed09072b2936f0d03f029663))
+* add demultiplex local and wait for machine task ([8602dee](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/8602deedac58ccc3168d3fb57e802045c6db58b6))
+* add interop archive workflow ([5cc8c7b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/5cc8c7b6db871d94ea8e49f6acb7e532f32b6380))
+* add option to add cold storage ([aa71dac](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/aa71dacdf0d913c993667a2b432dcf0f32ac5f4e))
+* add sensor used to query processing api ([80375e3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/80375e36e56f9c685c2845083dccaf153b9e2f07))
+* add status updates ([774dedf](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/774dedf976d5f2fe1938a4423a12b13ddf367091))
+* add tasks to update fastq file information ([ea9e999](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/ea9e999e6553ccfa0f3a5ac00ba042ca7e0bfc78))
+* add workflow to populate processing api with new sequencing runs ([0117935](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/0117935c16a6d8496952aa95f482e24831b6a546))
+* add workflow to upload analysis files ([c1d9482](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/c1d9482b4316c4c581f863558c561ae191bcf7e2))
+* convert processing workflows into one workflow and clean up ([2bbf541](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/2bbf54105fc85fe105ec9b84d68c110bd038868e))
+* make it possible to specify files/folders to sync that may exist ([3296db1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/3296db1dd572ba75a164556b32bd116e1f3ea8e4))
+* new workflow to prepare for processing ([85c506c](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/85c506cd0d2c0160ad9a752f7e1ea51b1294a3fc))
+* remove inherited transfer from wp2 tm ([c0087b2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/c0087b21699cf5c8e4ac492ef46debe179c5f673))
+* remove workflows that aren't used anymore ([e057219](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/e057219a334c637dea985dfdbe1bd94dab2dd0c4))
+* rename variables ([5ac5e2e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/5ac5e2ed1343e0f26f8d20e7c102b05c5c157532))
+* simplify preprocessong workflow ([e343f40](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/e343f40e5da8136d0462b0b352fff0310b56512a))
+* simplify result retrieval ([f031d8c](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/f031d8c9aac5ea336bf5fb14b493dd2d926a01aa))
+* update archive workflow for sequence files ([824114a](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/824114a45f6ffe04f691d1e1cd0640815ab14412))
+* update archiving ([6caac12](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/6caac12f8636af8e9502d8482098f658042eec8c))
+* update process workspace to talk with processing api ([b7fd65a](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b7fd65a61a815252fec6f19cb14c6e555d0598e7))
+
+
+### Bug Fixes
+
+* add Api-key to archive sensor ([3fa8916](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/3fa8916f19756bc9facd661c8a82d6530fb58afe))
+* change scratch path ([6a22a54](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/6a22a542f786d1331a346ecf5d67b235ca1a3024))
+* fix bug and clean up ([914a4b6](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/914a4b61787dc469ce7550f693681f7cfdd1b0b7))
+* look for new outbox path ([59cf1c7](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/59cf1c75863b7260fe9010c3ab53774cd2087668))
+* make sure core.local run using bash shell ([cac8c4e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/cac8c4efa5ca577aa4773c839a0de680b8577902))
+* minor bug fixes ([c65df42](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/c65df4233f2b3fffb4018557cfc19c9719e00ab2))
+
 ### [2.13.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.13.0...v2.13.1) (2023-09-05)
 
 
