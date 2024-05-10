@@ -29,7 +29,7 @@ tasks:
   check_status:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/samples/fastq-list/?id=<% ctx(file_id) %> | python3 -c \"import sys; import json; data=json.load(sys.stdin); exit(0) if data[0]['status'] in ['I', 'F'] else exit(1)\""
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/v1/samples/fastq-list/?id=<% ctx(file_id) %> | python3 -c \"import sys; import json; data=json.load(sys.stdin); exit(0) if data[0]['status'] in ['I', 'F'] else exit(1)\""
     retry:
         count: 10
         delay: 120
@@ -41,7 +41,7 @@ tasks:
   pre_updating_files:
     action: core.local
     input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"U\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% ctx(file_id) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"U\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/v1/samples/fastq/update/<% ctx(file_id) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
     next:
       - when: <% succeeded() %>
         do:
@@ -64,7 +64,7 @@ tasks:
   update_file_path:
     action: core.local
     input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d 'update_json={\"upd\": [{\"id\": <% ctx(file_id) %>, \"path\": \"<% ctx(sequence_file_archive_location) %>/<% ctx(file_name) %>\"}]}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST  <% ctx(processing_api_service_url) %>api/samples/fastq/json_update/); if [ $status != '200' ]; then echo $status; exit 1; fi"
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d 'update_json={\"upd\": [{\"id\": <% ctx(file_id) %>, \"path\": \"<% ctx(sequence_file_archive_location) %>/<% ctx(file_name) %>\"}]}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST  <% ctx(processing_api_service_url) %>api/v1/samples/fastq/json_update/); if [ $status != '200' ]; then echo $status; exit 1; fi"
     next:
       - when: <% succeeded() %>
         do:
@@ -76,7 +76,7 @@ tasks:
   post_updating_files:
       action: core.local
       input:
-        cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"I\", \"archived\": 1}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/samples/fastq/update/<% ctx(file_id) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+        cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d '{\"status\": \"I\", \"archived\": 1}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT  <% ctx(processing_api_service_url) %>api/v1/samples/fastq/update/<% ctx(file_id) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
       next:
         - when: <% failed() %>
           publish:
