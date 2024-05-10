@@ -47,7 +47,7 @@ tasks:
   update_archive_status:
     action: core.local
     input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"archive_status\": \"<% ctx(archive_status) %>\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %>api/sequencerun/archive/update/status/<% ctx(archive_data).run_id %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"archive_status\": \"<% ctx(archive_status) %>\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %>api/v1/sequencerun/archive/update/status/<% ctx(archive_data).run_id %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
 
 output:
   - stderr: <% ctx(stderr) %>
