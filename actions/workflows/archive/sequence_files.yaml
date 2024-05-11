@@ -8,6 +8,9 @@ input:
   - archive_settings
   - processing_api_access_key
   - processing_api_service_url
+  - processing_api_get_analysis_task_url
+  - processing_api_get_analysis_tasks_url
+  - processing_api_get_analysis_fastqs_url
 
 vars:
   - analysis_information: null
@@ -19,7 +22,7 @@ tasks:
   get_analysis_information:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/v1/analysis/tasks/?analysis_name=<% ctx(analysis_id) %>"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_get_analysis_tasks_url) %>?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -59,7 +62,7 @@ tasks:
   get_sequence_files:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %>api/v1/analysis/fastqs/?analysis_name=<% ctx(analysis_id) %>"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_get_analysis_fastqs_url) %>?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish:
@@ -90,7 +93,7 @@ tasks:
   export_analysis_information:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>'  <% ctx(processing_api_service_url) %>api/v1/analysis/task/?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>'  <% ctx(processing_api_service_url) %><% ctx(processing_api_get_analysis_task_url) %>?analysis_name=<% ctx(analysis_id) %>  > samples_and_settings.json"
       cwd: <% ctx(sequence_file_archive_location) %>
     next:
       - when: <% failed() %>

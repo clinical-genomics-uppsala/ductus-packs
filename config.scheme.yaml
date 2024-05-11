@@ -151,7 +151,49 @@
     description: upload new sequence run originating from a Illumina machine
     type: string
     required: true
-    default: "api/sequencerun/upload/illumina/"      
+    default: "api/sequencerun/upload/illumina/"
+  
+  processing_api_list_sample_fastq_url:
+    description: list fastq file belonging to a sequenced sample
+    type: string
+    required: true
+    default: "api/v1/samples/fastq-list/"
+    
+  processing_api_status_update_sample_fastq_url:
+    description: update status for a sequenced samples
+    type: string
+    required: true
+    default: "api/v1/samples/fastq/update/"
+    
+  processing_api_json_update_sample_fastq_url:
+    description: update fastq file info for a sequenced sample
+    type: string
+    required: true
+    default: "api/v1/samples/fastq/json_update/"
+
+  processing_api_get_analysis_task_url:
+    description: get analysis task information
+    type: string
+    required: true
+    default: "api/v1/analysis/task/"
+    
+  processing_api_get_analysis_tasks_url:
+    description: list analysis task information
+    type: string
+    required: true
+    default: "api/v1/analysis/tasks/"
+    
+  processing_api_get_analysis_fastqs_url:
+    description: get fastq file that should be used during analysis
+    type: string
+    required: true
+    default: "api/v1/analysis/fastqs/"
+
+  processing_api_status_update_archive_url:
+    description: update atchive status for a sequence run
+    type: string
+    required: true
+    default: "api/v1/sequencerun/archive/update/status/"
       
   analysis_csv_folder_path:
     description: path to location of analysis.csv files

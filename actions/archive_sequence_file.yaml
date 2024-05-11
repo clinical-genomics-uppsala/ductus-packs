@@ -32,3 +32,15 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
+  processing_api_list_sample_fastq_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_list_sample_fastq_url }}"
+  processing_api_status_update_sample_fastq_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_status_update_sample_fastq_url }}"
+  processing_api_json_update_sample_fastq_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_json_update_sample_fastq_url }}"
