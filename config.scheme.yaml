@@ -157,7 +157,7 @@
     description: list fastq file belonging to a sequenced sample
     type: string
     required: true
-    default: "api/v1/samples/fastq-list"
+    default: "api/v1/samples/fastq-list/"
     
   processing_api_status_update_sample_fastq_url:
     description: update status for a sequenced samples
