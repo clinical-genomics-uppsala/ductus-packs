@@ -102,8 +102,7 @@ tasks:
       concurrency: 4
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% failed() %>
