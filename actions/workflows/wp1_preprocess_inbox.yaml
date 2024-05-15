@@ -176,8 +176,7 @@ tasks:
   transfer_SampleSheet:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -223,8 +222,7 @@ tasks:
   transfer_runinfo_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -242,8 +240,7 @@ tasks:
   transfer_interop_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -261,8 +258,7 @@ tasks:
   transfer_nextseq_runinfo_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -280,8 +276,7 @@ tasks:
   transfer_nextseq_interop_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %> -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %> -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded %>
@@ -299,8 +294,7 @@ tasks:
   transfer_csv_file:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() and ctx(machine_type) = 'MN' %>
@@ -324,8 +318,7 @@ tasks:
   transfer_miseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -343,8 +336,7 @@ tasks:
   transfer_miniseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -362,8 +354,7 @@ tasks:
   transfer_nextseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>

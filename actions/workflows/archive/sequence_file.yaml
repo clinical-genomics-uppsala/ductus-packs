@@ -53,8 +53,7 @@ tasks:
   copy_sequence_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(file_path) %> -t <% ctx(sequence_file_archive_location) %>/<% ctx(file_name) %> -l 
+      cmd: rsync.py -c -f <% ctx(file_path) %> -t <% ctx(sequence_file_archive_location) %>/<% ctx(file_name) %> -l 
       timeout: 86400
     next:
       - when: <% succeeded() %>
