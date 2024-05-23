@@ -48,7 +48,7 @@ tasks:
   get_method:
     action: core.local
     input:
-      cmd: python3 -c "import re; print(re.search(r'.+/wp[0-9i]+_([A-Za-z0-9]+)', '<% ctx(runfolder) %>').groups()[0])"
+      cmd: python3 -c "import re; print(re.search(r'.+/wp[0-9i]+_([A-Za-z0-9-]+)', '<% ctx(runfolder) %>').groups()[0])"
     next:
       - when: <% succeeded() %>
         publish: method=<% result().stdout %>
