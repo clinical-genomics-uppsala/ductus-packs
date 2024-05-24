@@ -223,6 +223,9 @@ tasks:
     action: core.local
     input:
       cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq '201' ]"
+    retry:
+      delay: 10
+      count: 5
     next:
       - when: <% succeeded() %>
         do:
@@ -378,6 +381,9 @@ tasks:
     action: core.local
     input:
       cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'update_json=@<% ctx(fastq_update_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq '200' ]"
+    retry:
+      delay: 10
+      count: 5
     next:
       - when: <% failed() %>
         publish:
