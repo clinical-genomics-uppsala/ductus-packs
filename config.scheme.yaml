@@ -67,6 +67,13 @@
     required: true
     default: "api/analysis/fastqs/"
 
+  # Get all fastq files that should be archived, filtering on analysis_name 
+  processing_api_archive_fastq_files_url:
+    description: get fastq files for a archiving
+    type: string
+    required: true
+    default: "api/analysis/archivefastqs/"
+
   # Get next waiting analysis
   processing_api_analysis_next_url:
     description: url to query for next waiting analysis task

@@ -41,7 +41,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_get_analysis_tasks_url }}"
-  processing_api_get_analysis_fastqs_url:
+  processing_api_archive_fastq_files_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_get_analysis_fastqs_url }}"
+    default: "{{ config_context.processing_api_archive_fastq_files_url }}"
