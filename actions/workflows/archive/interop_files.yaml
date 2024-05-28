@@ -87,9 +87,9 @@ tasks:
     with:
       items: <% ctx(sav_files) %>
     action: core.local
-    timeout: 300
     input:
       cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
+      timeout: 300
     next:
       - when: <% succeeded() %>
           - archive_create_folders
