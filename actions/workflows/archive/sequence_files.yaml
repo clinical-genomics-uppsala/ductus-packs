@@ -62,7 +62,7 @@ tasks:
   get_sequence_files:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_get_analysis_fastqs_url) %>?analysis_name=<% ctx(analysis_id) %>"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_archive_fastq_files_url) %>?analysis_name=<% ctx(analysis_id) %>"
     next:
       - when: <% succeeded() %>
         publish:
