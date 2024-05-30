@@ -141,8 +141,7 @@ tasks:
   create_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>
-      cmd: mkdir -p <% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
@@ -185,8 +184,7 @@ tasks:
   create_qc_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>
-      cmd: mkdir -p <% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
