@@ -185,18 +185,18 @@ tasks:
   create_qc_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>
-      cmd: mkdir -p QC/<% ctx(run_year) %>
+      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>
+      cmd: mkdir -p <% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/QC/<% ctx(run_year) %>
+          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>/<% ctx(run_year) %>
         do:
           - mv_multiqc
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/QC/<% ctx(run_year) %>'
+          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("qc_location") %>/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
