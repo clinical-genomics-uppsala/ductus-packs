@@ -141,18 +141,18 @@ tasks:
   create_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>
+      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>
       cmd: mkdir -p <% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/<% ctx(run_year) %>
+          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>/<% ctx(run_year) %>
         do:
           - transfer_result
       - when: <% failed() %>
         publish:
           - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/<% ctx(run_year) %>'
+          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("result_location") %>/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
