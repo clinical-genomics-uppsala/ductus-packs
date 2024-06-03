@@ -159,6 +159,7 @@ tasks:
     input:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/
+      timeout: 7200
     next:
       - when: <% failed() %>
         publish:
@@ -176,6 +177,7 @@ tasks:
     input:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(cold_storage_folder) %>/ || true
+      timeout: 7200
     next:
       - when: <% failed() %>
         publish:
@@ -226,6 +228,7 @@ tasks:
     input:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(outbox_folder) %>/
+      timeout: 7200
     next:
       - when: <% succeeded() %>
         do:
@@ -246,6 +249,7 @@ tasks:
     input:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(outbox_folder) %>/ || true
+      timeout: 7200
     next:
       - when: <% succeeded() %>
         do:
