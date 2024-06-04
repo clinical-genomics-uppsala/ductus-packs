@@ -1,8 +1,18 @@
 from st2reactor.sensor.base import PollingSensor
 from analysis_file_client import AnalysisFileClient
 from datetime import datetime
-import yaml
-import os
+import csv
+
+def parse_file(filename):
+    with open(filename, mode='r') as file:
+        csv_reader = csv.DictReader(file)
+        experiments = set()
+
+        for row in csv_reader:
+            # Collect unique experiments
+            experiments.add(row['Experiment'])
+
+    return experiments
 
 class AnalysisFileSensor(PollingSensor):
 
@@ -48,11 +58,13 @@ class AnalysisFileSensor(PollingSensor):
         trigger = self._trigger
         
         analysis_file = result['analysis_file']
+
+        experiments = parse_file(analysis_file)
         payload = {
             'analysis_file': analysis_file,
             'timestamp': datetime.utcnow().isoformat(),
         }
-        self._sensor_service.dispatch(trigger=trigger, payload=payload)
+        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=", ".join(experiments))
 
     def _infolog(self, msg):
         self._logger.info("[ductus-packs." + self.__class__.__name__ + "] " + msg)

@@ -1,0 +1,19 @@
+---
+name: run_workflow_with_trace_tags
+runner_type: python-script
+description: Run a workflow with a specified trace tag
+enabled: true
+entry_point: run_workflow_with_trace_tags.py
+parameters:
+  workflow_ref:
+    type: string
+    description: Reference to the workflow to run
+    required: true
+  parameters:
+    type: object
+    description: Parameters for the workflow
+    required: true
+  trace_tags:
+    type: array
+    description: Trace tags to add to the execution
+    required: true
