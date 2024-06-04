@@ -220,7 +220,7 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% - ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% ctx(experiment_name) %>"
       body: "Something went wrong when retrieving sera result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
@@ -266,4 +266,4 @@ tasks:
       body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
-  - stderr: <% ctx(stderr) %>
+  - stderr: "<% ctx(stderr) %>"
