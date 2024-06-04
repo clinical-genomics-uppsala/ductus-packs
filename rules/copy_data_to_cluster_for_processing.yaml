@@ -12,8 +12,12 @@ criteria:
       type: "equals"
       pattern: "analysis_waiting"
 
+
 action:
-    ref: "ductus.copy_data_to_cluster_for_processing"
+    ref: "ductus.run_workflow_with_trace_tags"
     parameters:
-        analysis_name: "{{trigger.analysis_name}}"
-        #project_type: "klinik"
+        workflow_ref: "ductus.copy_data_to_cluster_for_processing"
+        parameters:
+          analysis_name: "{{trigger.analysis_name}}"
+        trace_tags:
+          - "{{trigger.analysis_name}}"
