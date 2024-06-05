@@ -27,7 +27,7 @@ tasks:
           - move_uploaded_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "upload_analyis -- Couldnt upload analysis <% ctx(analysis_file) %> to processing api"
         do:
           - bioinfo_error_notifier
@@ -39,7 +39,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "move_uploaded_analysis -- Couldn't  move handled file <% ctx(analysis_file) %>"
         do:
           - bioinfo_error_notifier
