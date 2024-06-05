@@ -61,7 +61,7 @@ tasks:
          - update_file_path
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
   update_file_path:
     action: core.local
@@ -73,7 +73,7 @@ tasks:
          - post_updating_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
   post_updating_files:
       action: core.local
@@ -82,7 +82,7 @@ tasks:
       next:
         - when: <% failed() %>
           publish:
-            - stderr: <% result().stderr %>
+            - stderr: <% result() %>
 
 output:
   - stderr: <% ctx(stderr) %>
