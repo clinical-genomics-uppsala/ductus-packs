@@ -36,7 +36,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: 
-         - runfolder_name: <% result().output.stdout %>
+         - runfolder_name: <% result().stdout %>
         do:
           - get_machine_id
       - when: <% failed() %>
