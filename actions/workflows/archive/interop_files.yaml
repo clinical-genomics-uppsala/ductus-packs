@@ -27,7 +27,7 @@ tasks:
           - get_runfolder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
   get_runfolder_name:
     action: core.local
@@ -36,12 +36,12 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: 
-         - runfolder_name: <% result().stdout %>
+         - runfolder_name: <% result().output.stdout %>
         do:
           - get_machine_id
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
   get_machine_id:
     action: core.local
@@ -55,7 +55,7 @@ tasks:
           - create_storage_folder_path
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
   create_storage_folder_path:
     action: core.local
@@ -69,7 +69,7 @@ tasks:
           - create_storage_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
   create_storage_folder:
     action: core.local
@@ -81,7 +81,7 @@ tasks:
           - copy_sav_info
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
   copy_sav_info:
     with:
@@ -95,7 +95,7 @@ tasks:
           - archive_create_folders
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result().output.stderr %>
 
 output:
   - stderr: <% ctx(stderr) %>
