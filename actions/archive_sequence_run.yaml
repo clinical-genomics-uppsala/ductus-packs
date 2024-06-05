@@ -33,7 +33,11 @@ parameters:
   processing_api_sequence_run_archive_status_url:
     required: true
     type: string
-    default: "{{ config_context.processing_api_sequence_run_archive_status_url }}"
+    default: "{{ config_context.processing_api_sequence_run_archive_status_url }}" 
+  processing_api_status_update_archive_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_status_update_archive_url }}"
   mail_bioinfo:
     required: true
     type: string

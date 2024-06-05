@@ -79,7 +79,7 @@ tasks:
           - check_for_samplesheet
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'mark_as_started_processing -- Could not mark <% ctx(runfolder) %> with processing started'
         do:
           - bioinfo_error_notifier
@@ -96,8 +96,8 @@ tasks:
           - check_for_runinfo
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "check_for_samplesheet  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result().stdout %>"
+          - stderr: <% result() %>
+          - failed_step: "check_for_samplesheet  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -113,8 +113,8 @@ tasks:
           - dos2unix
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "check_for_runinfo  -- Couldn't locate a RunInfo.xml file in folder <% ctx(runfolder) %>, <% result().stdout %>"
+          - stderr: <% result() %>
+          - failed_step: "check_for_runinfo  -- Couldn't locate a RunInfo.xml file in folder <% ctx(runfolder) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -130,7 +130,7 @@ tasks:
           - get_runfolder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "dos2unix -- Could not run dos2unix on ctx(samplesheet_file)%>"
         do:
           - bioinfo_error_notifier
@@ -148,8 +148,8 @@ tasks:
           - archive_sav_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result().stdout %>"
+          - stderr: <% result() %>
+          - failed_step: "get_runfolder_name  -- Couldn't get runfolder name, <% result() %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -164,7 +164,7 @@ tasks:
           - detect_old_samplesheet_format
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -195,7 +195,7 @@ tasks:
           - convert_old_samplesheet_to_new
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_analysis_file --Couldn't create an analysis file from ctx(samplesheet_file)%>"
         do:
           - bioinfo_error_notifier
@@ -212,7 +212,7 @@ tasks:
           - upload_sequencerun
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "convert_old_samplesheet_to_new -- Couldn't convert old samplesheet to new format: ctx(samplesheet_file)%>"
         do:
           - bioinfo_error_notifier
@@ -223,13 +223,16 @@ tasks:
     action: core.local
     input:
       cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq '201' ]"
+    retry:
+      delay: 10
+      count: 5
     next:
       - when: <% succeeded() %>
         do:
           - find_demultiplexing_location
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "upload_sequencerun -- Couldnt upload sequencerun <% ctx(runfolder_name) %> to processing api"
         do:
           - bioinfo_error_notifier
@@ -255,7 +258,7 @@ tasks:
           - demultiplex_on_server
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "update_demultiplexing_status -- Couldnt update demutplexing status for sequencerun <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -314,7 +317,7 @@ tasks:
         do: wait_for_demultiplexing_local
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_machine_name  -- Couldn't retrieve machine config for runfolder, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -346,7 +349,7 @@ tasks:
           - create_fastq_update_query
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -368,7 +371,7 @@ tasks:
           - add_fastq_information
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_fastq_update_query -- Could not create update query for <% ctx(runfolder_name) %> to update fastq information"
         do:
           - bioinfo_error_notifier
@@ -378,10 +381,13 @@ tasks:
     action: core.local
     input:
       cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'update_json=@<% ctx(fastq_update_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq '200' ]"
+    retry:
+      delay: 10
+      count: 5
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "add_fastq_information -- Could not add fastq information to processing api for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier

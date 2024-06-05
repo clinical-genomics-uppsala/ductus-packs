@@ -35,8 +35,8 @@ tasks:
           - create_analysis_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_fastq_file_list  -- Couldn't get fastq files for <% ctx(analysis_name) %>, <% result().stdout %>"
+          - stderr: <% result() %>
+          - failed_step: "get_fastq_file_list  -- Couldn't get fastq files for <% ctx(analysis_name) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
  
@@ -51,8 +51,8 @@ tasks:
           - create_analysis_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: "get_analysis_path  -- Couldn't generate analysis path <% ctx(analysis_name) %>, <% result().stdout %>"
+          - stderr: <% result() %>
+          - failed_step: "get_analysis_path  -- Couldn't generate analysis path <% ctx(analysis_name) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
   
@@ -71,7 +71,7 @@ tasks:
          - create_json_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_analysis_folder  -- Could not create folder on <% ctx(upload_path) %>/fastq"
         do:
          - bioinfo_error_notifier
@@ -102,13 +102,12 @@ tasks:
       concurrency: 4
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_fastq_file -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %>/fastq/"
         do:
           - bioinfo_error_notifier
@@ -128,7 +127,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_transfer_complete_file -- Could not create Done.txt file on <% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier

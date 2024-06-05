@@ -37,7 +37,7 @@ tasks:
           - get_runfolder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_experiment_name  -- Couldn't get experiment name"
         do:
           - bioinfo_error_notifier
@@ -56,7 +56,7 @@ tasks:
           - get_csv_file_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_runfolder_name  -- Couldn't get runfolder name"
         do:
           - bioinfo_error_notifier
@@ -75,7 +75,7 @@ tasks:
           - validate_csv_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_csv_file_name  -- Couldn't locate a csv file in folder <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -92,7 +92,7 @@ tasks:
           - validate_folder_name
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "validate_csv_file  -- Couldn't validate csv file name -- <% ctx(csv_file_name) %>"
         do:
           - bioinfo_error_notifier
@@ -109,7 +109,7 @@ tasks:
           - get_machine_type
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "validate_folder_name  -- Couldn't find the Illumina runfolder inside <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -127,7 +127,7 @@ tasks:
           - mark_as_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_machine_type  -- Couldn't parse the machine type from runfolder name, <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
@@ -146,7 +146,7 @@ tasks:
           - create_runfolder_on_moriarty
       - when: <% failed() %>
         publish:
-            - stderr: <% result().stderr %>
+            - stderr: <% result() %>
             - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -166,7 +166,7 @@ tasks:
           - transfer_SampleSheet
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_runfolder_on_moriarty  -- Couldn't create folder on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -176,8 +176,7 @@ tasks:
   transfer_SampleSheet:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/SampleSheet.csv' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -185,7 +184,7 @@ tasks:
           - create_raw_folder_on_moriarty
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -212,7 +211,7 @@ tasks:
           - transfer_nextseq_runinfo_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_raw_folder_on_moriarty  -- Couldn't create raw folder on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -223,8 +222,7 @@ tasks:
   transfer_runinfo_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -232,7 +230,7 @@ tasks:
           - transfer_interop_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_runinfo_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -242,8 +240,7 @@ tasks:
   transfer_interop_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -251,7 +248,7 @@ tasks:
           - transfer_csv_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_interop_files  -- Couldn't transfer interop_files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -261,8 +258,7 @@ tasks:
   transfer_nextseq_runinfo_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Run*' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() %>
@@ -270,7 +266,7 @@ tasks:
           - transfer_nextseq_interop_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_nextseq_interop_files  -- Couldn't transfer runinfo to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -280,8 +276,7 @@ tasks:
   transfer_nextseq_interop_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %> -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(runfolder_name) %>/InterOp -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %> -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded %>
@@ -289,7 +284,7 @@ tasks:
           - transfer_csv_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_nextseq_interop_files -- Couldn't transfer_interop_files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -299,8 +294,7 @@ tasks:
   transfer_csv_file:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/<% ctx(csv_file_name) %> -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 3600
     next:
       - when: <% succeeded() and ctx(machine_type) = 'MN' %>
@@ -314,7 +308,7 @@ tasks:
           - transfer_nextseq_fastq_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_csv_file -- Couldn't transfer csv to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -324,8 +318,7 @@ tasks:
   transfer_miseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Data/Intensities/BaseCalls/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -333,7 +326,7 @@ tasks:
           - create_transfer_complete_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -343,8 +336,7 @@ tasks:
   transfer_miniseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -352,7 +344,7 @@ tasks:
           - create_transfer_complete_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_miseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -362,8 +354,7 @@ tasks:
   transfer_nextseq_fastq_files:
     action: core.local
     input:
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: rsync.py -c -f '<% ctx(runfolder) %>/<% ctx(runfolder_name) %>/<% ctx(runfolder_name) %>/Alignment_*/*/Fastq/*fastq.gz' -t /projects/inbox/wp1_sera/<% ctx(experiment_name) %>/raw -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       timeout: 86400
     next:
       - when: <% succeeded() %>
@@ -371,7 +362,7 @@ tasks:
           - create_transfer_complete_file
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "transfer_nextseq_fastq_files -- Couldn't transfer fastq files to <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -393,7 +384,7 @@ tasks:
           - archive_data
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "create_transfer_complete_file -- Couldn't couldn't create Done.txt file on <% ctx(transfer_to_host) %>"
         do:
           - bioinfo_error_notifier
@@ -410,7 +401,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().output.stderr %>
+          - stderr: <% result() %>
           - failed_step: "archive_data  -- Couldn't archive <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier

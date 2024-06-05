@@ -38,7 +38,7 @@ tasks:
           - get_method
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'get_experiment_name  -- Could not get experiment name'
         do:
           - bioinfo_error_notifier
@@ -48,7 +48,7 @@ tasks:
   get_method:
     action: core.local
     input:
-      cmd: python3 -c "import re; print(re.search(r'.+/wp[0-9i]+_([A-Za-z0-9]+)', '<% ctx(runfolder) %>').groups()[0])"
+      cmd: python3 -c "import re; print(re.search(r'.+/wp[0-9i]+_([A-Za-z0-9-]+)', '<% ctx(runfolder) %>').groups()[0])"
     next:
       - when: <% succeeded() %>
         publish: method=<% result().stdout %>
@@ -56,7 +56,7 @@ tasks:
           - get_workpackage
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'get_method  -- Could not extract method'
         do:
           - bioinfo_error_notifier
@@ -74,7 +74,7 @@ tasks:
           - get_experiment_name_result
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'get_method  -- Could not extract method'
         do:
           - bioinfo_error_notifier
@@ -95,7 +95,7 @@ tasks:
           - get_run_year
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'get_experiment_name_result  -- Could not get experiment name for result'
         do:
           - bioinfo_error_notifier
@@ -113,7 +113,7 @@ tasks:
           - mark_as_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
         do:
           - bioinfo_error_notifier
@@ -132,7 +132,7 @@ tasks:
           - create_year_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -141,18 +141,17 @@ tasks:
   create_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>
-      cmd: mkdir -p NGS_Resultat/<% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/NGS_Resultat/<% ctx(run_year) %>
+          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('result_location') %>/<% ctx(run_year) %>
         do:
           - transfer_result
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/NGS_Resultat/<% ctx(run_year) %>'
+          - stderr: <% result() %>
+          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("result_location") %>/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
@@ -162,8 +161,7 @@ tasks:
     action: core.local
     input:
       timeout: 86400
-      cwd: /opt/src/ductus-core/ductus/scripts
-      cmd: python3 rsync.py -c -f <% ctx(runfolder) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(experiment_name_result) %> -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+      cmd: rsync.py -c -f <% ctx(runfolder) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(experiment_name_result) %> -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
     next:
       - when: <% succeeded() %>
         do:
@@ -175,8 +173,8 @@ tasks:
       - when: <% failed() %>
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result().stdout %>, <% result().stderr %>'
+          - stderr: <% result() %>
+          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result() %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
@@ -186,18 +184,17 @@ tasks:
   create_qc_year_folder:
     action: core.local
     input:
-      cwd: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>
-      cmd: mkdir -p QC/<% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>/<% ctx(run_year) %>
     next:
       - when: <% succeeded() %>
         publish: 
-          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('storage_location') %>/QC/<% ctx(run_year) %>
+          - result_qc_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get('qc_location') %>/<% ctx(run_year) %>
         do:
           - mv_multiqc
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
-          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("storage_location") %>/QC/<% ctx(run_year) %>'
+          - stderr: <% result() %>
+          - failed_step: 'create_qc_year_folder -- Could not create year folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(method)).get("qc_location") %>/<% ctx(run_year) %>'
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -211,7 +208,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: 'mv_multiqc  -- Could not move multiqc_*.html to  <% ctx(result_qc_storage_folder) %>'
         do:
           - bioinfo_error_notifier
@@ -223,8 +220,8 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% - ctx(experiment_name) %>"
-      body: "Something went wrong when retrieving sera result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% ctx(experiment_name) %>"
+      body: "Something went wrong when retrieving result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
         do:
@@ -236,7 +233,7 @@ tasks:
       to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+      body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
         do:
@@ -269,4 +266,4 @@ tasks:
       body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
 
 output:
-  - stderr: <% ctx(stderr) %>
+  - stderr: "<% ctx(stderr) %>"
