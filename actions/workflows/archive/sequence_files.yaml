@@ -31,7 +31,7 @@ tasks:
           - generate_sequence_storage_path
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
   generate_sequence_storage_path:
     action: core.local
@@ -45,7 +45,7 @@ tasks:
           - create_sequence_storage_folder
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
   create_sequence_storage_folder:
     action: core.local
@@ -57,7 +57,7 @@ tasks:
           - get_sequence_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
   get_sequence_files:
     action: core.local
@@ -71,7 +71,7 @@ tasks:
           - update_sequence_files
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
   
   update_sequence_files:
     with:
@@ -88,7 +88,7 @@ tasks:
           - export_analysis_information
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
   
   export_analysis_information:
     action: core.local
@@ -98,7 +98,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
 
 output:
   - stderr: <% ctx(stderr) %>
