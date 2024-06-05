@@ -35,7 +35,7 @@ tasks:
           - get_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_experiment  -- couldn't access experiment id from samples_and_settings.json, in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
@@ -53,7 +53,7 @@ tasks:
           - get_workpackage
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_analysis  -- couldn't get analysis type (ex gms560, tm, te) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
@@ -71,7 +71,7 @@ tasks:
           - mark_as_started
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "get_workpackage  -- couldn't get workpackage information (ex wp1, wp2, wp3) from samples_and_settings.json, in folder <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
@@ -89,7 +89,7 @@ tasks:
          - run_analysis
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
@@ -136,7 +136,7 @@ tasks:
     next:
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
@@ -153,7 +153,7 @@ tasks:
           - fail
       - when: <% failed() %>
         publish:
-          - stderr: <% result().stderr %>
+          - stderr: <% result() %>
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
