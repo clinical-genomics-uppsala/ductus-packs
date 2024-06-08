@@ -1,5 +1,17 @@
 # Changelog
 
+### [2.14.3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.2...v2.14.3) (2024-06-08)
+
+
+### Bug Fixes
+
+* add missing %> to error notification ([4977836](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4977836f1840743c914299867868a94c4df01881))
+
+
+### Documentation
+
+* update version ([8c8fe40](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/8c8fe406582bf9c6c0ad4ee2e7fe8af3307f9fe1))
+
 ### [2.14.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.1...v2.14.2) (2024-06-08)
 
 
