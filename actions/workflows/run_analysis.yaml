@@ -270,7 +270,7 @@ tasks:
   wp_error_notifier:
     action: core.sendmail
     input:
-      to: <% ctx(process_analysis).get(ctx(workpackage)).get(ctx(analysis)).get('mail_lab')
+      to: <% ctx(process_analysis).get(ctx(workpackage)).get(ctx(analysis)).get('mail_lab') %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
