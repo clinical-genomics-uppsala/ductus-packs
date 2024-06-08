@@ -1,5 +1,17 @@
 # Changelog
 
+### [2.14.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.1...v2.14.2) (2024-06-08)
+
+
+### Bug Fixes
+
+* set correct variable name: wp to workpackage ([9fbfe3f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/9fbfe3f5b61bdb4baf124a1f14712426fba53d14))
+
+
+### Documentation
+
+* update version ([aa299db](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/aa299db9a6cfc3e11a4c4d1611b047188511b1e4))
+
 ### [2.14.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.0...v2.14.1) (2024-06-05)
 
 
