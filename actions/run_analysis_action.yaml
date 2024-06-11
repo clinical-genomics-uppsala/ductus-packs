@@ -47,3 +47,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.notification_mail_bioinfo }}"
+  mail_settings:
+    required: true
+    type: object
+    default: "{{ config_context.notification_mail }}"
