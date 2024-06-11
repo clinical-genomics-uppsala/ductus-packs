@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.14.4](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.3...v2.14.4) (2024-06-11)
+
+
+### Bug Fixes
+
+* add mail information for lab ([4fee89f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4fee89fba214ada1563e6216226180b82c93d760))
+
 ### [2.14.3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.2...v2.14.3) (2024-06-08)
 
 
