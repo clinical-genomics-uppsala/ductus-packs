@@ -177,7 +177,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Sample sheet , <% ctx(runfolder_name) %>"
-      body: The following content was found in sample sheet <% ctx(runfolder) %>/<% ctx(samplesheet_file) %>\n <% ctx(sample _sheet) %>
+      body: The following content was found in sample sheet <% ctx(runfolder) %>/<% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %>
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
