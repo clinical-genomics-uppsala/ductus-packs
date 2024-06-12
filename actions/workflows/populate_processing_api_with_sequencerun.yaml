@@ -47,6 +47,7 @@ vars:
   - samples: null
   - stderr: null
   - machine_name: null
+  - samplesheet_content: null
 
 tasks:
   setting_runfolder:
@@ -145,7 +146,7 @@ tasks:
       - when: <% succeeded() %>
         publish: runfolder_name=<% result().stdout %>
         do:
-          - archive_sav_files
+          - get_samplesheet_content
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
