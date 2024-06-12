@@ -153,6 +153,33 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+
+  get_samplesheet_content:
+    action: core.local
+    input:
+      cmd: cat <% ctx(samplesheet_file) %>
+    next:
+      - when: <% succeeded() %>
+        publish: samplesheet_content=<% result().stdout %>
+        do:
+          - bioinfo_samplesheet_notifier
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_samplesheet_content  -- Couldn't get content from <% ctx(samplesheet_file) %> in folder <% ctx(runfolder_name) %>, "
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  bioinfo_samplesheet_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][INFO] - Sample sheet , <% ctx(runfolder_name) %>"
+      body: The following content was found in sample sheet <% ctx(runfolder) %>/<% ctx(samplesheet_file) %>\n <% ctx(sample _sheet) %>
+        do:
+          - archive_sav_files
   
   archive_sav_files:
     action: ductus.archive_interop_files
