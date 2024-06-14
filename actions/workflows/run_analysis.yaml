@@ -101,7 +101,7 @@ tasks:
       hosts: <% ctx(process_host) %>
       cwd: <% ctx(analysis_folder_path) %>
       cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
-      timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 178200) %>
+      timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 259200) %>
       hosts: <% ctx(process_host) %>
     next:
       - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
@@ -229,7 +229,7 @@ tasks:
     input:
       cwd: <% ctx(analysis_folder_path) %>
       cmd: cp -r <% item() %> <% ctx(outbox_folder) %>/
-      timeout: 7200
+      timeout: 18000
     next:
       - when: <% succeeded() %>
         do:
@@ -271,7 +271,7 @@ tasks:
   wp_error_notifier:
     action: core.sendmail
     input:
-      to: <% ctx(mail_settings).get(workpackage).get('mail_lab') %>
+      to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
