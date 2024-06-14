@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.15.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.3...v2.15.0) (2024-06-14)
+
+
+### Features
+
+* Get sample sheet content in e-mail ([7ccde8a](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7ccde8a006bfd08a478adec6f88f84343307803d))
+* increase timeouts in run_analysis ([dc5da39](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/dc5da394f91b1e046d2f67331b06b3e700e0a981))
+
+
+### Bug Fixes
+
+* add mail information for lab ([4fee89f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4fee89fba214ada1563e6216226180b82c93d760))
+* Call to get_samplesheet_content ([bd42f81](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/bd42f81fd63b5b83d622bb05480ac0699dd57007))
+* Correct variable name ([1341cb3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/1341cb3a0d582f81b0f73585775088285fe85599))
+* Handle succeeded/failed task ([41ff82b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/41ff82b5868fd7aaee822bbda0a68f22227f8307))
+* update incorrect fetching of mail settings ([1ed24a5](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/1ed24a559adc59dfd5ac3c5e95c5e24630c32366))
+
 ### [2.14.3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.14.2...v2.14.3) (2024-06-08)
 
 
