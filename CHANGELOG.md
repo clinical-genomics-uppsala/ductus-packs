@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.16.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.15.1...v2.16.0) (2024-06-16)
+
+
+### Features
+
+* correct subject text ([15c2cb9](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/15c2cb9c83f47babc56319e806b1aaffab3e1b32))
+
+
+### Documentation
+
+* update pack yaml ([a12e9bd](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/a12e9bd19010b7dc52fab3b02082c813690d9f12))
+
 ### [2.15.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.15.0...v2.15.1) (2024-06-16)
 
 
