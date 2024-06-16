@@ -223,7 +223,7 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Processing failure, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Retrieve failure, <% ctx(experiment_name) %>"
       body: "Something went wrong when retrieving result for <% ctx(experiment_name) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
@@ -235,7 +235,7 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Pre-processing, <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Retrieve, <% ctx(experiment_name) %>"
       body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
     next:
       - when: <% succeeded() %>
