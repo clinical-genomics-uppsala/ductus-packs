@@ -250,7 +250,7 @@ tasks:
     action: core.http
     input:
       url:  http://<% ctx(transfer_from_host) %>:<% ctx(runfolder_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
-      body: {"state": "error"}
+      body: '{"state": "error"}'
       method: "POST"
     next:
       - when: <% supposed %>
