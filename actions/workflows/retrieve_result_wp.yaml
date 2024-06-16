@@ -162,6 +162,9 @@ tasks:
     input:
       timeout: 86400
       cmd: rsync.py -c -f <% ctx(runfolder) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(experiment_name_result) %> -u <% ctx(transfer_from_user) %> -i <% ctx(transfer_from_key) %> -r <% ctx(transfer_from_host) %> -p 1
+    retry:
+      delay: 10
+      count: 5
     next:
       - when: <% succeeded() %>
         do:
