@@ -5,6 +5,7 @@ description: Pack for moving clinical data
 keywords:
   - sequencing
   - life science
+  - stackstorm
 version: 2.16.0
 author: Patrik Smeds
 email: patrik.smeds@scilifelab.uu.se
