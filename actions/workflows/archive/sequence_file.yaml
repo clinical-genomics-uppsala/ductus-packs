@@ -99,6 +99,3 @@ tasks:
             - stderr: <% result() %>
           do:
             - fail
-
-output:
-  - stderr: <% ctx(stderr) %>
