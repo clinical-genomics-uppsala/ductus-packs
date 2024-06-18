@@ -88,6 +88,9 @@ tasks:
       file_id: <% item()[0] %>
       file_path: <% item()[1] %>
       sequence_file_archive_location: <% ctx(sequence_file_archive_location) %>
+    retry:
+      count: 10
+      delay: 120
     next:
       - when: <% succeeded() %>
         do:
