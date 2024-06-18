@@ -1,5 +1,19 @@
 # Changelog
 
+### [2.16.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.16.0...v2.16.1) (2024-06-18)
+
+
+### Bug Fixes
+
+* add error handling and retries ([bdd0fa4](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/bdd0fa442578d3b7bcaeccd2164535ec65735e03))
+* change run to do ([4adce00](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/4adce00fce72c26da93cf24373f639adb558a879))
+* update failure handling ([efd4ea3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/efd4ea306274333b29bd118859e0945cbece50ff))
+
+
+### Documentation
+
+* update version ([d2ddc2a](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/d2ddc2acf5b51d7f18975d77d5eb2416ad2f39a7))
+
 ## [2.16.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.15.1...v2.16.0) (2024-06-16)
 
 
