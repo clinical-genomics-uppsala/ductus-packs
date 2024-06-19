@@ -203,7 +203,7 @@ tasks:
   filter_experiment_samplesheet:
     action: core.local
     input:
-      cmd: python3 -c 'from ductus.tools.utils import filter_experiment; exit(0) if  filter_experiment("<% ctx(samplesheet_content)%>") == False else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import filter_experiment; exit(0) if  filter_experiment("<% ctx(samplesheet_file)%>") == False else exit(1)'
     next:
       - when: <% succeeded() %>
         do:
