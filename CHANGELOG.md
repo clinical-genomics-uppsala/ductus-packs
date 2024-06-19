@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.16.2...v2.17.0) (2024-06-19)
+
+
+### Features
+
+* decrease number of parallele archive events ([87a5e1f](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/87a5e1f19139569ccf8bb11691de6bce8d371002))
+
 ### [2.16.2](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.16.1...v2.16.2) (2024-06-18)
 
 
