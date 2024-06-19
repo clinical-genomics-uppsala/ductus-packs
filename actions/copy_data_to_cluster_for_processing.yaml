@@ -4,7 +4,6 @@ description: >
   Will move necessary files for a requested analysis to a processing cluster
 enabled: true
 runner_type: orquesta
-name: copy_data_to_cluster_for_processing
 entry_point: workflows/copy_data_to_cluster_for_processing.yaml
 pack: ductus
 parameters:
