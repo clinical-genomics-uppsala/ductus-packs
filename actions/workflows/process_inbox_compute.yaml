@@ -106,7 +106,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - mark_as_finished
+          - rm_analysis_folder
       - when: <% failed() %>
         publish:
           - stderr: "run analysis failed"
@@ -114,6 +114,21 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+  
+  rm_analysis_folder:
+    action: core.local
+    input:
+      cmd: rm -r <% ctx(analysis_folder_path) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "rm_analysis_folder -- Couldn't remove analysis folder <% ctx(analysis_folder_path) %>"
+        do:
+          - bioinfo_error_notifier  
 
   bioinfo_error_notifier:
     action: core.sendmail
