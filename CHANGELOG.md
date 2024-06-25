@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.18.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.17.1...v2.18.0) (2024-06-25)
+
+
+### Features
+
+* add time delay to try to prevent socket error ([cbb6063](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/cbb60639dd53d29cc7bc0b64946dcc4c6315778c))
+* add timeout to create fastq json file ([39ddd91](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/39ddd91a2e307817ce29e8ef8627e6aee0808ce7))
+
+
+### Bug Fixes
+
+* decrease number of fastq files archived at the same time ([647be57](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/647be57801bd080172785087ee30b0ffeb61dc7f))
+* remove duplicate host key in run_analysis ([f51ff7e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/f51ff7eb4dd2e7975390d3951f6a695f387c8a3a))
+* remove duplicate name key in copy workflow ([d506e2b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/d506e2bc1c169043c70976879a7b0a6b82d2912a))
+* rename task to not overlap with workflow name ([7e5bd45](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7e5bd45aa76fe23f5279c36edcc3d9ce5bde0764))
+
+
+### Documentation
+
+* update version ([ca31abe](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/ca31abe1efc656f5ecd274a01b8b760a163a2d7f))
+
 ### [2.17.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.17.0...v2.17.1) (2024-06-19)
 
 
