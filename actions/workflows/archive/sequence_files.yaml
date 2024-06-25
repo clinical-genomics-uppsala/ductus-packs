@@ -82,7 +82,7 @@ tasks:
   update_sequence_files:
     with:
       items: <% ctx(sequence_files).select([$.id, $.path]) %>
-      concurrency: 2
+      concurrency: 1
     action: ductus.archive_sequence_file
     input:
       file_id: <% item()[0] %>
