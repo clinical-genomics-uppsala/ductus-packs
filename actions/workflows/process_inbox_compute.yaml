@@ -16,6 +16,7 @@ input:
     - mail_bioinfo
 
 vars:
+  - analysis_folder_path: null
   - failed_step: null
   - analysis: null
   - workpackage: null
@@ -68,7 +69,7 @@ tasks:
       - when: <% succeeded() %>
         publish: workpackage=<% result().stdout %>
         do:
-          - mark_as_started
+          - analysis_folder_path
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -76,6 +77,22 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+  
+  analysis_folder_path:
+    action: core.local
+    input:
+      cmd: echo /scratch/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder_path=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "analysis_folder_path -- create analysis folder path string"
+        do:
+          - bioinfo_error_notifier
 
   mark_as_started:
     action: core.http
