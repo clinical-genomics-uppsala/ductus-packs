@@ -49,6 +49,7 @@ tasks:
         do:
           - run_statistics_path
           - run_pipeline
+          - bioinfo_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -286,6 +287,18 @@ tasks:
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_analysis_started:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
+      body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>.
     next:
       - when: <% succeeded() %>
         do:
