@@ -299,10 +299,6 @@ tasks:
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
       body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>.
-    next:
-      - when: <% succeeded() %>
-        do:
-          - fail
 
 output:
   - stderr: <% ctx(stderr) %>
