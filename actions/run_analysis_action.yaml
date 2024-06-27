@@ -18,6 +18,9 @@ parameters:
   runfolder:
     required: true
     type: string
+  analysis_folder_path:
+    required: true
+    type: string
   process_host:
     required: true
     type: string
