@@ -115,6 +115,7 @@ tasks:
     action: ductus.run_analysis_action
     input:
       runfolder: <% ctx(runfolder) %>
+      analysis_folder_path: <% ctx(analysis_folder_path) %>
       experiment_name: <% ctx(experiment_name) %>
       workpackage: <% ctx(workpackage) %>
       analysis: <% ctx(analysis) %>
