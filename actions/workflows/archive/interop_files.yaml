@@ -10,6 +10,7 @@ input:
 vars:
   - archive_folder: null
   - machine_id: null
+  - machine_name: null
   - runfolder_path: null
   - runfolder_name: null
   - stderr: null
