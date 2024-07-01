@@ -60,7 +60,7 @@ tasks:
   get_machine_name:
     action: core.local
     input:
-      cmd: dirname <% ctx(runfolder_name) %> | python3 -c "import sys; print(sys.stdin.readline().split('/')[-1].rstrip('_Runfolder\n'), end='')"
+      cmd: dirname <% ctx(runfolder_path) %> | python3 -c "import sys; print(sys.stdin.readline().split('/')[-1].rstrip('_Runfolder\n'), end='')"
     next:
       - when: <% succeeded() %>
         publish: 
