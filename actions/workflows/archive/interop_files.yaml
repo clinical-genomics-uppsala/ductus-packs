@@ -53,7 +53,7 @@ tasks:
         publish: 
          - machine_id: <% result().stdout %>
         do:
-          - create_storage_folder_path
+          - get_machine_name
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
