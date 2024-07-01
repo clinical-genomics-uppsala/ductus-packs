@@ -39,6 +39,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_samples_url }}"
+  processing_api_analysis_update_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_update_status_url }}"
   transfer_to_host:
     required: true
     type: string
