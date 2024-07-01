@@ -397,7 +397,6 @@ tasks:
         
   get_samples:
     action: core.local
-    delay: 300
     input:
        cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
@@ -416,6 +415,7 @@ tasks:
   create_fastq_update_query:
     join: 1
     action: core.local
+    delay: 300
     input:
       cmd:  echo "<% ctx(samples) %>" | sed 's/\x27/"/g' | python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.stdin.read()), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)))))' > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json
       timeout: 300
