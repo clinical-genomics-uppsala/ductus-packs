@@ -56,11 +56,25 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
+  
+  get_machine_name:
+    action: core.local
+    input:
+      cmd: dirname <% ctx(runfolder_name) %> | python3 -c "import sys; print(sys.stdin.readline().split('/')[-1].rstrip('_Runfolder\n'), end='')"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+         - machine_name: <% result().stdout %>
+        do:
+          - create_storage_folder_path
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
 
   create_storage_folder_path:
     action: core.local
     input:
-      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
+      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(machine_name) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
     next:
       - when: <% succeeded() %>
         publish:
