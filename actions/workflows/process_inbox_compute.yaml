@@ -19,6 +19,7 @@ input:
     - processing_api_analysis_update_status_url
 
 vars:
+  - analysis_folder_path: null
   - failed_step: null
   - analysis: null
   - workpackage: null
@@ -71,7 +72,7 @@ tasks:
       - when: <% succeeded() %>
         publish: workpackage=<% result().stdout %>
         do:
-          - mark_as_started
+          - analysis_folder_path
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -79,6 +80,22 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+  
+  analysis_folder_path:
+    action: core.local
+    input:
+      cmd: echo /scratch/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder_path=<% result().stdout %>
+        do:
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "analysis_folder_path -- create analysis folder path string"
+        do:
+          - bioinfo_error_notifier
 
   mark_as_started:
     action: core.http
@@ -116,6 +133,7 @@ tasks:
     action: ductus.run_analysis_action
     input:
       runfolder: <% ctx(runfolder) %>
+      analysis_folder_path: <% ctx(analysis_folder_path) %>
       experiment_name: <% ctx(experiment_name) %>
       workpackage: <% ctx(workpackage) %>
       analysis: <% ctx(analysis) %>
@@ -124,7 +142,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - mark_as_finished
+          - rm_analysis_folder
       - when: <% failed() %>
         publish:
           - stderr: "run analysis failed"
@@ -132,6 +150,21 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+  
+  rm_analysis_folder:
+    action: core.local
+    input:
+      cmd: rm -r <% ctx(analysis_folder_path) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_finished
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "rm_analysis_folder -- Couldn't remove analysis folder <% ctx(analysis_folder_path) %>"
+        do:
+          - bioinfo_error_notifier  
 
   bioinfo_error_notifier:
     action: core.sendmail

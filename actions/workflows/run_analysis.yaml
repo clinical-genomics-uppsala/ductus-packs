@@ -4,6 +4,7 @@ description: Will analyse data found in the inbox folder using ...
 
 input:
     - runfolder
+    - analysis_folder_path
     - process_host
     - process_key
     - process_user
@@ -15,7 +16,6 @@ input:
     - mail_settings
 
 vars:
-  - analysis_folder_path: null
   - run_statistics_path: null
   - cold_storage_folder: null
   - outbox_folder: null
@@ -24,22 +24,6 @@ vars:
   - wp: null
   
 tasks:
-  analysis_folder_path:
-    action: core.local
-    input:
-      cmd: echo /scratch/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
-    next:
-      - when: <% succeeded() %>
-        publish: analysis_folder_path=<% result().stdout %>
-        do:
-          - create_analysis_folder
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result() %>
-          - failed_step: "analysis_folder_path -- create analysis folder path string"
-        do:
-          - bioinfo_error_notifier
-
   create_analysis_folder:
     action: core.local
     input:
