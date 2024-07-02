@@ -45,3 +45,7 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_archive_fastq_files_url }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

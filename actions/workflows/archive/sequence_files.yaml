@@ -11,6 +11,7 @@ input:
   - processing_api_get_analysis_task_url
   - processing_api_get_analysis_tasks_url
   - processing_api_archive_fastq_files_url
+  - mail_bioinfo
 
 vars:
   - analysis_information: null
@@ -33,7 +34,7 @@ tasks:
         publish:
           - stderr: <% result() %>
         do:
-          - fail
+          - archive_failed
 
   generate_sequence_storage_path:
     action: core.local
@@ -49,7 +50,7 @@ tasks:
         publish:
           - stderr: <% result() %>
         do:
-          - fail
+          - archive_failed
 
   create_sequence_storage_folder:
     action: core.local
@@ -63,7 +64,7 @@ tasks:
         publish:
           - stderr: <% result() %>
         do:
-          - fail
+          - archive_failed
 
   get_sequence_files:
     action: core.local
@@ -78,6 +79,8 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
+        do:
+          - archive_failed
   
   update_sequence_files:
     with:
@@ -99,7 +102,7 @@ tasks:
         publish:
           - stderr: <% result() %>
         do:
-          - fail
+          - archive_failed
   
   export_analysis_information:
     action: core.local
@@ -111,7 +114,30 @@ tasks:
         publish:
           - stderr: <% result() %>
         do:
+          - archive_failed
+      - when: <% succeeded() %>
+        do:
+          - archive_done
+
+  archive_failed:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][ARCHIVING][ERROR] - Archive failed, <% ctx(analysis_id) %>"
+      body: Archive failed, <% ctx(analysis_id) %>!!!
+    next:
+      - when: <% succeeded() %>
+        do:
           - fail
+
+  archive_done:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][ARCHIVING][Done] - Archive done, <% ctx(analysis_id) %>"
+      body: Archive done, <% ctx(analysis_id) %>!!!
 
 output:
   - stderr: <% ctx(stderr) %>
