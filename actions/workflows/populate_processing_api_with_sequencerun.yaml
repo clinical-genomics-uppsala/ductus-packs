@@ -28,6 +28,7 @@ input:
   - processing_api_sequence_run_list_url
   - sample_update_json_folder_path
   - path_complete_file
+  - processing_api_json_update_wait_time_for_fastq_files
 
 vars:
   - runfolder_host: null
@@ -422,7 +423,7 @@ tasks:
     retry:
       when: <% failed() %>
       count: 10
-      delay: 300
+      delay: <% ctx(processing_api_json_update_wait_time_for_fastq_files) %>
     next:
       - when: <% succeeded %>
         publish: fastq_update_file="<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json"
