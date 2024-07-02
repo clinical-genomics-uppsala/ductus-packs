@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.19.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.18.0...v2.19.0) (2024-07-02)
+
+
+### Features
+
+* add bioinfo notifier when analysis has started ([7ed8d9d](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7ed8d9d29ddea323c74e5730c1360059bb50d77f))
+* add more email notifications for archiving ([b581023](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b5810234f7aae3b5c11565fc56161f07dc447198))
+* force paired reads when combining samples and fastq files ([a7ba7d3](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/a7ba7d3ed666ffec295515d54df950dc39ebf7eb))
+* make it possible to configure how long stackstorm should wait before trying to find fastq files once more ([5573d53](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/5573d53a0c7ccb37f487fd7396ac5eee20055ae5))
+* make more status updates ([8eaabbc](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/8eaabbc21c2d224437e9be2818e85bc32cf93294))
+* update sav archiving workflow ([47f8e85](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/47f8e855fda72404dca46a107a8746bf96c67954))
+
+
+### Documentation
+
+* update version ([5962bd1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/5962bd190057e0432c59c1f3613eb22fb0d6d426))
+
 ## [2.18.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.17.1...v2.18.0) (2024-06-25)
 
 
