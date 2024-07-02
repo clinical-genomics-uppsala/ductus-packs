@@ -25,3 +25,11 @@ parameters:
     required: true
     type: array
     default: "{{ config_context.sav_files }}"
+  sav_files:
+    required: true
+    type: array
+    default: "{{ config_context.sav_files }}"
+  sav_machine_type_fold_and_extra_files:
+    required: true
+    type: object
+    default: "{{ config_context.sav_machine_type_fold_and_extra_files }}"
