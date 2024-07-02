@@ -14,12 +14,15 @@ input:
     - process_settings
     - run_statistics_path
     - mail_bioinfo
+    - processing_api_access_key
+    - processing_api_service_url
+    - processing_api_analysis_update_status_url
 
 vars:
   - failed_step: null
   - analysis: null
   - workpackage: null
-  - experiment_name: null
+  - experiment_name: "Unknown"
   - stderr: "ERROR"
 
 tasks:
@@ -86,6 +89,21 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
+         - update_processing_status_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+        do:
+          - bioinfo_error_notifier
+
+  update_processing_status_started:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"PR\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(experiment_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+    next:
+      - when: <% succeeded() %>
+        do:
          - run_analysis
       - when: <% failed() %>
         publish:
@@ -93,7 +111,7 @@ tasks:
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
         do:
           - bioinfo_error_notifier
-    
+
   run_analysis:
     action: ductus.run_analysis_action
     input:
@@ -134,12 +152,20 @@ tasks:
       body: '{"state": "done"}'
       method: "POST"
     next:
+      - when: <% succeeded() %>
+        do:
+          - update_processing_status_Completed
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "mark_as_finished -- Couldn't mark <% ctx(runfolder) %> as finished!"
         do:
           - bioinfo_error_notifier
+
+  update_processing_status_Completed:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"AC\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(experiment_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
 
   mark_as_failed:
     action: core.http
@@ -150,13 +176,22 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - fail
+          - update_processing_status_failed
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "mark_as_failed -- Couldn't mark <% ctx(runfolder) %> as failed!"
         do:
           - bioinfo_error_notifier
+
+  update_processing_status_failed:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"FA\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(experiment_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
 
 # output:
 #   - stderr: <% ctx(stderr) %>

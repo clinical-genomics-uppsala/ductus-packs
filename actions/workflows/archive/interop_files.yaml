@@ -6,10 +6,12 @@ input:
   - runinfo_file_path
   - sav_storage_location
   - sav_files
+  - sav_machine_type_fold_and_extra_files
 
 vars:
   - archive_folder: null
   - machine_id: null
+  - save_machine_storage_folder: null
   - runfolder_path: null
   - runfolder_name: null
   - stderr: null
@@ -52,6 +54,20 @@ tasks:
         publish: 
          - machine_id: <% result().stdout %>
         do:
+          - get_save_machine_storage_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+
+  get_save_machine_storage_folder:
+    action: core.local
+    input:
+      cmd: echo -n <% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('type_folder') %>
+    next:
+      - when: <% succeeded() %>
+        publish: 
+         - save_machine_storage_folder: <% result().stdout %>
+        do:
           - create_storage_folder_path
       - when: <% failed() %>
         publish:
@@ -60,7 +76,7 @@ tasks:
   create_storage_folder_path:
     action: core.local
     input:
-      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
+      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(save_machine_storage_folder) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
     next:
       - when: <% succeeded() %>
         publish:
@@ -91,8 +107,19 @@ tasks:
       cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
       timeout: 300
     next:
-      - when: <% succeeded() %>
-          - archive_create_folders
+      - when: <% succeeded() and ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics', false) %>
+        do:
+          - copy_metrics
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+
+  copy_metrics:
+    action: core.local
+    input:
+      cmd: cp -r <% ctx(runfolder_path) %>/<% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %> <% ctx(archive_folder) %>/InterOp/
+      timeout: 300
+    next:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>

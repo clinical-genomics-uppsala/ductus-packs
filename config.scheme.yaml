@@ -96,7 +96,25 @@
     default: "api/analysis/task/"
 
   # Get list of all tasks
-  processing_api_analysis_tasks_url: "api/analysis/tasks/"
+  processing_api_analysis_tasks_url:
+    description: get analysis tasks
+    type: string
+    required: true
+    default: "api/analysis/tasks/"
+
+  # Get analysis task information
+  processing_api_analysis_task_url:
+    description: get analysis task and sample information
+    type: string
+    required: true
+    default: "api/analysis/task/"
+
+  # Update analysis status
+  processing_api_analysis_update_status_url:
+    description: url to update analysis status
+    type: string
+    required: true
+    default: "api/analysis/update/status/"
 
   # Upload information about a new analysis that should be performed
   processing_api_analysis_upload_new_task_url: 

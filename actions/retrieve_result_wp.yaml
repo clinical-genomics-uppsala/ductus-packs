@@ -54,6 +54,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_tasks_url }}"
+  processing_api_analysis_update_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_update_status_url }}"
   result_settings:
     required: true
     type: object
