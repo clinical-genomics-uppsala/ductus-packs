@@ -114,4 +114,7 @@ parameters:
     required: true
     type: array
     default: "{{ config_context.complete_file_dict }}"
-  
+  processing_api_json_update_wait_time_for_fastq_files:
+    required: true
+    type: integer
+    default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"

@@ -196,6 +196,12 @@
     required: true
     default: "api/v1/samples/fastq/json_update/"
 
+  processing_api_json_update_wait_time_for_fastq_files:
+    description: time to wait for fastq files to be copied to storage
+    type: integer
+    required: true
+    default: 10
+
   processing_api_get_analysis_task_url:
     description: get analysis task information
     type: string
