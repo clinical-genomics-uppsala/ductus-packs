@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.20.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.19.0...v2.20.0) (2024-07-03)
+
+
+### Features
+
+* remove duplicate ([5301fa4](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/5301fa41c6c572b44e7079c3d4a8ac6212012326))
+
+
+### Documentation
+
+* update version ([7103745](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7103745b358d2bc57cfdb5201906349b992f0afd))
+* update version ([8cf299a](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/8cf299a963ea4cda402367ef2d1111d97eba6373))
+
 ## [2.19.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.18.0...v2.19.0) (2024-07-02)
 
 
