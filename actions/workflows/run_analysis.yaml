@@ -21,7 +21,6 @@ vars:
   - outbox_folder: null
   - failed_step: null
   - stderr: null
-  - wp: null
   
 tasks:
   analysis_folder_path:
@@ -285,7 +284,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate.
     next:
       - when: <% succeeded() %>
@@ -297,7 +296,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][<% ctx('wp')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
       body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>.
 
 output:
