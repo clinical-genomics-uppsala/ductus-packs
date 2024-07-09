@@ -221,7 +221,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP][ERROR] - Processing stopped for experiment on run, <% ctx(runfolder_name) %>"
+      subject: "[DUCTUS][WP][INFO] - Processing stopped for experiment on run, <% ctx(runfolder_name) %>"
       body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %>
     next:
       - when: <% succeeded() %> or <% failed() %>
