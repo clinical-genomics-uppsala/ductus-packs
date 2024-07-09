@@ -119,6 +119,9 @@ tasks:
     input:
       cmd: cp -r <% ctx(runfolder_path) %>/<% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %> <% ctx(archive_folder) %>/InterOp/
       timeout: 300
+    retry:
+      count: 30
+      delay: 600
     next:
       - when: <% failed() %>
         publish:
