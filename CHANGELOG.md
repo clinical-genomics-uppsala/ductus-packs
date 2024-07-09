@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.21.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.20.0...v2.21.0) (2024-07-09)
+
+
+### Features
+
+* add retry to copy metrics task ([0e20ac6](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/0e20ac6b14809559c57cef444f77af95161ae451))
+
+
+### Bug Fixes
+
+* change to correct variable, from wp to workpackage ([8c8d081](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/8c8d081a792cb5e7c2b2d2a7c381f1cac6b5562f))
+* increase retries ([70f366c](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/70f366cbcd7d436d592edbdb337f13b94a8a4e75))
+* update subject header ([664493e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/664493ec1c440aee6289e63e7423684a89c0ae8a))
+
+
+### Documentation
+
+* update version ([fdf398d](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/fdf398da04d850a7db952fe601a5979e5f5466b7))
+
 ## [2.20.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.19.0...v2.20.0) (2024-07-03)
 
 
