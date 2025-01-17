@@ -179,7 +179,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Sample sheet , <% ctx(runfolder_name) %>"
-      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %>
+      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -222,7 +222,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Processing stopped for experiment on run, <% ctx(runfolder_name) %>"
-      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %>
+      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -473,7 +473,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] -  <% ctx(runfolder_name) %>"
-      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %>
+      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -485,7 +485,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>"
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Incorrect machine typ <% ctx(runfolder_name) %>"
-      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed? \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
