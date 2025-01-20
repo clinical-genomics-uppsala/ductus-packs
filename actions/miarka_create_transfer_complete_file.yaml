@@ -1,0 +1,22 @@
+name: miarka_create_transfer_complete_file
+description: Create a Done.txt with a date in a given directory.
+runner_type: "remote-shell-cmd"
+enabled: true
+entry_point: ""
+parameters:
+  cwd:
+    default: "/home/monbr970/stackstorm_target/"
+  cmd:
+    default: "echo `date` > Done.txt;"
+  username:
+    type: string 
+    default: "monbr970"
+  private_key: 
+    type: string
+    default: "/etc/ssh_keys/id_ed25519"
+  passphrase:
+    type: string
+    default: ""
+  hosts: 
+    type: string
+    default: "marvin.cgu.igp.uu.se"
