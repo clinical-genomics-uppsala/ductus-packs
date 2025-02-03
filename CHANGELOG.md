@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.22.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.21.0...v2.22.0) (2025-02-03)
+
+
+### Features
+
+* **pop_process_api:** Workflow ex.id in e-mail ([e0f2238](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/e0f2238f6e80a1e9774de5f135dcf51bedf97b96))
+
+
+### Bug Fixes
+
+* add retry to copy sav files ([7cee7ef](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7cee7eff5024be4050b83b0fe222c4628c527375))
+* Added host to e-mail body ([573dcaf](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/573dcaf2bca3cafa6fcbd365fc6a0a8a1901efcb))
+* All mails include host and ex.id ([756e4c1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/756e4c119f63f3db0b789dc14c1e61841e8f03e1))
+* Removed line break ([4452856](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/44528569e0d02de4fa4f51aaa5c544e61ad9c5f3))
+* update error message printed when upload fail ([55be66b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/55be66b3cacbcb597443c92db90dd2f9ad0292dc))
+* update error message that are printed when sequence run can't be uploaded ([55be66b](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/55be66b3cacbcb597443c92db90dd2f9ad0292dc))
+
 ## [2.21.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.20.0...v2.21.0) (2024-07-09)
 
 
