@@ -179,7 +179,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Sample sheet , <% ctx(runfolder_name) %>"
-      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %>
+      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -222,7 +222,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Processing stopped for experiment on run, <% ctx(runfolder_name) %>"
-      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %>
+      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -280,7 +280,7 @@ tasks:
     join: 1
     action: core.local
     input:
-      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>); echo $status; [ $status -eq '201' ]"
+      cmd: "response=$(curl -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'samplesheet=@<% ctx(samplesheet_file) %>' -F 'runinfo=@<% ctx(runinfo_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_sequence_run_upload_illumina_url) %>);echo $response; [ \"$response\" = \"201\" ]"
     retry:
       delay: 10
       count: 5
@@ -462,7 +462,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
-      body: Something went wrong during the population of the processing api with <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+      body: Something went wrong during the population of the processing api with <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - do:
           - fail
@@ -473,7 +473,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] -  <% ctx(runfolder_name) %>"
-      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %>
+      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -485,7 +485,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>"
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Incorrect machine typ <% ctx(runfolder_name) %>"
-      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed?
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed? \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:

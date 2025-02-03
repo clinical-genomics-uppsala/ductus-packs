@@ -106,6 +106,9 @@ tasks:
     input:
       cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
       timeout: 300
+    retry:
+      count: 5
+      delay: 60
     next:
       - when: <% succeeded() and ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics', false) %>
         do:
