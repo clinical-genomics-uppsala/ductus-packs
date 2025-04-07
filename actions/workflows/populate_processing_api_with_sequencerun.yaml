@@ -183,23 +183,7 @@ tasks:
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
-          - archive_sav_files
-  
-  archive_sav_files:
-    action: ductus.archive_interop_files
-    input:
-      runinfo_file_path: <% ctx(runinfo_file) %>
-    next:
-      - when: <% succeeded() %>
-        do:
           - filter_experiment_samplesheet
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result() %>
-          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_name) %>"
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
 
   filter_experiment_samplesheet:
     action: core.local
@@ -392,9 +376,25 @@ tasks:
       delay: <% ctx(demultiplexing_delay) %>
     next:
       - when: <% succeeded() %>
-        do: get_samples
+        do: archive_sav_files
       - when: <% failed() %>
         do: completed_job_file_missing
+          
+  archive_sav_files:
+    action: ductus.archive_interop_files
+    input:
+      runinfo_file_path: <% ctx(runinfo_file) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - get_samples
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
         
   get_samples:
     action: core.local
