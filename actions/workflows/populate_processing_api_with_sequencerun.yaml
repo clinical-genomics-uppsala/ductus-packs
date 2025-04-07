@@ -337,7 +337,7 @@ tasks:
           publish:
             - fastq_files_path: "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder_name) %>"
           do:
-            get_samples
+            archive_sav_files
         - when: <% failed() %>
           publish:
             - stderr: "Demultplexing failed"
