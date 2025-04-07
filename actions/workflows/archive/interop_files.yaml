@@ -105,7 +105,7 @@ tasks:
     action: core.local
     input:
       cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
-      timeout: 300
+      timeout: 600
     retry:
       count: 5
       delay: 60
