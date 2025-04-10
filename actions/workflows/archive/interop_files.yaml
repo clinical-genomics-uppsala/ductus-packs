@@ -118,9 +118,11 @@ tasks:
           - stderr: <% result() %>
 
   copy_metrics:
+    with:
+      items: <% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %>
     action: core.local
     input:
-      cmd: cp -r <% ctx(runfolder_path) %>/<% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %> <% ctx(archive_folder) %>/InterOp/
+      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/InterOp/
       timeout: 300
     retry:
       count: 30
