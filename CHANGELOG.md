@@ -2,6 +2,11 @@
 
 ### [2.22.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.22.0...v2.22.1) (2025-04-11)
 
+### Features
+
+* Increase the timeout for copying SAV-files from 300 sec to 600 sec. (https://github.com/clinical-genomics-uppsala/ductus-packs/pull/357/commits/77559809723b203476810edf11362e86082721ae)
+* Make sure demultiplexing is finished and IndexMetricsOut.bin is created before archiving of SAV-files. (https://github.com/clinical-genomics-uppsala/ductus-packs/pull/357/commits/b11d2a41d1291e3eb4813d18e463765e7575974d)
+* More than one file can be archived as "additional SAV-file/metrics-file". 
 
 ### Bug Fixes
 
