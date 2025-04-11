@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.22.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.22.0...v2.22.1) (2025-04-11)
+
+
+### Bug Fixes
+
+* **interop_files.yaml:** List of metrics files ([73a7f6c](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/73a7f6ce6a4a66d7c979aa87e5b9086f8ceca77b))
+
 ## [2.22.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.21.0...v2.22.0) (2025-02-03)
 
 
