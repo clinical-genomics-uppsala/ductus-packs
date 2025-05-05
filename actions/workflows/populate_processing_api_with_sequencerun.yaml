@@ -404,11 +404,34 @@ tasks:
       - when: <% succeeded %>
         publish: samples=<% result().stdout %>
         do:
-          - create_fastq_update_query
+          - check_number_of_fastqs
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  check_number_of_fastqs:
+    join: 1
+    action: core.local
+    delay: 30
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, glob; exit(0) if get_nr_expected_fastqs("<% ctx(samplesheet_file) %>", glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)'
+      timeout: 300
+    retry:
+      when: <% failed() %>
+      count: 10
+      delay: 300
+    next:
+      - when: <% succeeded %>
+        do:
+          - create_fastq_update_query
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_number_of_fastqs -- Could not find the expected number of fastq files for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
