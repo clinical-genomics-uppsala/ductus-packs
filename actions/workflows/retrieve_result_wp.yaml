@@ -175,9 +175,8 @@ tasks:
         do:
           - create_qc_year_folder
       - when: <% failed() %>
-      - when: <% failed() %>
         publish:
-          - stderr: <% result() %>
+          - stderr: "The transfer of fastq files from compute to hospital failed."
           - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(transfer_from_host) %>\:<% ctx(runfolder) %>, <% result() %>'
         do:
           - bioinfo_error_notifier
@@ -246,7 +245,7 @@ tasks:
       to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Retrieve, <% ctx(experiment_name) %>"
-      body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %>
+      body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -285,7 +284,7 @@ tasks:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
-      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed.
+      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed. \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
 
 output:
   - stderr: "<% ctx(stderr) %>"
