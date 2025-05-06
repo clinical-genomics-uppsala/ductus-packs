@@ -50,6 +50,7 @@ vars:
   - stderr: null
   - machine_name: null
   - samplesheet_content: null
+  - samplesheet_file_demux: null
 
 tasks:
   setting_runfolder:
@@ -94,7 +95,9 @@ tasks:
       cmd: ls <% ctx(runfolder) %>/SampleSheet.csv || ls <% ctx(runfolder) %>/*/SampleSheet.csv
     next:
       - when: <% succeeded() %>
-        publish: samplesheet_file=<% result().stdout %>
+        publish: 
+          - samplesheet_file: <% result().stdout %>
+          - samplesheet_file_demux: <% result().stdout %>
         do:
           - check_for_runinfo
       - when: <% failed() %>
@@ -419,7 +422,7 @@ tasks:
     action: core.local
     delay: 30
     input:
-      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, glob; exit(0) if get_nr_expected_fastqs("<% ctx(samplesheet_file) %>", glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)'
+      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, glob; exit(0) if get_nr_expected_fastqs("<% ctx(samplesheet_file_demux) %>", glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)'
       timeout: 300
     retry:
       when: <% failed() %>
