@@ -29,6 +29,7 @@ input:
   - sample_update_json_folder_path
   - path_complete_file
   - processing_api_json_update_wait_time_for_fastq_files
+  - transfer_to_storage_wait_time_for_fastq_files
 
 vars:
   - runfolder_host: null
@@ -422,8 +423,8 @@ tasks:
       timeout: 300
     retry:
       when: <% failed() %>
-      count: 10
-      delay: 300
+      count: 36
+      delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
     next:
       - when: <% succeeded %>
         do:
