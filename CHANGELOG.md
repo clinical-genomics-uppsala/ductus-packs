@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.23.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.22.1...v2.23.0) (2025-05-07)
+
+
+### Features
+
+* **pop_with_seqrun:** Check fastqs transferred ([7408bf6](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/7408bf6fe70af0bbafec8abfb486a089af30605a))
+
+
+### Bug Fixes
+
+* **rsync:** Do not print rsync log in stderr ([b10b82d](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b10b82dfeef237097c1297035e6a2e957c496f04))
+
 ### [2.22.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.22.0...v2.22.1) (2025-04-11)
 
 ### Features
