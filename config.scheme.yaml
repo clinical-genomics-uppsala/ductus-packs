@@ -23,6 +23,12 @@
     type: integer
     default: 300
 
+  transfer_to_storage_wait_time_for_fastq_files:
+    description: time between retries when counting number of transfered fastq-files from instrument to storage 
+    type: integer
+    required: true
+    default: 10
+
   arteria_runfolder_addresses:
     description: list of addresses for arteria-runfolder services
     type: array

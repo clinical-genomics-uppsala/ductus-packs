@@ -118,3 +118,8 @@ parameters:
     required: true
     type: integer
     default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"
+  transfer_to_storage_wait_time_for_fastq_files:
+    required: true
+    type: integer
+    default: "{{ config_context.transfer_to_storage_wait_time_for_fastq_files }}"
+    

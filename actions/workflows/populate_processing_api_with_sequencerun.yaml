@@ -29,6 +29,7 @@ input:
   - sample_update_json_folder_path
   - path_complete_file
   - processing_api_json_update_wait_time_for_fastq_files
+  - transfer_to_storage_wait_time_for_fastq_files
 
 vars:
   - runfolder_host: null
@@ -49,6 +50,7 @@ vars:
   - stderr: null
   - machine_name: null
   - samplesheet_content: null
+  - samplesheet_file_demux: null
 
 tasks:
   setting_runfolder:
@@ -93,7 +95,9 @@ tasks:
       cmd: ls <% ctx(runfolder) %>/SampleSheet.csv || ls <% ctx(runfolder) %>/*/SampleSheet.csv
     next:
       - when: <% succeeded() %>
-        publish: samplesheet_file=<% result().stdout %>
+        publish: 
+          - samplesheet_file: <% result().stdout %>
+          - samplesheet_file_demux: <% result().stdout %>
         do:
           - check_for_runinfo
       - when: <% failed() %>
@@ -404,11 +408,34 @@ tasks:
       - when: <% succeeded %>
         publish: samples=<% result().stdout %>
         do:
-          - create_fastq_update_query
+          - check_number_of_fastqs
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder_name) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  check_number_of_fastqs:
+    join: 1
+    action: core.local
+    delay: 30
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, glob; exit(0) if get_nr_expected_fastqs("<% ctx(samplesheet_file_demux) %>", glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)'
+      timeout: 300
+    retry:
+      when: <% failed() %>
+      count: 36
+      delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
+    next:
+      - when: <% succeeded %>
+        do:
+          - create_fastq_update_query
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_number_of_fastqs -- Could not find the expected number of fastq files for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
