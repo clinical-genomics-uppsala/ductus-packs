@@ -426,7 +426,7 @@ tasks:
       timeout: 300
     retry:
       when: <% failed() %>
-      count: 36
+      count: 60
       delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
     next:
       - when: <% succeeded %>
