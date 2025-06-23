@@ -54,7 +54,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][ARCHIVING][ERROR] - Archive failed, <% ctx(archive_data).run_id %>"
-      body: Archive failed, <% ctx(archive_data).run_id %>, please investigate!!!
+      body: Archive failed, <% ctx(archive_data).run_id %>, please investigate!!! Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -75,4 +75,4 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][ARCHIVING][Done] - Archive done, <% ctx(archive_data).run_id %>"
-      body: Archive done, <% ctx(archive_data).run_id %>
+      body: Archive done, <% ctx(archive_data).run_id %> Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital

@@ -50,7 +50,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Uploading, <% ctx(analysis_file) %>"
-      body: Something went wrong during the upload of analysis <% ctx(analysis_file) %> to processing api, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>
+      body: Something went wrong during the upload of analysis <% ctx(analysis_file) %> to processing api, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - do:
           - fail
