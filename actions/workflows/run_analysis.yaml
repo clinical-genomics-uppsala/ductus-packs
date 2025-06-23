@@ -286,7 +286,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
-      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate. Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Compute
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
     next:
       - when: <% succeeded() %>
         do:
@@ -298,7 +298,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
-      body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>. Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Compute
+      body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
 
 output:
   - stderr: <% ctx(stderr) %>
