@@ -131,7 +131,7 @@ tasks:
       cwd: <% ctx(runfolder) %>
       cmd: mv <% ctx(samplesheet_file)%> <% ctx(samplesheet_file)%>.copy && dos2unix -n <% ctx(samplesheet_file)%>.copy <% ctx(samplesheet_file)%>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         do:
           - get_runfolder_name
       - when: <% failed() %>
@@ -405,7 +405,7 @@ tasks:
     input:
        cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         publish: samples=<% result().stdout %>
         do:
           - check_number_of_fastqs
@@ -429,7 +429,7 @@ tasks:
       count: 60
       delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         do:
           - create_fastq_update_query
       - when: <% failed() %>
@@ -452,7 +452,7 @@ tasks:
       count: 10
       delay: <% ctx(processing_api_json_update_wait_time_for_fastq_files) %>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         publish: fastq_update_file="<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json"
         do:
           - add_fastq_information
