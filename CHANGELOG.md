@@ -1,5 +1,13 @@
 # Changelog
 
+### [2.23.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.23.0...v2.23.1) (2025-06-24)
+
+
+### Bug Fixes
+
+* **transfer fastqs:** Increased retries ([b7f59b9](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/b7f59b9efa44cdd9503ad4152cfe68fe39c2e378))
+* **typo:** Fixed typos ([f75bc4e](https://www.github.com/clinical-genomics-uppsala/ductus-packs/commit/f75bc4e37d15d40fe788443e0b3136082c68ad48))
+
 ## [2.23.0](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.22.1...v2.23.0) (2025-05-07)
 
 
