@@ -139,7 +139,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][ERROR] - Failed processing <% ctx(runfolder) %>"
-      body: Something went wrong during processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+      body: Something went wrong during processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
     next:
       - when: <% succeeded() %>
         do:

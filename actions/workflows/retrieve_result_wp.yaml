@@ -245,7 +245,7 @@ tasks:
       to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][ERROR] - Retrieve, <% ctx(experiment_name) %>"
-      body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: Something went wrong during the retrieval of <% ctx(experiment_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -284,7 +284,7 @@ tasks:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(method) %>][SUCCESS] - Analysis available, <% ctx(experiment_name) %>"
-      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed. \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: The result from analysis of <% ctx(experiment_name) %> can now be accessed. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
 
 output:
   - stderr: "<% ctx(stderr) %>"

@@ -131,7 +131,7 @@ tasks:
       cwd: <% ctx(runfolder) %>
       cmd: mv <% ctx(samplesheet_file)%> <% ctx(samplesheet_file)%>.copy && dos2unix -n <% ctx(samplesheet_file)%>.copy <% ctx(samplesheet_file)%>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         do:
           - get_runfolder_name
       - when: <% failed() %>
@@ -183,7 +183,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Sample sheet , <% ctx(runfolder_name) %>"
-      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: The following content was found in sample sheet <% ctx(samplesheet_file) %>\n <% ctx(samplesheet_content) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -210,7 +210,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][INFO] - Processing stopped for experiment on run, <% ctx(runfolder_name) %>"
-      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: The following run contains one or several experiments that can't be processed, <% ctx(runfolder_name) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %> or <% failed() %>
         do:
@@ -405,7 +405,7 @@ tasks:
     input:
        cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder_name) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         publish: samples=<% result().stdout %>
         do:
           - check_number_of_fastqs
@@ -426,10 +426,10 @@ tasks:
       timeout: 300
     retry:
       when: <% failed() %>
-      count: 36
+      count: 60
       delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         do:
           - create_fastq_update_query
       - when: <% failed() %>
@@ -452,7 +452,7 @@ tasks:
       count: 10
       delay: <% ctx(processing_api_json_update_wait_time_for_fastq_files) %>
     next:
-      - when: <% succeeded %>
+      - when: <% succeeded() %>
         publish: fastq_update_file="<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder_name)%>_update.json"
         do:
           - add_fastq_information
@@ -489,7 +489,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder_name) %>"
-      body: Something went wrong during the population of the processing api with <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: Something went wrong during the population of the processing api with <% ctx(runfolder_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - do:
           - fail
@@ -500,7 +500,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] -  <% ctx(runfolder_name) %>"
-      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %> \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: Couldn't find CompletedJobInfo.xml for <% ctx(runfolder_name) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
@@ -512,7 +512,7 @@ tasks:
       to: <% ctx(mail_bioinfo) %>"
       from: stanley@clinicalgenomics-as.se
       subject: "[DUCTUS][WP][ERROR] - Incorrect machine typ <% ctx(runfolder_name) %>"
-      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed? \n Workflow execution id - <% ctx().st2.action_execution_id %> \n Host - Hospital
+      body: Couldn't parse the machine type from the runfolder name, <% ctx(runfolder_name) %>. New machine or have the folder name been changed? Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %>
         do:
