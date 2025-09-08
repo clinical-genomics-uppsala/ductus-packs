@@ -1,0 +1,12 @@
+---
+
+name: 'poll_status'
+runner_type: 'python-script'
+description: "Poll status from microservice url"
+enabled: true
+entry_point: "poll_status.py"
+parameters:
+  url:
+    type: "string"
+    description: "url to microservice end-point"
+    required: true
