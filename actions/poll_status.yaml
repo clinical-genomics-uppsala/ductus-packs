@@ -29,9 +29,9 @@ parameters:
     type: 'boolean'
     default: false
   sleep:
-    type: "integer"
+    type: 'integer'
     default: 1
   ignore_result:
-    type: "boolean"
+    type: 'boolean'
     default: false
   
