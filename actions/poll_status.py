@@ -15,7 +15,7 @@ from st2common.runners.base_action import Action
 
 class PollStatus(Action):
     """
-    Polls a give micro service URL for current status of some long running process.
+    Polls a given micro service URL for current status of some long running process.
 
     Will check the HTTP server's response to determine whether or not the process has finished
     processing. It expects a JSON field called "state", and will continue to poll the URL
