@@ -10,3 +10,20 @@ parameters:
     type: "string"
     description: "url to microservice end-point"
     required: true
+  body:
+    runscript:
+      type: "string"
+    inbox_path:
+      type: "string"
+    parameters:
+      type: "string"
+  uppmax_api_key:
+    type: "string"
+    default: None
+  verify_ssl_cert:
+    type: "boolean"
+    default: false
+  uppmax_mode:
+    type: "boolean"
+    default: false
+  
