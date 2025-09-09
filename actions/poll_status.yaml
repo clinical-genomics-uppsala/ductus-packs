@@ -12,7 +12,7 @@ parameters:
     required: true
   body:
     type: "string"
-    default: '{"runscript": "", "inbox_path": "", "parameters": ""}''
+    default: '{"runscript": "", "inbox_path": "", "parameters": ""}'
   uppmax_api_key:
     type: "string"
     default: None
