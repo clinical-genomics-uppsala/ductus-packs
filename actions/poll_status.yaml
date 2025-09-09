@@ -11,8 +11,8 @@ parameters:
     description: 'url to microservice end-point'
     required: true
   body:
-    type: 'string'
-    default: '{"runscript": "", "inbox_path": "", "parameters": ""}'
+    type: 'object'
+    default: '{}'
   uppmax_api_key:
     type: 'string'
     default: None
