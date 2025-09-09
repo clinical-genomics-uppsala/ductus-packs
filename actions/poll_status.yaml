@@ -2,30 +2,30 @@
 
 name: 'poll_status'
 runner_type: 'python-script'
-description: "Poll status from microservice url"
+description: 'Poll status from microservice url'
 enabled: true
-entry_point: "poll_status.py"
+entry_point: 'poll_status.py'
 parameters:
   url:
-    type: "string"
-    description: "url to microservice end-point"
+    type: 'string'
+    description: 'url to microservice end-point'
     required: true
   body:
-    type: "string"
+    type: 'string'
     default: '{"runscript": "", "inbox_path": "", "parameters": ""}'
   uppmax_api_key:
-    type: "string"
+    type: 'string'
     default: None
   verify_ssl_cert:
-    type: "boolean"
+    type: 'boolean'
     default: false
   uppmax_mode:
-    type: "boolean"
+    type: 'boolean'
     default: false
   sleep:
-    type: "integer"
+    type: 'integer'
     default: 1
   ignore_result:
-    type: "boolean"
+    type: 'boolean'
     default: false
   
