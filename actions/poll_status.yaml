@@ -22,4 +22,10 @@ parameters:
   uppmax_mode:
     type: "boolean"
     default: false
+  sleep:
+    type: "integer"
+    default: 1
+  ignore_result:
+    type: "boolean"
+    default: false
   
