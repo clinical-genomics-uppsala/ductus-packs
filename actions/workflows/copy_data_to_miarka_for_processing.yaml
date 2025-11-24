@@ -102,7 +102,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - create_transfer_complete_file
+          - transfer_staging_dir
       - when: <% failed() %>
         publish:
           - stderr: "run_analysis failed"
@@ -128,9 +128,10 @@ tasks:
         do:
           - transfer_staging_dir
 
-          
+#set join here instead to guarantee json created before transf.          
   transfer_staging_dir:
      action: core.local
+     join: all
      input:
        cwd: <% ctx(hospital_transfer_staging_path) %>
 #       cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
@@ -148,7 +149,6 @@ tasks:
 
   create_transfer_complete_file:
     action: core.local
-    join: all
     input:
       cwd: <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %> 
       cmd: echo "`date`" > Done.txt;
