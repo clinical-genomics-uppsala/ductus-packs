@@ -46,15 +46,19 @@ parameters:
   miarka_transfer_to_host:
     required: true
     type: string
-    default: "{{ config_context.preprocess_transfer_ip }}"
+    default: "{{ config_context.miarka_transfer_to_host }}"
   miarka_transfer_key:
     required: true
     type: string
-    default: "{{ config_context.preprocess_transfer_key }}"
+    default: "{{ config_context.miarka_transfer_key }}"
   miarka_transfer_user:
     required: true
     type: string
-    default: "{{ config_context.preprocess_transfer_user }}"
+    default: "{{ config_context.miarka_transfer_user }}"
+  hospital_transfer_staging_path:
+    required: true
+    type: string
+    default: "{{ config_context.hospital_transfer_staging_path }}"
   mail_bioinfo:
     required: true
     type: string
