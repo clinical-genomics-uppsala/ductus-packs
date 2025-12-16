@@ -128,14 +128,15 @@ tasks:
         do:
           - transfer_staging_dir
 
-#set join here instead to guarantee json created before transf.          
+#set join here instead to guarantee json created before transf.
   transfer_staging_dir:
      action: core.local
      join: all
      input:
        cwd: <% ctx(hospital_transfer_staging_path) %>
 #       cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
-       cmd:  <% ctx(dev_or_prod) = 'prod' ?  "rsync -crR -e 'ssh -i " + ctx(miarka_transfer_key) + "' ./." + ctx(upload_path) + " " + ctx(miarka_transfer_user) + "@" + ctx(miarka_transfer_to_host) + ":" : "rsync -crR " + "./." + ctx(upload_path) + " " + ctx(hospital_dev_miarka_spoof) %>
+       # TODO:Convert to using rsync script above, but need to add support for realtive path (-R)?
+       cmd:  "rsync -crR -e 'ssh -i <% ctx(miarka_transfer_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:"
      next:
        - when: <% failed() %>
          publish:
@@ -167,7 +168,7 @@ tasks:
      action: core.local
      input:
        cwd: <% ctx(hospital_transfer_staging_path) %>
-       cmd:  <% ctx(dev_or_prod) = 'prod' ?  "rsync -crR -e 'ssh -i " + ctx(miarka_transfer_key) + "' ./." + ctx(upload_path) + "/Done.txt " + ctx(miarka_transfer_user) + "@" + ctx(miarka_transfer_to_host) + ":" + ctx(upload_path) : "rsync -crR " + "./." + ctx(upload_path) + "/Done.txt " + ctx(hospital_dev_miarka_spoof) + ctx(upload_path) %>
+       cmd:  "rsync -crR -e 'ssh -i <% ctx(miarka_transfer_key) %>' ./.<% ctx(upload_path) %>/Done.txt <% ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:" #+ ctx(upload_path) not needed?
      next:
        - when: <% failed() %>
          publish:
