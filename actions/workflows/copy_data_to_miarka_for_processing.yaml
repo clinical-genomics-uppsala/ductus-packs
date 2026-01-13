@@ -58,25 +58,6 @@ tasks:
         do:
           - bioinfo_error_notifier
   
-#  create_analysis_folder:
-#    join: all
-#    action: core.remote
-#    input:
-#      username: <% ctx(transfer_user) %>
-#      private_key: <% ctx(transfer_key) %>
-#      cmd: mkdir -p <% ctx(upload_path) %>/fastq
-#      hosts: <% ctx(transfer_to_host) %>
-#    next:
-#      - when: <% succeeded() %>
-#        do:
-#         - transfer_fastq_file
-#         - create_json_file
-#      - when: <% failed() %>
-#        publish:
-#          - stderr: <% result() %>
-#          - failed_step: "create_analysis_folder  -- Could not create folder on <% ctx(upload_path) %>/fastq"
-#        do:
-#         - bioinfo_error_notifier
 
   create_staging_folder:
     join: all
@@ -105,7 +86,7 @@ tasks:
           - transfer_staging_dir
       - when: <% failed() %>
         publish:
-          - stderr: "run_analysis failed"
+          - stderr: <% result() %>
           - failed_step: "create_json_file -- Couldn't create json file in <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier
@@ -115,7 +96,6 @@ tasks:
       items: <% ctx(fastq_files) %>
     action: core.local
     input:
-      #cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
       cmd: "ln -s -t <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
     next:
       - when: <% failed() %>
