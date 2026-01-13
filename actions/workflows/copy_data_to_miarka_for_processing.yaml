@@ -82,7 +82,6 @@ tasks:
     join: all
     action: core.local
     input:
-      #Editing path with sed to adapt marvin path in API to remote cluster staging file tree
       cmd: "mkdir -p  <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>/fastq"
     next:
       - when: <% succeeded() %>
