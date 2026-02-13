@@ -1,0 +1,20 @@
+---
+  class_name: "DemultiplexingProcessingApiSensor"
+  entry_point: "demultiplexing_processing_api_sensor.py"
+  description: "Sensor which queries processing api for new sequence runs to demultiplex"
+  poll_interval: 15 # Every 15 s
+  trigger_types:
+    -
+      name: "demultiplexing_processing_api"
+      description: "Trigger which indicates that a sequence run to demultiplex is available"
+      payload_schema:
+        type: "object"
+        properties:
+         sequencerun_id:
+           type: "string"
+         demultiplex_location:
+           type: "string"
+         event:
+           type: "string"
+         timestamp:
+           type: "string"

@@ -171,6 +171,12 @@
     required: true
     default: "api/sequencerun/archive/next/"  
 
+  processing_api_demultiplexing_next_url:
+    description: fetch next sequence run that can be demultiplexed
+    type: string
+    required: true
+    default: "api/v1/sequencerun/demultiplex/next"
+
   processing_api_sequence_run_archive_status_url:
     description: update archive status for a sequence run
     type: string

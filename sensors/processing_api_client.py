@@ -1,5 +1,4 @@
 import requests
-from requests.auth import HTTPBasicAuth
 import jsonpickle
 
 
@@ -18,7 +17,7 @@ class ProcessingApiClient():
         self._logger = logger
 
     def next_ready(self):
-        """Pulls analysis from processing api..
+        """Pulls analysis from processing api.
            Hosts are queried in the order specified in the constructor."""
         for host in self._hosts:
             # TODO: Add packs id to log in a generic way
@@ -26,7 +25,10 @@ class ProcessingApiClient():
             url = host
             try:
                 resp = requests.get(url, headers={"Authorization": self.api_key})
-                if resp.status_code != 200:
+                if resp.status_code == 204:
+                    self._logger.info("ProcessingApiClient: No data available from "
+                                      "endpoint {0}".format(url))
+                elif resp.status_code != 200:
                     self._logger.error("ProcessingApiClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))
                 else:
