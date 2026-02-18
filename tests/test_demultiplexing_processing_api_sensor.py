@@ -27,12 +27,12 @@ class DemultiplexingProcessingApiSensorTestCase(BaseSensorTestCase):
         """Test that a trigger is dispatched for instrument demultiplexing"""
         contexts = self._setup_and_poll(
             mock_get, 200,
-            '{"sequencerun_id": "231103_LH01573_14_AAC7KTKHV", "demultiplex_location": "DI"}'
+            '{"sequence_run": "231103_LH01573_14_AAC7KTKHV", "demultiplex_location": "DI"}'
         )
 
         self.assertGreater(len(contexts), 0)
         self.assertEqual(contexts[0]['trigger'], 'ductus.demultiplexing_processing_api')
-        self.assertEqual(contexts[0]['payload']['sequencerun_id'], '231103_LH01573_14_AAC7KTKHV')
+        self.assertEqual(contexts[0]['payload']['sequence_run'], '231103_LH01573_14_AAC7KTKHV')
         self.assertEqual(contexts[0]['payload']['demultiplex_location'], 'DI')
         self.assertEqual(contexts[0]['payload']['event'], 'demultiplexing_waiting')
         self.assertIn('timestamp', contexts[0]['payload'])
@@ -42,12 +42,12 @@ class DemultiplexingProcessingApiSensorTestCase(BaseSensorTestCase):
         """Test that a trigger is dispatched for server demultiplexing"""
         contexts = self._setup_and_poll(
             mock_get, 200,
-            '{"sequencerun_id": "231103_LH01573_15_BBC7KTKHV", "demultiplex_location": "DS"}'
+            '{"sequence_run": "231103_LH01573_15_BBC7KTKHV", "demultiplex_location": "DS"}'
         )
 
         self.assertGreater(len(contexts), 0)
         self.assertEqual(contexts[0]['trigger'], 'ductus.demultiplexing_processing_api')
-        self.assertEqual(contexts[0]['payload']['sequencerun_id'], '231103_LH01573_15_BBC7KTKHV')
+        self.assertEqual(contexts[0]['payload']['sequence_run'], '231103_LH01573_15_BBC7KTKHV')
         self.assertEqual(contexts[0]['payload']['demultiplex_location'], 'DS')
         self.assertEqual(contexts[0]['payload']['event'], 'demultiplexing_waiting')
         self.assertIn('timestamp', contexts[0]['payload'])
