@@ -10,7 +10,7 @@
       payload_schema:
         type: "object"
         properties:
-         sequencerun_id:
+         sequence_run:
            type: "string"
          demultiplex_location:
            type: "string"
