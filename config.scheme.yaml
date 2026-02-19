@@ -155,7 +155,7 @@
     description: url for geting samples or sample
     type: string
     required: true
-    default: "api/sequencerun/list/"    
+    default: "api/sequencerun/list/"
 
   # Update file using primary key for file, status (IDLE, COPYING, UPDATING) and archived (True, False) can be updated 
   processing_api_sequence_run_update_url:
@@ -169,7 +169,7 @@
     description: fetch next sequence run that can be archived
     type: string
     required: true
-    default: "api/sequencerun/archive/next/"  
+    default: "api/sequencerun/archive/next/"
 
   processing_api_demultiplexing_next_url:
     description: fetch next sequence run that can be demultiplexed
@@ -181,14 +181,20 @@
     description: update archive status for a sequence run
     type: string
     required: true
-    default: "api/sequencerun/archive/update/status/"  
+    default: "api/v1/sequencerun/archive/update/status/"
 
   # Upload new sequence run originating from a Illumina machine
   processing_api_sequence_run_upload_illumina_url:
     description: upload new sequence run originating from a Illumina machine
     type: string
     required: true
-    default: "api/sequencerun/upload/illumina/"
+    default: "api/v1/sequencerun/upload/illumina/"
+
+  processing_api_lanes_to_demultiplex_url:
+    description: fetch lanes that will be demultiplexced on server
+    type: string
+    required: true
+    default: "api/v1/sequencerun/lanes-demultiplex-server/"
   
   processing_api_list_sample_fastq_url:
     description: list fastq file belonging to a sequenced sample

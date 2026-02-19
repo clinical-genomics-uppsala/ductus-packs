@@ -1,0 +1,104 @@
+---
+name: demultiplex_on_server
+description: >
+  demultiplex a sequence run on one of our servers
+enabled: true
+runner_type: orquesta
+entry_point: workflows/demultiplex_on_server.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.demultiplex_on_server
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  inbox_runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_service_address }}"
+  inbox_runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_service_port }}"
+  inbox_runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.inbox_runfolder_api_version }}"
+  workspace_runfolder_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_service_address }}"
+  workspace_runfolder_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_service_port }}"
+  workspace_runfolder_api_version:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_runfolder_api_version }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  demultiplexing_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_address }}"
+  demultiplexing_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_port }}"
+  demultiplexing_output_folder:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_output_folder }}"
+  demultiplexing_num_retry:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_num_retry }}"
+  demultiplexing_delay:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_delay }}"
+  possible_runfolder_locations:
+    required: true
+    type: array
+    default: "{{ config_context.possible_runfolder_locations }}"
+  processing_api_samples_list_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_samples_list_url }}"
+  processing_api_samples_update_fastq_json_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_samples_update_fastq_json_url }}"
+  processing_api_json_update_wait_time_for_fastq_files:
+    required: true
+    type: integer
+    default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"
+  processing_api_lanes_to_demultiplex_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_lanes_to_demultiplex_url }}"
+  sample_update_json_folder_path:
+    required: true
+    type: string
+    default: "{{ config_context.sample_update_json_folder_path }}"
+  transfer_to_storage_wait_time_for_fastq_files:
+    required: true
+    type: integer
+    default: "{{ config_context.transfer_to_storage_wait_time_for_fastq_files }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

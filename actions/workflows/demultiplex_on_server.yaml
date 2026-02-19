@@ -1,0 +1,364 @@
+version: "1.0" # Orquest version
+
+description: Will initiate demultiplexing of a runfolder on an instrument and populate processing api with generated fastq files.
+
+input:
+    - runfolder
+    - inbox_runfolder_host
+    - inbox_runfolder_host_port
+    - inbox_runfolder_api_version
+    - workspace_runfolder_host
+    - workspace_runfolder_host_port
+    - workspace_runfolder_api_version
+    - processing_api_access_key
+    - processing_api_service_url
+    - demultiplexing_host
+    - demultiplexing_host_port
+    - demultiplexing_output_folder
+    - demultiplexing_num_retry
+    - demultiplexing_delay
+    - possible_runfolder_locations
+    - processing_api_samples_list_url
+    - processing_api_samples_update_fastq_json_url
+    - processing_api_json_update_wait_time_for_fastq_files
+    - processing_api_lanes_to_demultiplex_url
+    - sample_update_json_folder_path
+    - transfer_to_storage_wait_time_for_fastq_files
+    - mail_bioinfo
+
+vars:
+  - demultiplexing_id: null
+  - fastq_files_path: null
+  - fastq_update_file: null
+  - failed_step: null
+  - ignored_samples: null
+  - lanes_to_demultiplex: null
+  - runfolder_api_version: null
+  - runfolder_host: null
+  - runfolder_host_port: null
+  - runfolder_path: null
+  - runinfo_file: null
+  - samples: null
+  - samplesheet_file_demux: null
+  - stderr: "ERROR"
+
+tasks:
+  process_server_demultiplexed_data:
+    action: core.local
+    input:
+      cmd: echo "Processing demultiplexed data <% ctx(runfolder) %>"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - find_runfolder_location
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "process_instrument_demultiplexed_data  -- <% result() %>"
+        do:
+          - bioinfo_error_notifier
+
+  find_runfolder_location:
+    action: core.local
+    input:
+      cmd: find <% ctx(possible_runfolder_locations).join(" ") %> -maxdepth 1 -name "<% ctx(runfolder) %>" -type d | grep .
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - runfolder_path: <% result().stdout %>
+        do:
+          - setting_runfolder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "find_runfolder_location  -- Couldn't locate a path to <% ctx(runfolder) %>, <% result() %>"
+        do:
+          - bioinfo_error_notifier
+
+  setting_runfolder:
+    action: core.local
+    input:
+      cmd: echo <% ctx(runfolder_path) %> | grep -oP '(inbox|workarea)'
+    next:
+      - when: <% succeeded() and 'inbox' in result().stdout and not 'workarea' in result().stdout %>
+        publish:
+          - runfolder_host: <% ctx(inbox_runfolder_host) %>
+          - runfolder_host_port: <% ctx(inbox_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
+        do:
+          - mark_as_started
+      - when: <% succeeded() and 'workarea' in result().stdout %>
+        publish:
+          - runfolder_host: <% ctx(workspace_runfolder_host) %>
+          - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
+          - runfolder_api_version: <% ctx(workspace_runfolder_api_version) %>
+        do: 
+          - mark_as_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "setting_runfolder -- Could not determine service from path <% ctx(runfolder_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  mark_as_started:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      body: '{"state": "started"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - get_lanes_to_demultiplex
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: 'mark_as_started_processing -- Could not mark <% ctx(runfolder_path) %> with processing started'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  get_lanes_to_demultiplex:
+    action: core.local
+    input:
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_lanes_to_demultiplex_url) %><% ctx(runfolder) %>/?demus_status=SR' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - lanes_to_demultiplex: <% result().stdout %>
+        do:
+          - demultiplex_on_server
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_lanes_to_demultiplex -- Could not fetch lanes to demultiplex for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+
+  demultiplex_on_server:
+    action: core.local
+    input:
+      cmd: >
+        curl -X POST --data '{"additional_args":"", "lanes": "<% ctx(lanes_to_demultiplex) %>", "output": "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder) %>"}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/start/<% ctx(runfolder) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - demultiplexing_id: <% result().stdout %>
+        do:
+          - wait_for_demultiplexing_on_server
+      - when: <% failed() %>
+        publish:
+          - stderr: "Demultplexing failed"
+          - failed_step: "demultiplex -- failed demultiplexing on  <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  wait_for_demultiplexing_on_server:
+    action: core.local
+    input:
+      cmd: >
+        curl http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/status/<% ctx(demultiplexing_id) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); exit(0) if result["state"] == "done" else exit(1)'
+    retry:
+      count: <% ctx(demultiplexing_num_retry) %>
+      delay: <% ctx(demultiplexing_delay) %>
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - fastq_files_path: "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder) %>"
+        do:
+          - check_for_samplesheet
+      - when: <% failed() %>
+        publish:
+          - stderr: "Demultplexing failed"
+          - failed_step: "demultiplex -- failed demultiplexing on  <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  check_for_samplesheet:
+    action: core.local
+    input:
+      cmd: ls <% ctx(runfolder_path) %>/SampleSheet.csv || ls <% ctx(runfolder_path) %>/*/SampleSheet.csv
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - samplesheet_file_demux: <% result().stdout %>
+        do:
+          - check_for_runinfo
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_for_samplesheet  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder_path) %>, <% result() %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  check_for_runinfo:
+    action: core.local
+    input:
+      cmd: ls <% ctx(runfolder_path) %>/RunInfo.xml || ls <% ctx(runfolder_path) %>/*/RunInfo.xml
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - runinfo_file: <% result().stdout %>
+        do:
+          - get_samples
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_for_runinfo  -- Couldn't locate a RunInfo.xml file in folder <% ctx(runfolder_path) %>, <% result() %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  get_samples:
+    action: core.local
+    input:
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>server/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - samples: <% result().stdout %>
+        do:
+          - get_ignored_samples
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  get_ignored_samples:
+    action: core.local
+    input:
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>instrument/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - ignored_samples: <% result().stdout %>
+        do:
+          - check_number_of_fastqs
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_ignored_samples -- Could not fetch ignore samples for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed          
+
+  check_number_of_fastqs:
+    action: core.local
+    delay: 30
+    input:
+      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, glob; exit(0) if get_nr_expected_fastqs("<% ctx(samplesheet_file_demux) %>", glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)'
+      timeout: 300
+    retry:
+      when: <% failed() %>
+      count: 60
+      delay: <% ctx(transfer_to_storage_wait_time_for_fastq_files) %>
+    next:
+      - when: <% succeeded() %>
+        do:
+          - create_fastq_update_query
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_number_of_fastqs -- Could not find the expected number of fastq files for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  create_fastq_update_query:
+    action: core.local
+    delay: 30
+    input:
+      cmd: >-
+        python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True), force_paired_sequence_files=True, ignore_samples=json.loads(sys.argv[2].replace(chr(39),chr(34)))))))' "<% ctx(samples) %>" "<% ctx(ignored_samples) %>" > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_server_update.json
+      timeout: 300
+    retry:
+      when: <% failed() %>
+      count: 10
+      delay: <% ctx(processing_api_json_update_wait_time_for_fastq_files) %>
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - fastq_update_file: "<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_server_update.json"
+        do:
+          - add_fastq_information
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "create_fastq_update_query -- Could not create update query for <% ctx(runfolder) %> to update fastq information"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+    
+  add_fastq_information:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X POST -F 'update_json=@<% ctx(fastq_update_file) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_update_fastq_json_url) %>); echo $status; [ $status -eq '200' ]"
+    retry:
+      delay: 10
+      count: 5
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "add_fastq_information -- Could not add fastq information to processing api for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+      - when: <% succeeded() %>
+        do: 
+          - archive_sav_files
+
+  archive_sav_files:
+    action: ductus.archive_interop_files
+    input:
+      runinfo_file_path: <% ctx(runinfo_file) %>
+      folder_suffix: "_server_demultiplexed"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - mark_as_done
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(runfolder) %>"
+      body: Something went wrong during the population of the processing api with <% ctx(runfolder) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
+    next:
+      - do:
+          - fail
+
+  mark_as_done:
+    action: core.http
+    input:
+      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      body: '{"state": "done"}'
+      method: "POST"
+
+  mark_as_failed:
+    action: core.http
+    input:
+      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      body: '{"state": "error"}'
+      method: "POST"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
