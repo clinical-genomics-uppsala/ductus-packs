@@ -1,0 +1,24 @@
+---
+name: demultiplex_on_server
+description: >
+  demultiplex a sequence run on one of our servers
+enabled: true
+runner_type: orquesta
+entry_point: workflows/demultiplex_on_server.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.demultiplex_on_server
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

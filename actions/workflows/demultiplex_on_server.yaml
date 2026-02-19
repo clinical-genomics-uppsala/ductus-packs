@@ -1,0 +1,36 @@
+version: "1.0" # Orquest version
+
+description: Will initiate demultiplexing of a runfolder on an instrument and populate processing api with generated fastq files.
+
+input:
+    - runfolder
+    - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: "ERROR"
+
+tasks:
+  print_runfolder:
+    action: core.local
+    input:
+      cmd: echo "<% ctx(runfolder) %>"
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "print_runfolder -- couldn't print string"
+        do:
+          - bioinfo_error_notifier
+    
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][ERROR] - Failed processing <% ctx(runfolder) %>"
+      body: Something went wrong during processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail

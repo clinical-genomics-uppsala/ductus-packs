@@ -53,7 +53,7 @@ class DemultiplexingProcessingApiSensor(PollingSensor):
             'event': 'demultiplexing_waiting',
             'timestamp': datetime.now(timezone.utc).isoformat(),
         }
-        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=demultiplexing_data['sequencerun_id'])
+        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=demultiplexing_data['sequence_run'])
 
     def _infolog(self, msg):
         self._logger.info("[ductus-packs." + self.__class__.__name__ + "] " + msg)
