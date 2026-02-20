@@ -24,9 +24,12 @@ input:
     - mail_bioinfo
 
 vars:
+  - attempt: 1
+  - max_attempts: 2
   - fastq_files_path: null
   - fastq_update_file: null
   - failed_step: null
+  - ignored_samples: null
   - runfolder_api_version: null
   - runfolder_host: null
   - runfolder_host_port: null
@@ -37,23 +40,43 @@ vars:
   - stderr: "ERROR"
 
 tasks:
+  process_instrument_demultiplexed_data:
+    action: core.local
+    input:
+      cmd: echo "Processing demultiplexed data <% ctx(runfolder) %>"
+    next:
+      - when: <% succeeded() %>
+        do:
+          - find_runfolder_location
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "process_instrument_demultiplexed_data  -- <% result() %>"
+        do:
+          - bioinfo_error_notifier
+
   find_runfolder_location:
     action: core.local
     input:
-      cmd: find <% ctx(possible_runfolder_locations).join(" ") %> -maxdepth 1 -name "<% ctx(runfolder) %>" -type d | grep .
+      cmd: find <% ctx(possible_runfolder_locations).join(" ") %> -maxdepth <% ctx(attempt) %> -name "<% ctx(runfolder) %>" -type d | grep .
     next:
       - when: <% succeeded() %>
         publish:
           - runfolder_path: <% result().stdout %>
         do:
           - setting_runfolder
-      - when: <% failed() %>
+      - when: <% failed() and ctx(attempt) >= ctx(max_attempts) %>
         publish:
           - runfolder_path: <% ctx(runfolder_path) %>
           - stderr: <% result() %>
           - failed_step: "find_runfolder_location  -- Couldn't locate a path to <% ctx(runfolder) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
+      - when: <% failed() and ctx(attempt) < ctx(max_attempts) %>
+        publish:
+          - attempt: <% ctx(attempt) + 1 %>
+        do: 
+          - find_runfolder_location
 
   setting_runfolder:
     action: core.local
@@ -67,7 +90,7 @@ tasks:
           - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
         do:
           - check_for_samplesheet
-      - when: <% succeeded() and 'workspace' in result().stdout %>
+      - when: <% succeeded() and 'workarea' in result().stdout %>
         publish:
           - runfolder_host: <% ctx(workspace_runfolder_host) %>
           - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
@@ -188,13 +211,13 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder) %> | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=IR' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
           - samples: <% result().stdout %>
         do:
-          - check_number_of_fastqs
+          - get_ignored_samples
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -202,6 +225,24 @@ tasks:
         do:
           - bioinfo_error_notifier
           - mark_as_failed
+
+  get_ignored_samples:
+    action: core.local
+    input:
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=SR' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - ignored_samples: <% result().stdout %>
+        do:
+          - check_number_of_fastqs
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_ignored_samples -- Could not fetch ignore samples for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed          
 
   check_number_of_fastqs:
     join: 1
@@ -231,7 +272,8 @@ tasks:
     action: core.local
     delay: 30
     input:
-      cmd:  echo "<% ctx(samples) %>" | sed 's/\x27/"/g' | python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.stdin.read()), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True), force_paired_sequence_files=True))))' > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_update.json
+      cmd: >-
+        python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True), force_paired_sequence_files=True, ignore_samples=json.loads(sys.argv[2].replace(chr(39),chr(34)))))))' "<% ctx(samples) %>" "<% ctx(ignored_samples) %>" > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_update.json
       timeout: 300
     retry:
       when: <% failed() %>
