@@ -179,7 +179,6 @@ tasks:
           - mark_as_failed
 
   wait_for_demultiplexing_on_instrument:
-    join: 1
     action: core.local
     input:
       cmd: ls <% ctx(complete_job_file_path) %>
@@ -245,7 +244,6 @@ tasks:
           - mark_as_failed          
 
   check_number_of_fastqs:
-    join: 1
     action: core.local
     delay: 30
     input:
@@ -268,7 +266,6 @@ tasks:
           - mark_as_failed
 
   create_fastq_update_query:
-    join: 1
     action: core.local
     delay: 30
     input:
