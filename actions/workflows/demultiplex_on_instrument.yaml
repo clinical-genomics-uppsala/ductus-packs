@@ -254,7 +254,7 @@ tasks:
     delay: 30
     input:
       cmd: >-
-        python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True), force_paired_sequence_files=True, ignore_samples=json.loads(sys.argv[2].replace(chr(39),chr(34)))))))' "<% ctx(samples) %>" "<% ctx(ignored_samples) %>" > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_update.json
+        python3 -c 'from ductus.tools.utils import create_json_update_fastq, combine_files_with_samples; import sys, json, glob; print(json.dumps(create_json_update_fastq(combine_files_with_samples(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True), force_paired_sequence_files=True, ignore_samples=json.loads(sys.argv[2].replace(chr(39),chr(34)))))))' "<% ctx(samples) %>" "<% ctx(ignored_samples) %>" > <% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_instrument_update.json
       timeout: 300
     retry:
       when: <% failed() %>
@@ -263,7 +263,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - fastq_update_file: "<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_update.json"
+          - fastq_update_file: "<% ctx(sample_update_json_folder_path)%>/<% ctx(runfolder)%>_instrument_update.json"
         do:
           - add_fastq_information
       - when: <% failed() %>
