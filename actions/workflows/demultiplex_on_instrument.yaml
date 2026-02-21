@@ -187,25 +187,9 @@ tasks:
       delay: <% ctx(demultiplexing_delay) %>
     next:
       - when: <% succeeded() %>
-        do: archive_sav_files
+        do: get_samples
       - when: <% failed() %>
         do: completed_job_file_missing
-          
-  archive_sav_files:
-    action: ductus.archive_interop_files
-    input:
-      runinfo_file_path: <% ctx(runinfo_file) %>
-    next:
-      - when: <% succeeded() %>
-        do:
-          - get_samples
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result() %>
-          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_path) %>"
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
         
   get_samples:
     action: core.local

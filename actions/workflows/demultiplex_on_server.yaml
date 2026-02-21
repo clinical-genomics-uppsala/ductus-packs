@@ -67,7 +67,6 @@ tasks:
           - setting_runfolder
       - when: <% failed() %>
         publish:
-          - runfolder_path: <% ctx(runfolder_path) %>
           - stderr: <% result() %>
           - failed_step: "find_runfolder_location  -- Couldn't locate a path to <% ctx(runfolder) %>, <% result() %>"
         do:
