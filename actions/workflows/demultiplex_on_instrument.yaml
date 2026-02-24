@@ -183,8 +183,8 @@ tasks:
     input:
       cmd: ls <% ctx(complete_job_file_path) %>
     retry:
-      count: <% int(ctx(demultiplexing_num_retry)) %>
-      delay: <% int(ctx(demultiplexing_delay)) %>
+      count: <% ctx(demultiplexing_num_retry) %>
+      delay: <% ctx(demultiplexing_delay) %>
     next:
       - when: <% succeeded() %>
         do: get_samples

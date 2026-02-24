@@ -16,12 +16,12 @@
     type: string
   demultiplexing_num_retry:
     required: true
-    type: string
-    default: "24"
+    type: integer
+    default: 24
   demultiplexing_delay:
     required: true
-    type: string
-    default: "300"
+    type: integer
+    default: 300
 
   transfer_to_storage_wait_time_for_fastq_files:
     description: time between retries when counting number of transfered fastq-files from instrument to storage 

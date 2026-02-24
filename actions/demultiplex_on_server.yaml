@@ -18,26 +18,6 @@ parameters:
   runfolder:
     required: true
     type: string
-  demultiplexing_host:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_demultiplexing_service_address }}"
-  demultiplexing_host_port:
-    required: true
-    type: string
-    default: "{{ config_context.workspace_demultiplexing_service_port }}"
-  demultiplexing_output_folder:
-    required: true
-    type: string
-    default: "{{ config_context.demultiplexing_output_folder }}"
-  demultiplexing_num_retry:
-    required: true
-    type: string
-    default: "{{ config_context.demultiplexing_num_retry }}"
-  demultiplexing_delay:
-    required: true
-    type: string
-    default: "{{ config_context.demultiplexing_delay }}"
   inbox_runfolder_host:
     required: true
     type: string
@@ -70,6 +50,26 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_service_url }}"
+  demultiplexing_host:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_address }}"
+  demultiplexing_host_port:
+    required: true
+    type: string
+    default: "{{ config_context.workspace_demultiplexing_service_port }}"
+  demultiplexing_output_folder:
+    required: true
+    type: string
+    default: "{{ config_context.demultiplexing_output_folder }}"
+  demultiplexing_num_retry:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_num_retry }}"
+  demultiplexing_delay:
+    required: true
+    type: integer
+    default: "{{ config_context.demultiplexing_delay }}"
   possible_runfolder_locations:
     required: true
     type: array
@@ -82,9 +82,9 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_samples_update_fastq_json_url }}"
-  processing_api_json_upwdate_ait_time_for_fastq_files:
+  processing_api_json_update_wait_time_for_fastq_files:
     required: true
-    type: integer
+    type: string
     default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"
   processing_api_lanes_to_demultiplex_url:
     required: true

@@ -4,11 +4,6 @@ description: Will initiate demultiplexing of a runfolder on an instrument and po
 
 input:
     - runfolder
-    - demultiplexing_host
-    - demultiplexing_host_port
-    - demultiplexing_output_folder
-    - demultiplexing_num_retry
-    - demultiplexing_delay
     - inbox_runfolder_host
     - inbox_runfolder_host_port
     - inbox_runfolder_api_version
@@ -17,10 +12,15 @@ input:
     - workspace_runfolder_api_version
     - processing_api_access_key
     - processing_api_service_url
+    - demultiplexing_host
+    - demultiplexing_host_port
+    - demultiplexing_output_folder
+    - demultiplexing_num_retry
+    - demultiplexing_delay
     - possible_runfolder_locations
     - processing_api_samples_list_url
     - processing_api_samples_update_fastq_json_url
-    - processing_apion__jsupdate_wait_time_for_fastq_files
+    - processing_api_json_update_wait_time_for_fastq_files
     - processing_api_lanes_to_demultiplex_url
     - sample_update_json_folder_path
     - transfer_to_storage_wait_time_for_fastq_files
@@ -163,8 +163,8 @@ tasks:
       cmd: >
         curl http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/status/<% ctx(demultiplexing_id) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); exit(0) if result["state"] == "done" else exit(1)'
     retry:
-      count: <% int(ctx(demultiplexing_num_retry)) %>
-      delay: <% int(ctx(demultiplexing_delay)) %>
+      count: <% ctx(demultiplexing_num_retry) %>
+      delay: <% ctx(demultiplexing_delay) %>
     next:
       - when: <% succeeded() %>
         publish:
