@@ -189,6 +189,12 @@
     type: string
     required: true
     default: "api/sequencerun/upload/illumina/"
+
+  processing_api_lanes_to_demultiplex_url:
+    description: fetch lanes that will be demultiplexced on server
+    type: string
+    required: true
+    default: "sequencerun/lanes-demultiplex-server/"
   
   processing_api_list_sample_fastq_url:
     description: list fastq file belonging to a sequenced sample

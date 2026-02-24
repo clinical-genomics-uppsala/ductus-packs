@@ -32,7 +32,7 @@ parameters:
     default: "{{ config_context.demultiplexing_output_folder }}"
   demultiplexing_num_retry:
     required: true
-    type: integer
+    type: string
     default: "{{ config_context.demultiplexing_num_retry }}"
   demultiplexing_delay:
     required: true
@@ -82,14 +82,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_samples_update_fastq_json_url }}"
-  processing_api_json_update_wait_time_for_fastq_files:
+  processing_api_json_upwdate_ait_time_for_fastq_files:
     required: true
     type: integer
     default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"
-  processing_lanes_to_demultiplex_url:
+  processing_api_lanes_to_demultiplex_url:
     required: true
     type: string
-    default: "{{ config_context.processing_lanes_to_demultiplex_url }}"
+    default: "{{ config_context.processing_api_lanes_to_demultiplex_url }}"
   sample_update_json_folder_path:
     required: true
     type: string

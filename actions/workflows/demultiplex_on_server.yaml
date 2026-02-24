@@ -20,7 +20,7 @@ input:
     - possible_runfolder_locations
     - processing_api_samples_list_url
     - processing_api_samples_update_fastq_json_url
-    - processing_api_json_update_wait_time_for_fastq_files
+    - processing_apion__jsupdate_wait_time_for_fastq_files
     - processing_api_lanes_to_demultiplex_url
     - sample_update_json_folder_path
     - transfer_to_storage_wait_time_for_fastq_files
@@ -110,7 +110,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - demultiplex_on_server
+          - get_lanes_to_demultiplex
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -122,7 +122,7 @@ tasks:
   get_lanes_to_demultiplex:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_lanes_to_demultiplex_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=SR' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_lanes_to_demultiplex_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=SR' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -132,7 +132,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder) %>"
+          - failed_step: "get_lanes_to_demultiplex -- Could not fetch lanes to demultiplex for <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -329,7 +329,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(ru  nfolder) %>"
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
