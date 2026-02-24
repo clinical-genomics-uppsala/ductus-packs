@@ -29,3 +29,7 @@ parameters:
     required: true
     type: object
     default: "{{ config_context.sav_machine_type_fold_and_extra_files }}"
+  folder_suffix:
+    required: true
+    type: string
+    default: ""

@@ -276,24 +276,10 @@ tasks:
       - when: <% succeeded() %>
         do:
           - samplesheet_uploaded_notifier
-          - archive_sav_files
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "upload_sequencerun -- Couldnt upload sequencerun <% ctx(runfolder_name) %> to processing api"
-        do:
-          - bioinfo_error_notifier
-          - mark_as_failed
-          
-  archive_sav_files:
-    action: ductus.archive_interop_files
-    input:
-      runinfo_file_path: <% ctx(runinfo_file) %>
-    next:
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result() %>
-          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder_name) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed

@@ -292,6 +292,20 @@ tasks:
       - when: <% succeeded() %>
         do: 
           - mark_as_done
+          - archive_sav_files
+
+  archive_sav_files:
+    action: ductus.archive_interop_files
+    input:
+      runinfo_file_path: <% ctx(runinfo_file) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   bioinfo_error_notifier:
     action: core.sendmail

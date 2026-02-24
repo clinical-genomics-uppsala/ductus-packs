@@ -35,6 +35,7 @@ vars:
   - runfolder_host: null
   - runfolder_host_port: null
   - runfolder_path: null
+  - runinfo_file: null
   - samples: null
   - samplesheet_file_demux: null
   - stderr: "ERROR"
@@ -166,14 +167,32 @@ tasks:
         publish: 
           - samplesheet_file_demux: <% result().stdout %>
         do:
-          - get_samples
+          - check_for_runinfo
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "check_for_samplesheet  -- Couldn't locate a SampleSheet.csv file in folder <% ctx(runfolder_path) %>, <% result() %>"
         do:
           - bioinfo_error_notifier
-          - mark_as_failed      
+          - mark_as_failed
+
+  check_for_runinfo:
+    action: core.local
+    input:
+      cmd: ls <% ctx(runfolder_path) %>/RunInfo.xml || ls <% ctx(runfolder_path) %>/*/RunInfo.xml
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - runinfo_file: <% result().stdout %>
+        do:
+          - get_samples
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "check_for_runinfo  -- Couldn't locate a RunInfo.xml file in folder <% ctx(runfolder_path) %>, <% result() %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   get_samples:
     action: core.local
@@ -275,7 +294,24 @@ tasks:
           - mark_as_failed
       - when: <% succeeded() %>
         do: 
+          - archive_sav_files
+
+  archive_sav_files:
+    action: ductus.archive_interop_files
+    input:
+      runinfo_file_path: <% ctx(runinfo_file) %>
+      folder_suffix: "_server_demultiplexed"
+    next:
+      - when: <% succeeded() %>
+        do:
           - mark_as_done
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
 
   bioinfo_error_notifier:
     action: core.sendmail
