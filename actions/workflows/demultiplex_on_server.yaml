@@ -163,8 +163,8 @@ tasks:
       cmd: >
         curl http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/status/<% ctx(demultiplexing_id) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); exit(0) if result["state"] == "done" else exit(1)'
     retry:
-      count: <% ctx(demultiplexing_num_retry) %>
-      delay: <% ctx(demultiplexing_delay) %>
+      count: <% int(ctx(demultiplexing_num_retry)) %>
+      delay: <% int(ctx(demultiplexing_delay)) %>
     next:
       - when: <% succeeded() %>
         publish:

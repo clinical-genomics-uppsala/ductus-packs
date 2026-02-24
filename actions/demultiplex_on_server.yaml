@@ -36,7 +36,7 @@ parameters:
     default: "{{ config_context.demultiplexing_num_retry }}"
   demultiplexing_delay:
     required: true
-    type: integer
+    type: string
     default: "{{ config_context.demultiplexing_delay }}"
   inbox_runfolder_host:
     required: true
