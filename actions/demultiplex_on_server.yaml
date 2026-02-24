@@ -86,6 +86,10 @@ parameters:
     required: true
     type: integer
     default: "{{ config_context.processing_api_json_update_wait_time_for_fastq_files }}"
+  processing_lanes_to_demultiplex_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_lanes_to_demultiplex_url }}"
   sample_update_json_folder_path:
     required: true
     type: string

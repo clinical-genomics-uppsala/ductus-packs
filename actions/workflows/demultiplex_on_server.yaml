@@ -21,6 +21,7 @@ input:
     - processing_api_samples_list_url
     - processing_api_samples_update_fastq_json_url
     - processing_api_json_update_wait_time_for_fastq_files
+    - processing_api_lanes_to_demultiplex_url
     - sample_update_json_folder_path
     - transfer_to_storage_wait_time_for_fastq_files
     - mail_bioinfo
@@ -31,6 +32,7 @@ vars:
   - fastq_update_file: null
   - failed_step: null
   - ignored_samples: null
+  - lanes_to_demultiplex: null
   - runfolder_api_version: null
   - runfolder_host: null
   - runfolder_host_port: null
@@ -117,14 +119,33 @@ tasks:
           - bioinfo_error_notifier
           - mark_as_failed
 
+  get_lanes_to_demultiplex:
+    action: core.local
+    input:
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_lanes_to_demultiplex_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=SR' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
+    next:
+      - when: <% succeeded() %>
+        publish: 
+          - lanes_to_demultiplex: <% result().stdout %>
+        do:
+          - demultiplex_on_server
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "get_samples -- Could not fetch samples for <% ctx(runfolder) %>"
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+
   demultiplex_on_server:
     action: core.local
     input:
       cmd: >
-        curl -X POST --data '{"additional_args":"", "output": "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder) %>"}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/start/<% ctx(runfolder) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
+        curl -X POST --data '{"additional_args":"", "lanes": "<% ctx(lanes_to_demultiplex) %>", "output": "<% ctx(demultiplexing_output_folder) %>/<% ctx(runfolder) %>"}' http://<% ctx(demultiplexing_host) %>:<% ctx(demultiplexing_host_port) %>/api/1.0/start/<% ctx(runfolder) %> | python3 -c 'import sys; import json; result=json.loads(sys.stdin.read()); print(result["job_id"]) if result["state"] in ["pending","started","done"] else exit(1)'
     next:
       - when: <% succeeded() %>
-        publish: 
+        publish:
           - demultiplexing_id: <% result().stdout %>
         do:
           - wait_for_demultiplexing_on_server
@@ -308,7 +329,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(runfolder) %>"
+          - failed_step: "archive_sav_files -- Could not archive SAV files for <% ctx(ru  nfolder) %>"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
