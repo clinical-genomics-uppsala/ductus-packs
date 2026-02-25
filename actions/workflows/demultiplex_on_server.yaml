@@ -122,7 +122,7 @@ tasks:
   get_lanes_to_demultiplex:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_lanes_to_demultiplex_url) %><% ctx(runfolder) %>/' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' --data '{\"demus_status\": \"SR\"}' '<% ctx(processing_api_service_url) %><% ctx(processing_api_lanes_to_demultiplex_url) %><% ctx(runfolder) %>/' | python3 -c 'import json; import sys; print(\"\".join([lane for lane in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -218,7 +218,7 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=SR' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>server/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
@@ -236,7 +236,7 @@ tasks:
   get_ignored_samples:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>?sequence_run__run_id=<% ctx(runfolder) %>&demux_status=IR' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>instrument/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
