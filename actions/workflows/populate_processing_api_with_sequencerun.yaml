@@ -23,6 +23,7 @@ vars:
   - experiments: null
   - failed_step: null
   - machine_name: null
+  - perform_demultiplex_file_exist: 0
   - runfolder_host: null
   - runfolder_host_port: null
   - runfolder_api_version: null
@@ -61,11 +62,34 @@ tasks:
     next:
       - when: <% succeeded() %>
         do:
-          - check_for_samplesheet
+          - detect_perform_demultiplex_file
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: 'mark_as_started_processing -- Could not mark <% ctx(runfolder) %> with processing started'
+        do:
+          - bioinfo_error_notifier
+          - mark_as_failed
+
+  detect_perform_demultiplex_file:
+    action: core.local
+    input:
+      cmd: >
+        if [ -f <% ctx(runfolder) %>/PerformDemultiplex.txt ]; then
+          echo 1
+        else
+          echo 0
+        fi
+    next:
+      - when: <% succeeded() %>
+        publish:
+          - perform_demultiplex_file_exist: <% result().stdout %>
+        do:
+          - check_for_samplesheet
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "detect_perform_demultiplex_file -- could not look for PerformDemultiplex.txt"
         do:
           - bioinfo_error_notifier
           - mark_as_failed
@@ -214,7 +238,7 @@ tasks:
   create_analysis_file:
     action: core.local
     input:
-      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; import json; print(json.dumps(create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>")))'
+      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; import json; print(json.dumps(create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>"), <% ctx(perform_demultiplex_file_exist) %>))'
     next:
       - when: <% succeeded() %>
         publish:
