@@ -43,7 +43,7 @@ vars:
   - stderr: "ERROR"
 
 tasks:
-  process_instrument_demultiplexed_data:
+  process_server_demultiplexed_data:
     action: core.local
     input:
       cmd: echo "Processing demultiplexed data <% ctx(runfolder) %>"
@@ -126,7 +126,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: 
-          - lanes_to_demultiplex: <% result().stdout %>
+          - lanes_to_demultiplex: "1" #<% result().stdout %>
         do:
           - demultiplex_on_server
       - when: <% failed() %>
