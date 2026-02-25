@@ -126,7 +126,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish: 
-          - lanes_to_demultiplex: "1" #<% result().stdout %>
+          - lanes_to_demultiplex: <% result().stdout %>
         do:
           - demultiplex_on_server
       - when: <% failed() %>

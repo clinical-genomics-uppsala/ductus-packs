@@ -238,7 +238,7 @@ tasks:
   create_analysis_file:
     action: core.local
     input:
-      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; import json; print(json.dumps(create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>"), <% ctx(perform_demultiplex_file_exist) %>))'
+      cmd: python3 -c 'from ductus.tools.utils import create_analysis_file; import json; print(json.dumps(create_analysis_file("<% ctx(samplesheet_file)%>", "<% ctx(analysis_csv_folder_path)%>", <% ctx(perform_demultiplex_file_exist) %>)))'
     next:
       - when: <% succeeded() %>
         publish:
