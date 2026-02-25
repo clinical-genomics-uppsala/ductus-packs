@@ -65,14 +65,14 @@ parameters:
   demultiplexing_num_retry:
     required: true
     type: integer
-    default: "{{ config_context.demultiplexing_num_retry }}"
+    default: 24 # "{{ config_context.demultiplexing_num_retry }}"
   demultiplexing_delay:
     required: true
     type: integer
-    default: "{{ config_context.demultiplexing_delay }}"
+    default: 60 # "{{ config_context.demultiplexing_delay }}"
   possible_runfolder_locations:
     required: true
-    type: array
+    #type: array
     default: "{{ config_context.possible_runfolder_locations }}"
   processing_api_samples_list_url:
     required: true
@@ -96,7 +96,7 @@ parameters:
     default: "{{ config_context.sample_update_json_folder_path }}"
   transfer_to_storage_wait_time_for_fastq_files:
     required: true
-    type: integer
+    #type: integer
     default: "{{ config_context.transfer_to_storage_wait_time_for_fastq_files }}"
   mail_bioinfo:
     required: true
