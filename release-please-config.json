@@ -1,7 +1,7 @@
 {
   "packages": {
     ".": {
-      "release-type": "stackstorm",
+      "release-type": "simple",
       "package-name": "ductus-packs",
       "bump-minor-pre-major": true,
       "include-v-in-tag": true
