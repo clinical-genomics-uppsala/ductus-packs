@@ -105,7 +105,7 @@ tasks:
       items: <% ctx(sav_files) %>
     action: core.local
     input:
-      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
+      cmd: rsync -avuP <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
       timeout: 600
     retry:
       count: 5
@@ -123,7 +123,7 @@ tasks:
       items: <% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %>
     action: core.local
     input:
-      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/InterOp/
+      cmd: rsync -avuP <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/InterOp/
       timeout: 300
     retry:
       count: 30
