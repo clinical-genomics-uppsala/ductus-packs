@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.25.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/ductus-packs-v2.24.0...ductus-packs-v2.25.0) (2026-02-26)
+
+
+### Features
+
+* add sensor that detects when there are new sequence_runs to demultiplex ([332d022](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/332d022ca813b29d550b92b82683e2d091e3f035))
+* split populate sequence run into 3 different workflow ([d46fea4](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/d46fea403ce0c94301be3bf54afc04a2e68b659c))
+
 ### [2.23.1](https://www.github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.23.0...v2.23.1) (2025-06-24)
 
 
