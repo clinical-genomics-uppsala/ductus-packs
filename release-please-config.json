@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "stackstorm",
+      "package-name": "ductus-packs",
+      "bump-minor-pre-major": true,
+      "include-v-in-tag": true
+    }
+  },
+  "bootstrap-sha": "db96293c1cae3cfea66969ffd4ae0c0a254aa2fd"
+}
