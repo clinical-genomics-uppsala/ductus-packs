@@ -1,0 +1,18 @@
+---
+name: "demultiplex_on_server"
+pack: "ductus"
+description: "Trigger workflow that will initiate demuplexing on one of our servers"
+enabled: false
+
+trigger:
+    type: "ductus.demultiplexing_processing_api"
+
+criteria:
+    trigger.demultiplex_location:
+      type: "equals"
+      pattern: "DS"
+
+action:
+    ref: "ductus.demultiplex_on_server"
+    parameters:
+        runfolder: "{{trigger.sequence_run}}"

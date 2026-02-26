@@ -7,6 +7,7 @@ input:
   - sav_storage_location
   - sav_files
   - sav_machine_type_fold_and_extra_files
+  - folder_suffix
 
 vars:
   - archive_folder: null
@@ -76,7 +77,7 @@ tasks:
   create_storage_folder_path:
     action: core.local
     input:
-      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(save_machine_storage_folder) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %>
+      cmd: echo -n <% ctx(sav_storage_location) %>/<% ctx(save_machine_storage_folder) %>/<% ctx(machine_id) %>/<% ctx(runfolder_name) %><% ctx(folder_suffix) %>
     next:
       - when: <% succeeded() %>
         publish:
@@ -104,7 +105,7 @@ tasks:
       items: <% ctx(sav_files) %>
     action: core.local
     input:
-      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
+      cmd: rsync -avuP <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/
       timeout: 600
     retry:
       count: 5
@@ -122,7 +123,7 @@ tasks:
       items: <% ctx(sav_machine_type_fold_and_extra_files).get(ctx(machine_id)).get('path_metrics') %>
     action: core.local
     input:
-      cmd: cp -r <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/InterOp/
+      cmd: rsync -avuP <% ctx(runfolder_path) %>/<% item() %> <% ctx(archive_folder) %>/InterOp/
       timeout: 300
     retry:
       count: 30
