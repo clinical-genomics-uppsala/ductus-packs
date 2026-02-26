@@ -1,0 +1,18 @@
+---
+name: "demultiplex_on_instrument"
+pack: "ductus"
+description: "Trigger workflow to wait for demultiplexing on instrument"
+enabled: false
+
+trigger:
+    type: "ductus.demultiplexing_processing_api"
+
+criteria:
+    trigger.demultiplex_location:
+      type: "equals"
+      pattern: "DI"
+
+action:
+    ref: "ductus.demultiplex_on_instrument"
+    parameters:
+        runfolder: "{{trigger.sequence_run}}"
