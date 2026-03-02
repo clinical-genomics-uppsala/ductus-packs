@@ -116,7 +116,7 @@ tasks:
        cwd: <% ctx(hospital_transfer_staging_path) %>
 #       cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
        # TODO:Convert to using rsync script above, but need to add support for realtive path (-R)?
-       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_transfer_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:/"
+       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_transfer_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:<% ctx(miarka_path_prefix) %>"
      next:
        - when: <% failed() %>
          publish:
