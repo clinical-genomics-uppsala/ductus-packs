@@ -55,6 +55,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.miarka_transfer_user }}"
+  miarka_path_prefix:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_path_prefix }}"
   hospital_transfer_staging_path:
     required: true
     type: string
