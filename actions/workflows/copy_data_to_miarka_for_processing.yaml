@@ -149,7 +149,7 @@ tasks:
      action: core.local
      input:
        cwd: <% ctx(hospital_transfer_staging_path) %>
-       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_transfer_key) %>' ./.<% ctx(upload_path) %>/Done.txt <% ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:" #+ ctx(upload_path) not needed?
+       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_transfer_key) %>' ./.<% ctx(upload_path) %>/Done.txt <% ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:<% ctx(miarka_path_prefix) %>"
      next:
        - when: <% failed() %>
          publish:
