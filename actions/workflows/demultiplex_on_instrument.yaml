@@ -194,7 +194,7 @@ tasks:
   get_samples:
     action: core.local
     input:
-       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>instrument/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"], sample[\"lane\"], sample[\"sequence_run\"][\"nr_of_reads\"]) for sample in json.load(sys.stdin)]))'"
+       cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' '<% ctx(processing_api_service_url) %><% ctx(processing_api_samples_list_url) %>instrument/?sequence_run__run_id=<% ctx(runfolder) %>' | python3 -c 'import json; import sys; print(json.dumps([(sample[\"sample_id\"], sample[\"experiment_id\"], sample[\"lane\"], sample[\"sequence_run\"][\"nr_of_reads\"],sample[\"sequence_run\"][\"run_lane_count\"]) for sample in json.load(sys.stdin)]))'"
     next:
       - when: <% succeeded() %>
         publish: 
