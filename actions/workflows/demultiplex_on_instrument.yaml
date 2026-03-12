@@ -231,7 +231,7 @@ tasks:
     action: core.local
     delay: 30
     input:
-      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, ast, glob; exit(0) if get_nr_expected_fastqs(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)' "<% ctx(samples) %>"
+      cmd: python3 -c 'from ductus.tools.utils import get_nr_expected_fastqs; import sys, json, glob; exit(0) if get_nr_expected_fastqs(json.loads(sys.argv[1].replace(chr(39),chr(34))), glob.glob("<% ctx(fastq_files_path) %>/**/*.fastq.gz", recursive=True)) == 1 else exit(1)' "<% ctx(samples) %>"
       timeout: 300
     retry:
       when: <% failed() %>
