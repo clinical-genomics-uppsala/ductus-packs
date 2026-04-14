@@ -1,10 +1,10 @@
 version: "1.0" # mistral version
 
-description: Will archive sequence files
+description: Will archive analysis files
 
 input:
   - analysis_id
-  - year
+  - date
   - archive_settings
   - processing_api_access_key
   - processing_api_service_url
@@ -18,8 +18,20 @@ vars:
   - sequence_file_archive_location: null
   - sequence_files: null
   - stderr: null
+  - year: null
 
 tasks:
+  get_archive_year:
+    action: core.local
+    input:
+      cmd: echo <% ctx(date) %> | awk 'BEGIN{FS="-"}{print($1)}'
+    next:
+      - when: <% succeeded() %>
+        publish: 
+         - year: <% result().stdout %>
+        do:
+         - get_analysis_information
+
   get_analysis_information:
     action: core.local
     input:

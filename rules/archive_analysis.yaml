@@ -1,0 +1,14 @@
+---
+name: "archive_analysis"
+pack: "ductus"
+description: "Rule that triggers archive of a analysis"
+enabled: false
+
+trigger:
+    type: "ductus.archiving_event"
+
+action:
+    ref: "ductus.archive_analysis"
+    parameters:
+        analysis_id: "{{trigger.analysis_id}}"
+        date: "{{trigger.date}}"

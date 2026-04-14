@@ -24,7 +24,7 @@ class ArchivingClient():
             self._logger.info("Querying {0}".format(host))
             url = host
             try:
-                resp = requests.get(url, headers={"Authorization": self.api_key})
+                resp = requests.post(url, headers={"Authorization": self.api_key})
                 if resp.status_code not in [200, 204]:
                     self._logger.error("ArchivingClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))

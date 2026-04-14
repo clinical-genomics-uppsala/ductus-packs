@@ -164,12 +164,12 @@
     required: true
     default: "api/sequencerun/update/"
 
-  # Fetch next sequence run that can be archived
-  processing_api_sequence_run_next_archive_url:
-    description: fetch next sequence run that can be archived
+  # Fetch next analysis that can be archived
+  processing_api_analysis_next_archive_url:
+    description: fetch next analysis that can be archived
     type: string
     required: true
-    default: "api/sequencerun/archive/next/"
+    default: "api/analysis/archive/next/"
 
   processing_api_demultiplexing_next_url:
     description: fetch next sequence run that can be demultiplexed
@@ -237,12 +237,6 @@
     type: string
     required: true
     default: "api/v1/analysis/fastqs/"
-
-  processing_api_status_update_archive_url:
-    description: update atchive status for a sequence run
-    type: string
-    required: true
-    default: "api/v1/sequencerun/archive/update/status/"
       
   analysis_csv_folder_path:
     description: path to location of analysis.csv files
