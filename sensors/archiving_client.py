@@ -29,7 +29,7 @@ class ArchivingClient():
                     self._logger.error("ArchivingClient: Got status_code={0} from "
                                        "endpoint {1}".format(resp.status_code, url))
                 elif resp.status_code == 204:
-                    self._logger.info("ArchivingClient: No sequence runs found that should be archived, (status: {0} from "
+                    self._logger.info("ArchivingClient: No analysis found that should be archived, (status: {0} from "
                                        "endpoint: {1}".format(resp.status_code, url))
                 else:
                     json = resp.text
