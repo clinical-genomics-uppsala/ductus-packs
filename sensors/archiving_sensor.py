@@ -17,7 +17,7 @@ class ArchivingSensor(PollingSensor):
     def setup(self):
         self._infolog("setup")
         api_key = self._config["processing_api_access_key"]
-        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_sequence_run_next_archive_url"]
+        client_urls = self._config["processing_api_service_url"] + self._config["processing_api_analysis_next_archive_url"]
         self._client = ArchivingClient(client_urls, api_key, self._logger)
         self._infolog("Created client: {0}".format(self._client))
         self._infolog("setup finished")
@@ -51,7 +51,7 @@ class ArchivingSensor(PollingSensor):
             **analysis_data,
             'timestamp': datetime.utcnow().isoformat(),
         }
-        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['run_id'])
+        self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['analysis_id'])
 
     def _infolog(self, msg):
         self._logger.info("[ductus-packs." + self.__class__.__name__ + "] " + msg)
