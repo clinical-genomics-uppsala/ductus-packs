@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.25.1...v3.0.0) (2026-04-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* trigger release for archive endpoint change ([#396](https://github.com/clinical-genomics-uppsala/ductus-packs/issues/396))
+
+### Features
+
+* trigger release for archive endpoint change ([#396](https://github.com/clinical-genomics-uppsala/ductus-packs/issues/396)) ([f08bc5c](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/f08bc5cd98677df6e5a54fc9967f046e95264057))
+
 ## [2.25.1](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v2.25.0...v2.25.1) (2026-03-16)
 
 
