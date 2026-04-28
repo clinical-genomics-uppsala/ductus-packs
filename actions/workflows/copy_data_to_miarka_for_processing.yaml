@@ -10,11 +10,11 @@ input:
   - processing_api_analysis_task_url
   - processing_api_analysis_samples_url
   - processing_api_analysis_update_status_url
-  - miarka_transfer_to_host
-  - miarka_transfer_key
-  - miarka_transfer_user
-  - miarka_path_prefix
-  - hospital_transfer_staging_path
+  - miarka_upload_host
+  - miarka_upload_key
+  - miarka_upload_user
+  - miarka_upload_path_prefix
+  - hospital_upload_staging_path
   - mail_bioinfo
   
 
@@ -64,7 +64,8 @@ tasks:
     join: all
     action: core.local
     input:
-      cmd: "mkdir -p  <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>/fastq"
+      #Editing path with sed to adapt marvin path in API to remote cluster staging file tree
+      cmd: "mkdir -p  <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/fastq"
     next:
       - when: <% succeeded() %>
         do:
@@ -73,14 +74,14 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "create_staging_folder  -- Could not create staging folder in <% ctx(hospital_transfer_staging_path) %>"
+          - failed_step: "create_staging_folder  -- Could not create staging folder in <% ctx(hospital_upload_staging_path) %>"
         do:
          - bioinfo_error_notifier
 
   create_json_file_staging:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>/samples_and_settings.json"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/samples_and_settings.json"
     next:
       - when: <% succeeded() %>
         do:
@@ -88,7 +89,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "create_json_file -- Couldn't create json file in <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>"
+          - failed_step: "create_json_file -- Couldn't create json file in <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier
       
@@ -97,7 +98,8 @@ tasks:
       items: <% ctx(fastq_files) %>
     action: core.local
     input:
-      cmd: "ln -s -t <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
+      #cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+      cmd: "ln -s -t <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
     next:
       - when: <% failed() %>
         publish:
@@ -114,10 +116,10 @@ tasks:
      action: core.local
      join: all
      input:
-       cwd: <% ctx(hospital_transfer_staging_path) %>
+       cwd: <% ctx(hospital_upload_staging_path) %>
 #       cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
        # TODO:Convert to using rsync script above, but need to add support for realtive path (-R)?
-       cmd:  "rsync -vvvcrRL -e 'ssh -i <% ctx(miarka_transfer_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:<% ctx(miarka_path_prefix) %>"
+       cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_upload_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_upload_user) %>@<% ctx(miarka_upload_host) %>:<% ctx(miarka_upload_path_prefix) %>"
      next:
        - when: <% failed() %>
          publish:
@@ -132,7 +134,7 @@ tasks:
   create_transfer_complete_file:
     action: core.local
     input:
-      cwd: <% ctx(hospital_transfer_staging_path) %><% ctx(upload_path) %> 
+      cwd: <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %> 
       cmd: echo "`date`" > Done.txt;
     next:
       - when: <% failed() %>
@@ -148,8 +150,8 @@ tasks:
   rsync_transfer_complete_file:
      action: core.local
      input:
-       cwd: <% ctx(hospital_transfer_staging_path) %>
-       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_transfer_key) %>' ./.<% ctx(upload_path) %>/Done.txt <% ctx(miarka_transfer_user) %>@<% ctx(miarka_transfer_to_host) %>:<% ctx(miarka_path_prefix) %>"
+       cwd: <% ctx(hospital_upload_staging_path) %>
+       cmd:  "rsync -crRL -e 'ssh -i <% ctx(miarka_upload_key) %>' ./.<% ctx(upload_path) %>/Done.txt <% ctx(miarka_upload_user) %>@<% ctx(miarka_upload_host) %>:<% ctx(miarka_upload_path_prefix) %>"
      next:
        - when: <% failed() %>
          publish:
