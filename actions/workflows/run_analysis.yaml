@@ -100,7 +100,7 @@ tasks:
       private_key: <% ctx(process_key) %>
       hosts: <% ctx(process_host) %>
       cwd: <% ctx(analysis_folder_path) %>
-      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>
+      cmd: bash <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %> --inbox-path <% ctx(runfolder) %> <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %> > /dev/null 2>&1
       timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 259200) %>
     next:
       - when: <% succeeded() and ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', null) %>
