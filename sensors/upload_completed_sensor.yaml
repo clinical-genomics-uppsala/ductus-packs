@@ -1,0 +1,18 @@
+---
+  class_name: "UploadCompletedSensor"
+  entry_point: "upload_completed_sensor.py"
+  description: "Sensor which queries processing api for analyses where upload is completed"
+  poll_interval: 15 # Every 15 s
+  trigger_types:
+    -
+      name: "upload_completed"
+      description: "Trigger which indicates that an analysis upload has completed"
+      payload_schema:
+        type: "object"
+        properties:
+         analysis_name:
+           type: "string"
+         event:
+           type: "string"
+         timestamp:
+           type: "string"
