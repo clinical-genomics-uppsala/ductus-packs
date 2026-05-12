@@ -1,5 +1,5 @@
 ---
-name: "process_inbox_compute"
+name: "process_inbox_miarka"
 pack: "ductus"
 description: "Rule that triggers a processing action, when a experiment has been submitted to the inbox"
 enabled: false
@@ -13,10 +13,10 @@ criteria:
       pattern: "/projects/inbox/"
     trigger.process_location:
       type: "equals"
-      pattern: "marvin"
+      pattern: "miarka"
 
 action:
-    ref: "ductus.process_inbox_action"
+    ref: "ductus.process_inbox_miarka"
     parameters:
         runfolder: "{{trigger.runfolder}}"
         host: "{{trigger.host}}"
