@@ -3,10 +3,10 @@ from processing_api_client import ProcessingApiClient
 from datetime import datetime, timezone
 
 
-class DownloadReadySensor(PollingSensor):
+class DownloadAvailableSensor(PollingSensor):
 
-    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.data_ready_for_download'):
-        super(DownloadReadySensor, self).__init__(sensor_service=sensor_service,
+    def __init__(self, sensor_service, config=None, poll_interval=None, trigger='ductus.download_available'):
+        super(DownloadAvailableSensor, self).__init__(sensor_service=sensor_service,
                                                   config=config,
                                                   poll_interval=poll_interval)
         self._logger = self._sensor_service.get_logger(__name__)
@@ -17,7 +17,7 @@ class DownloadReadySensor(PollingSensor):
     def setup(self):
         self._infolog("setup")
         base_url = self._config["processing_api_service_url"].rstrip("/")
-        path = self._config["processing_api_ready_for_download_next_url"].lstrip("/")
+        path = self._config["processing_api_download_available_next_url"].lstrip("/")
         client_url = "{}/{}".format(base_url, path)
         api_key = self._config["processing_api_access_key"]
         self._client = ProcessingApiClient(client_url, api_key, self._logger)
@@ -51,7 +51,7 @@ class DownloadReadySensor(PollingSensor):
         analysis_data = result['response']
         payload = {
             **analysis_data,
-            'event': 'data_ready_for_download',
+            'event': 'download_available',
             'timestamp': datetime.now(timezone.utc).isoformat(),
         }
         self._sensor_service.dispatch(trigger=trigger, payload=payload, trace_tag=analysis_data['analysis_name'])

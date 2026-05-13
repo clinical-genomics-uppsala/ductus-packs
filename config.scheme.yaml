@@ -95,7 +95,7 @@
     default: "api/analysis/samples/"
 
   # Get analysis task information
-  processing_api_analysis_task_url: "api/analysis/task/"
+  processing_api_analysis_task_url:
     description: get analysis task and sample information
     type: string
     required: true
@@ -107,13 +107,6 @@
     type: string
     required: true
     default: "api/analysis/tasks/"
-
-  # Get analysis task information
-  processing_api_analysis_task_url:
-    description: get analysis task and sample information
-    type: string
-    required: true
-    default: "api/analysis/task/"
 
   # Update analysis status
   processing_api_analysis_update_status_url:
@@ -130,7 +123,7 @@
     default: "api/analysis/upload/"
 
   # List all samples, can be filtered using sequence_run__run_id and sequence_run__flowcell
-  processing_api_samples_list_url: "api/samples/list/"
+  processing_api_samples_list_url:
     description: url after address used to get samples
     type: string
     required: true
@@ -144,7 +137,7 @@
     default: "api/samples/fastq/json_update/"
 
   # Change variable demultiplex (True, False) for a sequence run, filter using run_id
-  processing_api_sequence_run_demultiplex_url: "api/sequencerun/demultiplex/"
+  processing_api_sequence_run_demultiplex_url:
     description: set sequence run demultiplexing, 1 perform local demultiplexing, 0 machine demultiplex
     type: string
     required: true
@@ -176,6 +169,18 @@
     type: string
     required: true
     default: "api/v1/sequencerun/demultiplex/next"
+
+  processing_api_upload_completed_next_url:
+    description: fetch next analysis where upload has been completed
+    type: string
+    required: true
+    default: "api/v1/analysis/upload-completed/next/"
+
+  processing_api_download_available_next_url:
+    description: fetch next analysis available for download
+    type: string
+    required: true
+    default: "api/v1/analysis/download-available/next/"
 
   processing_api_sequence_run_archive_status_url:
     description: update archive status for a sequence run
@@ -256,12 +261,12 @@
   sav_storage_location:
     description: location where SAV files will be stored
     type: string
-    requried: true
+    required: true
 
   sav_files:
     description: list of files and folders that should be archived
     type: array
-    requried: true
+    required: true
 
   transfer_from_host_ip:
     description: The host where outbox data will be retrieved.
