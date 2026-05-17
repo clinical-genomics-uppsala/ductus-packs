@@ -42,7 +42,10 @@ tasks:
   create_analysis_folder:
     action: core.local
     input:
-      cmd: curl -X POST -w '\n' --data '{"path": "<% ctx(analysis_folder_path) %>" }' -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/ -H 'apikey: ***********'
+      cmd: >
+        curl -X POST -w '\n' --data '{"path": "<% ctx(analysis_folder_path) %>" }'
+        -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
         do:
@@ -58,11 +61,11 @@ tasks:
   run_pipeline:
     action: core.local
     input:
-      cmd: curl -X POST -w '\n' --data '{
-        "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
+      cmd: >
+        curl -X POST -w '\n' --data '{
+        "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("run_script") %>",
         "inbox_path": "<% ctx(runfolder) %>",
-        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' 
-        http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
+        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("parameters") %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
     next:
       - when: <% succeeded() %>
         publish:
@@ -109,7 +112,10 @@ tasks:
   create_outbox_folder:
     action: core.local
     input:
-      cmd: curl -X POST -w '\n' --data '{"path": "<% ctx(outbox_folder) %>" }' -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/ -H 'apikey: ***********'
+      cmd: >
+        curl -X POST -w '\n' --data '{"path": "<% ctx(outbox_folder) %>" }'
+        -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
         do:
@@ -125,11 +131,12 @@ tasks:
   sync_data_to_outbox:
     action: core.local
     input:
-      cmd: curl -X POST -w'\n' --data '{"source_directory": "<% ctx(analysis_folder_path) %>" \
-        "destination_directory": "<% ctx(outbox_folder_path) %>" \
-        "filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []) %>"}' \
-        "may_exist_filter": <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', []) %>" \
-        http://localhost:9999/api/1.0/jobs/sync_directory/
+      cmd: >
+        curl -X POST -w '\n' --data '{
+        "source_directory": "<% ctx(analysis_folder_path) %>",
+        "destination_directory": "<% ctx(outbox_folder) %>",
+        "filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders", []) %>",
+        "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders_that_may_exist", []) %>" }' http://localhost:9999/api/1.0/jobs/sync_directory/
     next:
       - when: <% succeeded() %>
         publish:
