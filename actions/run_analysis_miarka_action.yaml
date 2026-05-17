@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.run_analysis
+    default: ductus.run_analysis_miarka
     immutable: true
     type: string
   runfolder:
