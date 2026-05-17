@@ -1,5 +1,5 @@
 ---
-name: run_analysis_action
+name: run_analysis_miarka_action
 description: >
   run a pipeline 
 enabled: true
