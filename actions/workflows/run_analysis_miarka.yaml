@@ -50,8 +50,8 @@ tasks:
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
-        publish:
-          - create_folder_status_url: <% result().stdout.link %>
+        publish: create_folder_status_url=<% result().stdout.link %>
+        do:
           - poll_create_folder_status
           - bioinfo_analysis_started
       - when: <% failed() %>
@@ -82,8 +82,7 @@ tasks:
         "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("parameters") %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
     next:
       - when: <% succeeded() %>
-        publish:
-          - analysis_status_url: <% result().stdout.link %>
+        publish: analysis_status_url=<% result().stdout.link %>
         do:
           - poll_analysis_status
       - when: <% failed() %>
@@ -132,8 +131,7 @@ tasks:
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
-        publish:
-          - create_outbox_status_url: <% result().stdout.link %>
+        publish: create_outbox_status_url=<% result().stdout.link %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -166,8 +164,7 @@ tasks:
         "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders_that_may_exist", []) %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
     next:
       - when: <% succeeded() %>
-        publish:
-          - sync_status_url: <% result().stdout.link %>
+        publish: sync_status_url=<% result().stdout.link %>
         do:
           - poll_sync_status
       - when: <% failed() %>
