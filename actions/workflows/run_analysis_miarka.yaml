@@ -43,13 +43,13 @@ tasks:
     action: core.local
     input:
       cmd: >
-        curl -X POST -w '\n' --data '{"path": "<% ctx(analysis_folder_path) %>" }'
-        -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        curl -s -X POST --data '{"path": "<% ctx(analysis_folder_path) %>" }'
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
         publish:
-          - create_folder_status_url: <% result().link %>
+          - create_folder_status_url: <% result().stdout.json_parse().link %>
         do:
           - poll_create_folder_status
           - bioinfo_analysis_started
@@ -75,14 +75,14 @@ tasks:
     action: core.local
     input:
       cmd: >
-        curl -X POST -w '\n' --data '{
+        curl -s -X POST --data '{
         "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("run_script") %>",
         "inbox_path": "<% ctx(runfolder) %>",
         "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("parameters") %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
     next:
       - when: <% succeeded() %>
         publish:
-          - analysis_status_url: <% result().link %>
+          - analysis_status_url: <% result().stdout.json_parse().link %>
         do:
           - poll_analysis_status
       - when: <% failed() %>
@@ -126,13 +126,13 @@ tasks:
     action: core.local
     input:
       cmd: >
-        curl -X POST -w '\n' --data '{"path": "<% ctx(outbox_folder) %>" }'
-        -k -i http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        curl -s -X POST --data '{"path": "<% ctx(outbox_folder) %>" }'
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
         publish:
-          - create_outbox_status_url: <% result().link %>
+          - create_outbox_status_url: <% result().stdout.json_parse().link %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -158,15 +158,15 @@ tasks:
     action: core.local
     input:
       cmd: >
-        curl -X POST -w '\n' --data '{
+        curl -s -X POST --data '{
         "source_directory": "<% ctx(analysis_folder_path) %>",
         "destination_directory": "<% ctx(outbox_folder) %>",
         "filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders", []) %>",
-        "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders_that_may_exist", []) %>" }' http://localhost:9999/api/1.0/jobs/sync_directory/
+        "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders_that_may_exist", []) %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
     next:
       - when: <% succeeded() %>
         publish:
-          - sync_status_url: <% result().link %>
+          - sync_status_url: <% result().stdout.json_parse().link %>
         do:
           - poll_sync_status
       - when: <% failed() %>
