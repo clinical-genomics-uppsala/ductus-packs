@@ -15,6 +15,8 @@ input:
     - mail_settings
 
 vars:
+  - create_folder_status_url: null
+  - create_outbox_status_url: null
   - analysis_folder_path: null
   - analysis_status_url: null
   - sync_status_url: null
