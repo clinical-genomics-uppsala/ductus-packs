@@ -69,6 +69,9 @@ tasks:
       - when: <% succeeded() %>
         do: run_pipeline
       - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_create_folder_status
         do:
           - bioinfo_error_notifier
 
