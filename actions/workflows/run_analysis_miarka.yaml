@@ -48,15 +48,28 @@ tasks:
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
+        publish:
+          - create_folder_status_url: <% result().link %>
         do:
-          - run_pipeline
+          - poll_create_folder_status
           - bioinfo_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
           - failed_step: "create_folders -- Couldn't create analysis folder <% ctx(analysis_folder_path) %>"
         do:
-          - bioinfo_error_notifier  
+          - bioinfo_error_notifier
+
+  poll_create_folder_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_folder_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: run_pipeline
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
 
   run_pipeline:
     action: core.local
@@ -69,7 +82,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - analysis_status_url: <% result().result.link %>
+          - analysis_status_url: <% result().link %>
         do:
           - poll_analysis_status
       - when: <% failed() %>
@@ -118,8 +131,10 @@ tasks:
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
+        publish:
+          - create_outbox_status_url: <% result().link %>
         do:
-          - sync_data_to_outbox
+          - poll_create_outbox_status
       - when: <% failed() %>
         publish:
           - stderr: "create outbox failed"
@@ -127,6 +142,17 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
+
+  poll_create_outbox_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_outbox_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: sync_data_to_outbox
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
   
   sync_data_to_outbox:
     action: core.local
@@ -140,7 +166,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - sync_status_url: <% result().result.link %>
+          - sync_status_url: <% result().link %>
         do:
           - poll_sync_status
       - when: <% failed() %>
