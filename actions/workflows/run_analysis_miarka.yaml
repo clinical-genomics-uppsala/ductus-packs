@@ -49,8 +49,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - create_folder_status_url: <% result().stdout.json_parse().link %>
-        do:
+          - create_folder_status_url: <% result().stdout.link %>
           - poll_create_folder_status
           - bioinfo_analysis_started
       - when: <% failed() %>
@@ -82,7 +81,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - analysis_status_url: <% result().stdout.json_parse().link %>
+          - analysis_status_url: <% result().stdout.link %>
         do:
           - poll_analysis_status
       - when: <% failed() %>
@@ -132,7 +131,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - create_outbox_status_url: <% result().stdout.json_parse().link %>
+          - create_outbox_status_url: <% result().stdout.link %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -166,7 +165,7 @@ tasks:
     next:
       - when: <% succeeded() %>
         publish:
-          - sync_status_url: <% result().stdout.json_parse().link %>
+          - sync_status_url: <% result().stdout.link %>
         do:
           - poll_sync_status
       - when: <% failed() %>
