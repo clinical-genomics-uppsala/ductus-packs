@@ -80,7 +80,7 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{
-        "analysis_path": "<% ctx(analysis_folder_path) %>,
+        "analysis_path": "<% ctx(analysis_folder_path) %>",
         "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
         "inbox_path": "<% ctx(runfolder) %>",
         "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
