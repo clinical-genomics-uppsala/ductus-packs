@@ -164,8 +164,8 @@ tasks:
         curl -s -X POST --data '{
         "source_directory": "<% ctx(analysis_folder_path) %>",
         "destination_directory": "<% ctx(outbox_folder) %>",
-        "filter": <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []) | json_dump %>,
-        "may_exist_filter": <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', []) | json_dump %> }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
+        "filter": {{ ctx().process_settings.get(ctx().workpackage, {}).get(ctx().analysis, {}).get('outbox_files_and_folders', []) | json_dump }},
+        "may_exist_filter": {{ ctx().process_settings.get(ctx().workpackage, {}).get(ctx().analysis, {}).get('outbox_files_and_folders_that_may_exist', []) | json_dump }} }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
     next:
       - when: <% succeeded() %>
         publish: sync_status_url=<% result().stdout.link %>
