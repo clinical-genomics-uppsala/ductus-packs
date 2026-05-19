@@ -71,7 +71,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "poll_create_folder_status
+          - failed_step: "poll_create_folder_status"
         do:
           - bioinfo_error_notifier
 
@@ -80,9 +80,9 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{
-        "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("run_script") %>",
+        "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
         "inbox_path": "<% ctx(runfolder) %>",
-        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("parameters") %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
+        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
     next:
       - when: <% succeeded() %>
         publish: analysis_status_url=<% result().stdout.link %>
@@ -163,8 +163,8 @@ tasks:
         curl -s -X POST --data '{
         "source_directory": "<% ctx(analysis_folder_path) %>",
         "destination_directory": "<% ctx(outbox_folder) %>",
-        "filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders", []) %>",
-        "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get("outbox_files_and_folders_that_may_exist", []) %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
+        "filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []) %>",
+        "may_exist_filter": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', []) %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
     next:
       - when: <% succeeded() %>
         publish: sync_status_url=<% result().stdout.link %>
