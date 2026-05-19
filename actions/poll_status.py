@@ -189,10 +189,11 @@ class PollStatus(Action):
         max_retries=3,
         uppmax_api_key=None,
     ):
-        start_response = self.post_to_endpoint(
-            url, body, uppmax_mode, verify_ssl_cert, uppmax_api_key
-        )
-        status_link = start_response["url"]
+        #start_response = self.post_to_endpoint(
+        #    url, body, uppmax_mode, verify_ssl_cert, uppmax_api_key
+        #)
+        #status_link = start_response["url"]
+        status_link = url
         status_val, status_response = self.check_status(
             status_link,
             sleep,
@@ -202,6 +203,9 @@ class PollStatus(Action):
             uppmax_api_key,
         )
         return status_val, {
-            "response_from_start": start_response,
             "response_from_last_status_check": status_response,
         }
+#        return status_val, {
+#            "response_from_start": start_response,
+#            "response_from_last_status_check": status_response,
+#        }
