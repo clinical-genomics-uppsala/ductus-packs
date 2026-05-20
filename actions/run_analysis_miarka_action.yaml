@@ -1,0 +1,53 @@
+---
+name: run_analysis_miarka_action
+description: >
+  run a pipeline 
+enabled: true
+runner_type: orquesta
+entry_point: workflows/run_analysis_miarka.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.run_analysis_miarka
+    immutable: true
+    type: string
+  runfolder:
+    required: true
+    type: string
+  process_host_proj_path:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_proj_path }}"
+  process_host_url:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_processing_service_url }}"
+  process_host_gateway_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_gateway_port }}"
+  experiment_name:
+    required: true
+    type: string
+  workpackage:
+    required: true
+    type: string
+  analysis:
+    required: true 
+    type: string
+  process_settings:
+    required: true 
+    type: object
+    default: "{{ config_context.process_settings }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
+  mail_settings:
+    required: true
+    type: object
+    default: "{{ config_context.notification_mail }}"

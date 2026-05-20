@@ -1,0 +1,232 @@
+version: "1.0" # Orquest version
+
+description: Will analyse data found in the inbox folder using ...
+
+input:
+    - runfolder
+    - process_host_proj_path
+    - process_host_url
+    - process_host_gateway_port
+    - experiment_name
+    - workpackage
+    - analysis
+    - process_settings
+    - mail_bioinfo
+    - mail_settings
+
+vars:
+  - create_folder_status_url: null
+  - create_outbox_status_url: null
+  - analysis_folder_path: null
+  - analysis_status_url: null
+  - sync_status_url: null
+  - outbox_folder: null
+  - failed_step: null
+  - stderr: null
+  
+tasks:
+  analysis_folder_path:
+    action: core.local
+    input:
+      cmd: echo <% ctx(process_host_proj_path) %>/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_folder_path=<% result().stdout %>
+        do:
+          - create_analysis_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "analysis_folder_path -- create analysis folder path string"
+        do:
+          - bioinfo_error_notifier
+
+  create_analysis_folder:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{"path": "<% ctx(analysis_folder_path) %>" }'
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -H 'apikey: ***********'
+    next:
+      - when: <% succeeded() %>
+        publish: create_folder_status_url=<% result().stdout.link %>
+        do:
+          - poll_create_folder_status
+          - bioinfo_analysis_started
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "create_folders -- Couldn't create analysis folder <% ctx(analysis_folder_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  poll_create_folder_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_folder_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: run_pipeline
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_create_folder_status"
+        do:
+          - bioinfo_error_notifier
+
+  run_pipeline:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{
+        "analysis_path": "<% ctx(analysis_folder_path) %>",
+        "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
+        "inbox_path": "<% ctx(runfolder) %>",
+        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
+    next:
+      - when: <% succeeded() %>
+        publish: analysis_status_url=<% result().stdout.link %>
+        do:
+          - poll_analysis_status
+      - when: <% failed() %>
+        publish:
+          - stderr: "run_pipeline failed"
+          - failed_step: "run_pipeline= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>"
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  poll_analysis_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(analysis_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: generate_outbox_path
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  generate_outbox_path:
+    action: core.local
+    input:
+      cmd: echo <% ctx(process_host_proj_path) %>/outbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+    next:
+      - when: <% succeeded() %>
+        publish: outbox_folder=<% result().stdout %>
+        do:
+          - create_outbox_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: "generate outbox path failed"
+          - failed_step: "generate_outbox_path=Couldn't generate outbox path"
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  create_outbox_folder:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{"path": "<% ctx(outbox_folder) %>" }'
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -H 'apikey: ***********'
+    next:
+      - when: <% succeeded() %>
+        publish: create_outbox_status_url=<% result().stdout.link %>
+        do:
+          - poll_create_outbox_status
+      - when: <% failed() %>
+        publish:
+          - stderr: "create outbox failed"
+          - failed_step: "create_outbox_folder=Couldn't create outbox <% ctx(outbox_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  poll_create_outbox_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_outbox_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: sync_data_to_outbox
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
+  
+  sync_data_to_outbox:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{
+        "source_directory": "<% ctx(analysis_folder_path) %>",
+        "destination_directory": "<% ctx(outbox_folder) %>",
+        "filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []))%>,
+        "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
+    next:
+      - when: <% succeeded() %>
+        publish: sync_status_url=<% result().stdout.link %>
+        do:
+          - poll_sync_status
+      - when: <% failed() %>
+        publish:
+          - stderr: "couldn't sync data"
+          - failed_step: "sync_data_to_outbox=Couldn't not sync to outbox <% ctx(outbox_folder) %>"
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  poll_sync_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(sync_status_url) %>
+    next:
+      - when: <% succeeded() %>
+        do: set_ready_for_download
+      - when: <% failed() %>
+        do:
+          - bioinfo_error_notifier
+          - wp_error_notifier
+
+  set_ready_for_download:
+   action: core.local
+   input:
+    cmd: echo "Ready for download"
+
+  wp_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  bioinfo_analysis_started:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-uu.se
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
+      body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+
+output:
+  - stderr: <% ctx(stderr) %>
