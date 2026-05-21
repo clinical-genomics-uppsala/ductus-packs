@@ -25,7 +25,7 @@ parameters:
   process_host_url:
     required: true
     type: string
-    default: "{{ config_context.miarka_processing_service_url }}"
+    default: "{{ config_context.process_host_url }}"
   job_status_url:
     required: true
     type: string
@@ -46,7 +46,7 @@ parameters:
   process_settings:
     required: true 
     type: object
-    default: "{{ config_context.process_settings }}"
+    default: "{{ config_context.process_settings_miarka }}"
   mail_bioinfo:
     required: true
     type: string

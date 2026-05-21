@@ -288,3 +288,25 @@
     type: string
     required: true
     default: "10801"
+
+  #Miarka specific variables
+  job_status_url: 
+    description: The url to the job-endpoint on miarka-processing-service.
+    type: string
+    required: true
+    default: "/analysis_service/api/1.0/jobs/"
+  process_host_proj_path:
+    description: Parent dir to outbox, inbox and analysis.
+    type: string
+    required: true
+    default: "/proj/ngi2024001/nobackup/"
+  process_host_url:
+    description: Url to host running processing-service
+    type: string
+    required: true
+    default: "miarka1.uppmax.uu.se"
+  process_host_gateway_port:
+    description: Port to Kong-gateway
+    type: string
+    required: true
+    default: "9999"
