@@ -274,7 +274,7 @@ tasks:
       body: '{"state": "error"}'
       method: "POST"
     next:
-      - when: <% supposed %>
+      - when: <% succeeded() %>
         do:
           - fail
 
