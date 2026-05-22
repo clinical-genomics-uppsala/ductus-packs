@@ -7,6 +7,7 @@ input:
     - process_host_proj_path
     - process_host_url
     - process_host_gateway_port
+    - job_status_url
     - experiment_name
     - workpackage
     - analysis
@@ -46,11 +47,11 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(analysis_folder_path) %>" }'
-        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
-        publish: create_folder_status_url=<% result().stdout.link %>
+        publish: create_folder_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_folder_status
           - bioinfo_analysis_started
@@ -83,10 +84,10 @@ tasks:
         "analysis_path": "<% ctx(analysis_folder_path) %>",
         "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
         "inbox_path": "<% ctx(runfolder) %>",
-        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/start_analysis/
+        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
     next:
       - when: <% succeeded() %>
-        publish: analysis_status_url=<% result().stdout.link %>
+        publish: analysis_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_analysis_status
       - when: <% failed() %>
@@ -131,11 +132,11 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(outbox_folder) %>" }'
-        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/create_directory/
+        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
         -H 'apikey: ***********'
     next:
       - when: <% succeeded() %>
-        publish: create_outbox_status_url=<% result().stdout.link %>
+        publish: create_outbox_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -165,10 +166,10 @@ tasks:
         "source_directory": "<% ctx(analysis_folder_path) %>",
         "destination_directory": "<% ctx(outbox_folder) %>",
         "filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []))%>,
-        "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %>/api/1.0/jobs/sync_directory/
+        "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>sync_directory/
     next:
       - when: <% succeeded() %>
-        publish: sync_status_url=<% result().stdout.link %>
+        publish: sync_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_sync_status
       - when: <% failed() %>
