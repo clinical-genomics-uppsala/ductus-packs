@@ -18,26 +18,18 @@ parameters:
   runfolder:
     required: true
     type: string
-  runfolder_port:
+  miarka_download_user:
     required: true
     type: string
-    default: "{{ config_context.miarka_runfolder_port }}"
-  runfolder_api_version:
+    default: "{{ config_context.miarka_download_user }}"
+  miarka_download_key:
     required: true
     type: string
-    default: "{{ config_context.miarka_runfolder_api_version }}"
-  transfer_from_user:
+    default: "{{ config_context.miarka_download_key }}"
+  miarka_download_host:
     required: true
     type: string
-    default: "{{ config_context.miarka_retrieve_user }}"
-  transfer_from_key:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_retrieve_key }}"
-  transfer_from_host:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_transfer_to_host }}"
+    default: "{{ config_context.miarka_download_host }}"
   processing_api_service_url:
     required: true
     type: string
