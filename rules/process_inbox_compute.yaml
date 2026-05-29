@@ -11,6 +11,9 @@ criteria:
     trigger.runfolder:
       type: "contains"
       pattern: "/projects/inbox/"
+    trigger.process_location:
+      type: "equals"
+      pattern: "marvin"
 
 action:
     ref: "ductus.process_inbox_action"
