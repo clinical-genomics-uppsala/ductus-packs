@@ -283,3 +283,41 @@
     type: string
     required: true
     default: "10801"
+
+  miarka_upload_host:
+    description: The Miarka cluster host that data is uploaded to.
+    type: string
+    required: true
+  miarka_upload_user:
+    description: The user account used when uploading data to Miarka.
+    type: string
+    required: true
+    default: "stanley"
+  miarka_upload_key:
+    description: Path to the SSH private key used when uploading data to Miarka.
+    type: string
+    required: true
+    default: "~/.ssh/id_rsa"
+  miarka_upload_path_prefix:
+    description: Remote path prefix on Miarka under which uploaded analysis directories are placed.
+    type: string
+    required: true
+  hospital_upload_staging_path:
+    description: Local path on the hospital host used to stage data (symlinked FASTQs + settings JSON) before rsync to Miarka.
+    type: string
+    required: true
+
+  miarka_download_host:
+    description: The Miarka cluster host that results are downloaded from.
+    type: string
+    required: true
+  miarka_download_user:
+    description: The user account used when downloading results from Miarka.
+    type: string
+    required: true
+    default: "stanley"
+  miarka_download_key:
+    description: Path to the SSH private key used when downloading results from Miarka.
+    type: string
+    required: true
+    default: "~/.ssh/id_rsa"
