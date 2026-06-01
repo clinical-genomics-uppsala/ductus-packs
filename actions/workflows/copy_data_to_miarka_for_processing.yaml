@@ -97,7 +97,7 @@ tasks:
       items: <% ctx(fastq_files) %>
     action: core.local
     input:
-      #cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
+   
       cmd: "ln -s -t <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
     next:
       - when: <% failed() %>
@@ -135,6 +135,7 @@ tasks:
 #       cmd: rsync.py -c -f "<% item() %>" -t <% ctx(upload_path) %>/fastq/ -u <% ctx(transfer_user) %> -i <% ctx(transfer_key) %> -r <% ctx(transfer_to_host) %> -p 2
        # TODO:Convert to using rsync script above, but need to add support for realtive path (-R)?
        cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_upload_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_upload_user) %>@<% ctx(miarka_upload_host) %>:<% ctx(miarka_upload_path_prefix) %>"
+       timeout: 86400
      next:
        - when: <% failed() %>
          publish:
