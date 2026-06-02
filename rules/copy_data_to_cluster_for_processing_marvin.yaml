@@ -1,0 +1,25 @@
+---
+name: "copy_data_to_cluster_for_processing_marvin"
+pack: "ductus"
+description: "Rule that triggers  workflow that will move files to processing cluster"
+enabled: false
+
+trigger:
+    type: "ductus.processing_api"
+
+criteria:
+    trigger.event:
+      type: "equals"
+      pattern: "analysis_waiting"
+    trigger.process_location:
+      type: "equals"
+      pattern: "marvin"
+
+action:
+    ref: "ductus.run_workflow_with_trace_tags"
+    parameters:
+        workflow_ref: "ductus.copy_data_to_cluster_for_processing"
+        parameters:
+          analysis_name: "{{trigger.analysis_name}}"
+        trace_tags:
+          - "{{trigger.analysis_name}}"
