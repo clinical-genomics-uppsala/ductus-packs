@@ -1,0 +1,20 @@
+---
+name: "run_analysis_miarka"
+pack: "ductus"
+description: "Rule that triggers analysis on miarka"
+enabled: false
+
+trigger:
+    type: "ductus.upload_completed"
+
+criteria:
+    trigger.process_location:
+      type: "equals"
+      pattern: "miarka"
+
+action:
+    ref: "ductus.run_analysis_miarka_action"
+    parameters:
+        analysis_name: "{{trigger.analysis_name}}"
+        workpackage: "{{trigger.workpackage}}"
+        analysis: "{{trigger.analysis}}"

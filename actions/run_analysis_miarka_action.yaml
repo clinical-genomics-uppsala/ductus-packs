@@ -15,9 +15,6 @@ parameters:
     default: ductus.run_analysis_miarka
     immutable: true
     type: string
-  runfolder:
-    required: true
-    type: string
   process_host_proj_path:
     required: true
     type: string
@@ -34,7 +31,11 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.process_host_gateway_port }}"
-  experiment_name:
+  gateway_api_key:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_api_key }}"
+  analysis_name:
     required: true
     type: string
   workpackage:
@@ -47,6 +48,19 @@ parameters:
     required: true 
     type: object
     default: "{{ config_context.process_settings_miarka }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
+    secret: true
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_analysis_update_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_update_status_url }}"
   mail_bioinfo:
     required: true
     type: string

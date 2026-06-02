@@ -10,9 +10,16 @@
       payload_schema:
         type: "object"
         properties:
-         analysis_name:
-           type: "string"
-         event:
-           type: "string"
-         timestamp:
-           type: "string"
+          analysis_name:
+            required: true
+            type: string
+          workpackage:
+            required: true
+            type: string
+          analysis:
+            required: true 
+            type: string
+          event:
+            type: "string"
+          timestamp:
+            type: "string"
