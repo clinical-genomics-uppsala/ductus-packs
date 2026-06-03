@@ -40,7 +40,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "mark_as_started -- Couldn't mark <% ctx(runfolder) %> as started!"
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(analysis_name) %> as started!"
         do:
           - bioinfo_error_notifier
 
