@@ -15,7 +15,16 @@ parameters:
     default: ductus.retrieve_result_wp_miarka
     immutable: true
     type: string
-  runfolder:
+  analysis_name:
+    required: true
+    type: string
+  analysis:
+    required: true
+    type: string
+  workpackage:
+    required: true
+    type: string
+  created_date:
     required: true
     type: string
   miarka_download_user:
@@ -30,6 +39,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.miarka_download_host }}"
+  miarka_download_path_prefix:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_download_path_prefix }}"
   processing_api_service_url:
     required: true
     type: string
