@@ -1,4 +1,4 @@
---
+---
 name: "copy_data_to_cluster_for_processing_miarka"
 pack: "ductus"
 description: "Rule that triggers  workflow that will move files to processing cluster"
