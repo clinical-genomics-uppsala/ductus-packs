@@ -105,8 +105,8 @@ tasks:
           - create_qc_year_folder
       - when: <% failed() %>
         publish:
-          - stderr: "The transfer of fastq files from compute to hospital failed."      #fix runfolder below
-          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(miarka_download_host) %>\:<% ctx(runfolder) %>, <% result() %>'
+          - stderr: "The transfer of fastq files from compute to hospital failed."
+          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(miarka_download_host) %>\:<% ctx(analysis_name) %>, <% result() %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
