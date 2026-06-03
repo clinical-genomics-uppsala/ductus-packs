@@ -19,6 +19,9 @@
           analysis:
             required: true 
             type: string
+          process_location:
+            required: true
+            type: string
           event:
             type: "string"
           timestamp:
