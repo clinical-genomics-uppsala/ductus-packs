@@ -239,7 +239,7 @@ tasks:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(analysis_name) %>"
-      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path)) %>. A Bioinformatician has been notified.
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
