@@ -65,11 +65,11 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(analysis_folder_path) %>" }'
-        -k https://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
         -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: create_folder_status_url=<% concat("https://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: create_folder_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_folder_status
       - when: <% failed() %>
@@ -103,11 +103,11 @@ tasks:
         "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
         "inbox_path": "<% ctx(process_host_proj_path) %>/inbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>",
         "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' 
-        -k https://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/ 
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
         -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: analysis_status_url=<% concat("https://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: analysis_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_analysis_status
           - bioinfo_analysis_started
@@ -156,11 +156,11 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(outbox_folder) %>" }'
-        -k https://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
         -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: create_outbox_status_url=<% concat("https://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: create_outbox_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -192,11 +192,11 @@ tasks:
         "destination_directory": "<% ctx(outbox_folder) %>",
         "filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []))%>,
         "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' 
-        -k https://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>sync_directory/ 
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>sync_directory/
         -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: sync_status_url=<% concat("https://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: sync_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_sync_status
       - when: <% failed() %>
@@ -239,7 +239,7 @@ tasks:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-uu.se
       subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(analysis_name) %>"
-      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path)) %>. A Bioinformatician has been notified.
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
