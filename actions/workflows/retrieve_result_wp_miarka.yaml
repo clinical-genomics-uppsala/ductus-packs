@@ -51,7 +51,7 @@ tasks:
   get_run_year:
     action: core.local
     input:
-      cmd: "python3 -c 'import sys; sys.stdout.write(<% ctx(created_date) %>.split(\"-\")[0])'"
+      cmd: "python3 -c 'import sys; sys.stdout.write(\"<% ctx(created_date) %>\".split(\"-\")[0])'"
     next:
       - when: <% succeeded() %>
         publish: run_year=<% result().stdout %>
