@@ -60,7 +60,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(experiment_name) %>"
+          - failed_step: "get_run_year  -- Couldn't fetch created date from processing api for <% ctx(analysis_name) %>"
         do:
           - bioinfo_error_notifier
           - error_notifier
