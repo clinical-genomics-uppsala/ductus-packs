@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.1.0...v3.2.0) (2026-06-08)
+
+
+### Features
+
+* Miarka workflows ([#414](https://github.com/clinical-genomics-uppsala/ductus-packs/issues/414)) ([f6ee650](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/f6ee6506f18220a6a35f8c1bded26d9cf2115b55))
+
 ## [3.1.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.0.0...v3.1.0) (2026-05-22)
 
 
