@@ -1,0 +1,21 @@
+---
+name: "retrieve_result_wp_miarka"
+pack: "ductus"
+description: "Rule that triggers a result retrieval workflow when a Miarka analysis is available for download"
+enabled: false
+
+trigger:
+    type: "ductus.download_available"
+
+criteria:
+    trigger.process_location:
+      type: "equals"
+      pattern: "miarka"
+
+action:
+    ref: "ductus.retrieve_result_wp_miarka"
+    parameters:
+      analysis_name: "{{trigger.analysis_name}}"
+      analysis: "{{trigger.analysis}}"
+      workpackage: "{{trigger.workpackage}}"
+      created_date: "{{trigger.created_date}}"

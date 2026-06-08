@@ -3,15 +3,18 @@ version: "1.0" # Orquest version
 description: Will analyse data found in the inbox folder using ...
 
 input:
-    - runfolder
     - process_host_proj_path
     - process_host_url
     - process_host_gateway_port
+    - gateway_api_key
     - job_status_url
-    - experiment_name
+    - analysis_name
     - workpackage
     - analysis
     - process_settings
+    - processing_api_access_key
+    - processing_api_service_url
+    - processing_api_analysis_update_status_url
     - mail_bioinfo
     - mail_settings
 
@@ -24,12 +27,27 @@ vars:
   - outbox_folder: null
   - failed_step: null
   - stderr: null
-  
+
 tasks:
+  update_processing_status_started:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"PR\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(analysis_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+    next:
+      - when: <% succeeded() %>
+        do:
+         - analysis_folder_path
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "mark_as_started -- Couldn't mark <% ctx(analysis_name) %> as started!"
+        do:
+          - bioinfo_error_notifier
+
   analysis_folder_path:
     action: core.local
     input:
-      cmd: echo <% ctx(process_host_proj_path) %>/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %> 
+      cmd: echo <% ctx(process_host_proj_path) %>/analysis/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>
     next:
       - when: <% succeeded() %>
         publish: analysis_folder_path=<% result().stdout %>
@@ -47,14 +65,13 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(analysis_folder_path) %>" }'
-        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
-        -H 'apikey: ***********'
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: create_folder_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: create_folder_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_folder_status
-          - bioinfo_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -66,6 +83,7 @@ tasks:
     action: ductus.poll_status
     input:
       url: <% ctx(create_folder_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
     next:
       - when: <% succeeded() %>
         do: run_pipeline
@@ -83,17 +101,20 @@ tasks:
         curl -s -X POST --data '{
         "analysis_path": "<% ctx(analysis_folder_path) %>",
         "runscript": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('run_script') %>",
-        "inbox_path": "<% ctx(runfolder) %>",
-        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
+        "inbox_path": "<% ctx(process_host_proj_path) %>/inbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>",
+        "parameters": "<% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('parameters') %>" }' 
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: analysis_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: analysis_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_analysis_status
+          - bioinfo_analysis_started
       - when: <% failed() %>
         publish:
           - stderr: "run_pipeline failed"
-          - failed_step: "run_pipeline= Couldn't perform analysis <% ctx(experiment_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>"
+          - failed_step: "run_pipeline= Couldn't perform analysis <% ctx(analysis_name) %>, <% ctx(workpackage) %>, <% ctx(analysis) %>"
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
@@ -102,6 +123,8 @@ tasks:
     action: ductus.poll_status
     input:
       url: <% ctx(analysis_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+      timeout: <% ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('timeout', 259200) %>
     next:
       - when: <% succeeded() %>
         do: generate_outbox_path
@@ -109,11 +132,12 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
+          - update_processing_status_failed
 
   generate_outbox_path:
     action: core.local
     input:
-      cmd: echo <% ctx(process_host_proj_path) %>/outbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(experiment_name) %>
+      cmd: echo <% ctx(process_host_proj_path) %>/outbox/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>
     next:
       - when: <% succeeded() %>
         publish: outbox_folder=<% result().stdout %>
@@ -132,11 +156,11 @@ tasks:
     input:
       cmd: >
         curl -s -X POST --data '{"path": "<% ctx(outbox_folder) %>" }'
-        -k http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
-        -H 'apikey: ***********'
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: create_outbox_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: create_outbox_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_create_outbox_status
       - when: <% failed() %>
@@ -151,13 +175,14 @@ tasks:
     action: ductus.poll_status
     input:
       url: <% ctx(create_outbox_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
     next:
       - when: <% succeeded() %>
         do: sync_data_to_outbox
       - when: <% failed() %>
         do:
           - bioinfo_error_notifier
-  
+
   sync_data_to_outbox:
     action: core.local
     input:
@@ -166,10 +191,12 @@ tasks:
         "source_directory": "<% ctx(analysis_folder_path) %>",
         "destination_directory": "<% ctx(outbox_folder) %>",
         "filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders', []))%>,
-        "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' http://<% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>sync_directory/
+        "may_exist_filter": <% json_dump(ctx(process_settings).get(ctx(workpackage)).get(ctx(analysis)).get('outbox_files_and_folders_that_may_exist', [])) %> }' 
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>sync_directory/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
     next:
       - when: <% succeeded() %>
-        publish: sync_status_url=<% concat("http://",ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: sync_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
         do:
           - poll_sync_status
       - when: <% failed() %>
@@ -184,6 +211,8 @@ tasks:
     action: ductus.poll_status
     input:
       url: <% ctx(sync_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+      timeout: 1200
     next:
       - when: <% succeeded() %>
         do: set_ready_for_download
@@ -193,17 +222,24 @@ tasks:
           - wp_error_notifier
 
   set_ready_for_download:
-   action: core.local
-   input:
-    cmd: echo "Ready for download"
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"RD\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(analysis_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "set_ready_for_download -- Couldn't update status in processingapi for <% ctx(analysis_name) %>"
+        do:
+          - bioinfo_error_notifier
 
   wp_error_notifier:
     action: core.sendmail
     input:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
-      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(runfolder) %>. A Bioinformatician has been notified.
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(analysis_name) %>"
+      body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. A Bioinformatician has been notified.
     next:
       - when: <% succeeded() %>
         do:
@@ -214,8 +250,17 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][ERROR] - Failed processing <% ctx(analysis_name) %>"
       body: Something went wrong during <% ctx('analysis') %> processing of folder <% ctx(analysis_folder_path) %>. Please investigate. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+  update_processing_status_failed:
+    action: core.local
+    input:
+      cmd: "status=$(curl -o /dev/null -s --write-out '%{http_code}' -d  '{\"analysis_status\": \"FA\"}' -H 'Content-Type: application/json' -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' -X PUT <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_update_status_url) %><% ctx(analysis_name) %>/); if [ $status != '202' ]; then echo $status; exit 1; fi"
     next:
       - when: <% succeeded() %>
         do:
@@ -226,7 +271,7 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-uu.se
-      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][Started] - <% ctx(experiment_name) %>"
+      subject: "[DUCTUS][<% ctx('workpackage')%>][<% ctx('analysis')%>][Started] - <% ctx(analysis_name) %>"
       body: Analysis of <% ctx('analysis') %> has started, <% ctx(analysis_folder_path) %>. Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
 
 output:

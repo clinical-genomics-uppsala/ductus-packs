@@ -12,6 +12,14 @@
         properties:
          analysis_name:
            type: "string"
+         analysis:
+           type: "string"
+         workpackage:
+           type: "string"
+         created_date:
+           type: "string"
+         process_location:
+           type: "string"
          event:
            type: "string"
          timestamp:
