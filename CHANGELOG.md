@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.2.1](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.2.0...v3.2.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* Update pack.yaml ([e48e0a9](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/e48e0a9a0c46c6d85377f5e897de58732d35dca9))
+* Update pack.yaml ([b209b51](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/b209b51cb6e5f4161104ec64c6360c0d25249eba))
+* Update poll_status.yaml ([#416](https://github.com/clinical-genomics-uppsala/ductus-packs/issues/416)) ([2341cfb](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/2341cfb490610c5b2a53ae0169ec032c68c2e28f))
+
 ## [3.2.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.1.0...v3.2.0) (2026-06-08)
 
 
