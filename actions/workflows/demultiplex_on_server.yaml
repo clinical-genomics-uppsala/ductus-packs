@@ -4,9 +4,6 @@ description: Will initiate demultiplexing of a runfolder on an instrument and po
 
 input:
     - runfolder
-    - inbox_runfolder_host
-    - inbox_runfolder_host_port
-    - inbox_runfolder_api_version
     - workspace_runfolder_host
     - workspace_runfolder_host_port
     - workspace_runfolder_api_version
@@ -33,9 +30,6 @@ vars:
   - failed_step: null
   - ignored_samples: null
   - lanes_to_demultiplex: null
-  - runfolder_api_version: null
-  - runfolder_host: null
-  - runfolder_host_port: null
   - runfolder_path: null
   - runinfo_file: null
   - samples: null
@@ -67,7 +61,7 @@ tasks:
         publish:
           - runfolder_path: <% result().stdout %>
         do:
-          - setting_runfolder
+          - mark_as_started
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
@@ -75,36 +69,10 @@ tasks:
         do:
           - bioinfo_error_notifier
 
-  setting_runfolder:
-    action: core.local
-    input:
-      cmd: echo <% ctx(runfolder_path) %> | grep -oP '(inbox|workarea)'
-    next:
-      - when: <% succeeded() and 'inbox' in result().stdout and not 'workarea' in result().stdout %>
-        publish:
-          - runfolder_host: <% ctx(inbox_runfolder_host) %>
-          - runfolder_host_port: <% ctx(inbox_runfolder_host_port) %>
-          - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
-        do:
-          - mark_as_started
-      - when: <% succeeded() and 'workarea' in result().stdout %>
-        publish:
-          - runfolder_host: <% ctx(workspace_runfolder_host) %>
-          - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
-          - runfolder_api_version: <% ctx(workspace_runfolder_api_version) %>
-        do: 
-          - mark_as_started
-      - when: <% failed() %>
-        publish:
-          - stderr: <% result() %>
-          - failed_step: "setting_runfolder -- Could not determine service from path <% ctx(runfolder_path) %>"
-        do:
-          - bioinfo_error_notifier
-
   mark_as_started:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      url: http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
       body: '{"state": "started"}'
       method: "POST"
     next:
@@ -348,14 +316,14 @@ tasks:
   mark_as_done:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      url: http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
       body: '{"state": "done"}'
       method: "POST"
 
   mark_as_failed:
     action: core.http
     input:
-      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
+      url:  http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder_path) %>
       body: '{"state": "error"}'
       method: "POST"
     next:

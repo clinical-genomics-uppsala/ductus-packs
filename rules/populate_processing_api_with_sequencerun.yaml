@@ -10,11 +10,10 @@ trigger:
 criteria:
     trigger.runfolder:
       type: "contains"
-      pattern: "workarea/inbox"
+      pattern: "AL_SEQ-Workarea/CMD_Workarea"
 
 action:
     ref: "ductus.populate_processing_api_with_sequencerun"
     parameters:
-        service: "workspace"
         runfolder: "{{trigger.runfolder}}"
         
