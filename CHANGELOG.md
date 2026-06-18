@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.2.1...v4.0.0) (2026-06-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **hospital-inbox:** Rm hospital-inbox service
+
+### Features
+
+* **hospital-inbox:** Rm hospital-inbox service ([0be7e21](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/0be7e21556265f29dca1e8f66392d82e12d483a1))
+
 ## [3.2.1](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.2.0...v3.2.1) (2026-06-11)
 
 
