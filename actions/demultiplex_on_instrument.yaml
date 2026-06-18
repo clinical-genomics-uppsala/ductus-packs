@@ -18,18 +18,6 @@ parameters:
   runfolder:
     required: true
     type: string
-  inbox_runfolder_host:
-    required: true
-    type: string
-    default: "{{ config_context.inbox_runfolder_service_address }}"
-  inbox_runfolder_host_port:
-    required: true
-    type: string
-    default: "{{ config_context.inbox_runfolder_service_port }}"
-  inbox_runfolder_api_version:
-    required: true
-    type: string
-    default: "{{ config_context.inbox_runfolder_api_version }}"
   workspace_runfolder_host:
     required: true
     type: string

@@ -3,11 +3,7 @@ version: "1.0" # Orquest version
 description: Will process a new sequence run
 
 input:
-  - service
   - runfolder
-  - inbox_runfolder_host
-  - inbox_runfolder_host_port
-  - inbox_runfolder_api_version
   - workspace_runfolder_host
   - workspace_runfolder_host_port
   - workspace_runfolder_api_version
@@ -24,9 +20,6 @@ vars:
   - failed_step: null
   - machine_name: null
   - perform_demultiplex_file_exist: 0
-  - runfolder_host: null
-  - runfolder_host_port: null
-  - runfolder_api_version: null
   - runfolder_name: null
   - runinfo_file: null
   - stderr: null
@@ -35,28 +28,10 @@ vars:
   - samplesheet_file_demux: null
 
 tasks:
-  setting_runfolder:
-    action: core.local
-    input:
-      cmd: echo <% ctx(service) %>
-    next:
-      - when: <% succeeded() and result().stdout = "inbox" %>
-        publish:
-          - runfolder_host: <% ctx(inbox_runfolder_host) %>
-          - runfolder_host_port: <% ctx(inbox_runfolder_host_port) %>
-          - runfolder_api_version: <% ctx(inbox_runfolder_api_version) %>
-        do: mark_as_started
-      - when: <% succeeded() and result().stdout = "workspace" %>
-        publish:
-          - runfolder_host: <% ctx(workspace_runfolder_host) %>
-          - runfolder_host_port: <% ctx(workspace_runfolder_host_port) %>
-          - runfolder_api_version: <% ctx(workspace_runfolder_api_version) %>
-        do: mark_as_started
-
   mark_as_started:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "started"}'
       method: "POST"
     next:
@@ -326,14 +301,14 @@ tasks:
   mark_as_done:
     action: core.http
     input:
-      url: http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url: http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "done"}'
       method: "POST"
 
   mark_as_failed:
     action: core.http
     input:
-      url:  http://<% ctx(runfolder_host) %>:<% ctx(runfolder_host_port) %>/api/<% ctx(runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
+      url:  http://<% ctx(workspace_runfolder_host) %>:<% ctx(workspace_runfolder_host_port) %>/api/<% ctx(workspace_runfolder_api_version) %>/runfolders/path<% ctx(runfolder) %>
       body: '{"state": "error"}'
       method: "POST"
     next:
