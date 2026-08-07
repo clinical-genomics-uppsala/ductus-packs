@@ -1,0 +1,42 @@
+---
+  class_name: "SMRTLinkSensor"
+  entry_point: "smrtlink_sensor.py"
+  description: "Sensor which polls SMRT Link for PacBio sequencing runs and fires a trigger when a run's collections are all complete"
+  poll_interval: 600 # Every 10 min
+  trigger_types:
+    -
+      name: "pacbio_run_complete"
+      description: "Fired when all collections in a SMRT Link run reach Complete status (ccsExecutionMode=OnInstrument)"
+      payload_schema:
+        type: "object"
+        properties:
+          run_uuid:
+            type: "string"
+          run_name:
+            type: "string"
+          collection_paths:
+            type: "array"
+            items:
+              type: "string"
+          collections:
+            type: "array"
+            items:
+              type: "object"
+    -
+      name: "pacbio_run_complete_longplex"
+      description: "Fired when a SMRT Link run completes and requires LongPlex demultiplexing (ccsExecutionMode=OffInstrument)"
+      payload_schema:
+        type: "object"
+        properties:
+          run_uuid:
+            type: "string"
+          run_name:
+            type: "string"
+          collection_paths:
+            type: "array"
+            items:
+              type: "string"
+          collections:
+            type: "array"
+            items:
+              type: "object"
