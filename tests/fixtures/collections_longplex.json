@@ -1,0 +1,13 @@
+[
+  {
+    "name": "test_run_001_A01",
+    "uniqueId": "bbbbbbbb-0000-0000-0000-000000000001",
+    "status": "Complete",
+    "well": "A01",
+    "instrumentName": "Revio",
+    "collectionPathUri": "/data/revio/test_run_001/1_A01",
+    "ccsId": "cccccccc-0000-0000-0000-000000000001",
+    "movieMinutes": 120,
+    "ccsExecutionMode": null
+  }
+]

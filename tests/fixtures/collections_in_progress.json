@@ -1,0 +1,16 @@
+[
+  {
+    "name": "test_run_001_A01",
+    "uniqueId": "bbbbbbbb-0000-0000-0000-000000000001",
+    "status": "Complete",
+    "collectionPathUri": "/data/revio/test_run_001/1_A01",
+    "ccsId": "cccccccc-0000-0000-0000-000000000001"
+  },
+  {
+    "name": "test_run_001_B01",
+    "uniqueId": "bbbbbbbb-0000-0000-0000-000000000002",
+    "status": "Running",
+    "collectionPathUri": "/data/revio/test_run_001/2_B01",
+    "ccsId": null
+  }
+]
