@@ -1,0 +1,32 @@
+---
+name: 'upload_pacbio_sequencerun'
+runner_type: 'python-script'
+description: 'Posts a completed PacBio SMRT Link run to the processing api as JSON'
+enabled: true
+entry_point: 'upload_pacbio_sequencerun.py'
+parameters:
+  run_uuid:
+    type: 'string'
+    required: true
+  run_name:
+    type: 'string'
+    required: true
+  collection_paths:
+    type: 'array'
+    required: true
+  collections:
+    type: 'array'
+    required: true
+  requires_demultiplex:
+    type: 'boolean'
+    required: true
+  processing_api_service_url:
+    type: 'string'
+    required: true
+  processing_api_sequence_run_upload_pacbio_url:
+    type: 'string'
+    required: true
+  processing_api_access_key:
+    type: 'string'
+    required: true
+    secret: true

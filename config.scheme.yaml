@@ -195,6 +195,13 @@
     required: true
     default: "api/v1/sequencerun/upload/illumina/"
 
+  # Upload new sequence run originating from a PacBio (SMRT Link) machine
+  processing_api_sequence_run_upload_pacbio_url:
+    description: upload new sequence run originating from a PacBio (SMRT Link) machine
+    type: string
+    required: true
+    default: "api/v1/sequencerun/upload/pacbio/"
+
   processing_api_lanes_to_demultiplex_url:
     description: fetch lanes that will be demultiplexced on server
     type: string
