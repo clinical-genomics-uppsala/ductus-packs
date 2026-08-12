@@ -131,6 +131,7 @@ tasks:
   transfer_staging_dir:
      action: core.local
      input:
+       cwd: <% ctx(hospital_upload_staging_path) %>
        cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_upload_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_upload_user) %>@<% ctx(miarka_upload_host) %>:<% ctx(miarka_upload_path_prefix) %>"
        timeout: 86400
      next:
