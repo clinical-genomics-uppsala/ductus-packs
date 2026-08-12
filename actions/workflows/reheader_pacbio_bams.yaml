@@ -1,0 +1,106 @@
+version: "1.0" # Orquesta version
+
+description: Reheaders demultiplexed PacBio LongPlex BAMs on Miarka
+
+input:
+  - longplex_bam_dir
+  - reheader_dir
+  - sample_map
+  - process_host_url
+  - process_host_gateway_port
+  - job_status_url
+  - gateway_api_key
+  - pacbio_reheader_runscript_path
+  - mail_bioinfo
+
+vars:
+  - create_directory_status_url: null
+  - run_reheader_status_url: null
+  - failed_step: null
+  - stderr: null
+
+tasks:
+  create_reheader_directory:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{"path": "<% ctx(reheader_dir) %>" }'
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
+    next:
+      - when: <% succeeded() %>
+        publish: create_directory_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        do:
+          - poll_create_directory_status
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "create_reheader_directory -- Couldn't create reheader directory <% ctx(reheader_dir) %>"
+        do:
+          - bioinfo_error_notifier
+
+  poll_create_directory_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_directory_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+    next:
+      - when: <% succeeded() %>
+        do: run_reheader
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_create_directory_status -- Couldn't create reheader directory <% ctx(reheader_dir) %>"
+        do:
+          - bioinfo_error_notifier
+
+  run_reheader:
+    action: core.local
+    input:
+      cmd: >
+        curl -s -X POST --data '{
+        "analysis_path": "<% ctx(reheader_dir) %>",
+        "runscript": "<% ctx(pacbio_reheader_runscript_path) %>",
+        "inbox_path": "<% ctx(longplex_bam_dir) %>",
+        "parameters": "--sample-map <% ctx(sample_map) %>" }'
+        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
+        -H 'apikey: <% ctx(gateway_api_key) %>'
+    next:
+      - when: <% succeeded() %>
+        publish: run_reheader_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        do:
+          - poll_reheader_status
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "run_reheader -- Couldn't start reheader job for <% ctx(longplex_bam_dir) %>"
+        do:
+          - bioinfo_error_notifier
+
+  poll_reheader_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(run_reheader_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_reheader_status -- Reheader job failed for <% ctx(longplex_bam_dir) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - PacBio BAM reheadering, <% ctx(longplex_bam_dir) %>"
+      body: Something went wrong reheadering PacBio LongPlex BAMs in <% ctx(longplex_bam_dir) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

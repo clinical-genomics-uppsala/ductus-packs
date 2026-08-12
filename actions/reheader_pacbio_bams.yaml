@@ -1,0 +1,52 @@
+---
+name: reheader_pacbio_bams
+description: >
+  Reheaders demultiplexed PacBio LongPlex BAMs on Miarka, fixing the SM: tag
+  so downstream pipelines can consume them
+enabled: true
+runner_type: orquesta
+entry_point: workflows/reheader_pacbio_bams.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.reheader_pacbio_bams
+    immutable: true
+    type: string
+  longplex_bam_dir:
+    required: true
+    type: string
+  reheader_dir:
+    required: true
+    type: string
+  sample_map:
+    required: true
+    type: string
+  process_host_url:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_url }}"
+  process_host_gateway_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_gateway_port }}"
+  job_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.job_status_url }}"
+  gateway_api_key:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_api_key }}"
+    secret: true
+  pacbio_reheader_runscript_path:
+    required: true
+    type: string
+    default: "{{ config_context.pacbio_reheader_runscript_path }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
