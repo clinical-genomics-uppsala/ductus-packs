@@ -91,7 +91,7 @@ tasks:
     action: core.local
     input:
       timeout: 86400
-      cmd: rsync.py -c -f <% ctx(miarka_download_path_prefix) %>/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>/ -t <% ctx(result_storage_folder) %>/<% ctx(analysis_name_result) %> -u <% ctx(miarka_download_user) %> -i <% ctx(miarka_download_key) %> -r <% ctx(miarka_download_host) %> -p 1
+      cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_download_key) %>'  <%  ctx(miarka_download_user) %>@<% ctx(miarka_download_host) %>:<% ctx(miarka_download_path_prefix) %>/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>/ <% ctx(result_storage_folder) %>/<% ctx(analysis_name_result) %>"
     retry:
       delay: 10
       count: 5
@@ -105,7 +105,7 @@ tasks:
           - create_qc_year_folder
       - when: <% failed() %>
         publish:
-          - stderr: "The transfer of fastq files from compute to hospital failed."
+          - stderr: "The transfer of result files from compute to hospital failed."
           - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(miarka_download_host) %>\:<% ctx(analysis_name) %>, <% result() %>'
         do:
           - bioinfo_error_notifier
