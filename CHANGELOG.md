@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.1.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v4.0.0...v4.1.0) (2026-08-18)
+
+
+### Features
+
+* Read exp. filter as array from config. ([918c8ad](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/918c8adbf7035ef1e86a6f70349534dee965b664))
+* Read exp. filter as array from config. ([164affe](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/164affe9e014fd5105565cef2ea463bd0cf5eac2))
+
+
+### Bug Fixes
+
+* Remove rsync wrapper from download miarka ([#424](https://github.com/clinical-genomics-uppsala/ductus-packs/issues/424)) ([3d8237e](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/3d8237eb253f4e665c8cf8b2ecd4544d8d013598))
+
 ## [4.0.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v3.2.1...v4.0.0) (2026-06-18)
 
 
