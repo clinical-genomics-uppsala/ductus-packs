@@ -67,4 +67,7 @@ parameters:
     required: true
     type: array
     default: "{{ config_context.complete_file_dict }}"
-    
+  filter_out_experiment:
+    required: false
+    type: array
+    default: "{{ config_context.no_process_exp }}"
