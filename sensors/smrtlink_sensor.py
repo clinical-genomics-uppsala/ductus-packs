@@ -129,14 +129,68 @@ class SMRTLinkSensor(PollingSensor):
 
         return all(c.get("status") == "Complete" for c in collections)
 
-    def _get_uniform_ccs_mode(self, collections):
-        """Returns (mode, True) if all collections share one ccsExecutionMode, else (modes_set, False)."""
-        if not collections:
-            return None, True
-        modes = {c.get("ccsExecutionMode") for c in collections}
-        if len(modes) > 1:
-            return modes, False
-        return modes.pop(), True
+    def _get_run_details(self, run_uuid):
+        try:
+            return self._client.get(f"/smrt-link/runs/{run_uuid}")
+        except Exception as e:
+            self._logger.error(f"Failed to fetch run details for {run_uuid}: {e}")
+            return None
+
+    def _dataset_already_split(self, ccs_id):
+        """True if a collection's ConsensusReadSet already has child datasets,
+        i.e. it has already been demultiplexed."""
+        try:
+            dataset = self._client.get(f"/smrt-link/datasets/ccsreads/{ccs_id}")
+        except Exception as e:
+            self._logger.error(f"Could not fetch dataset {ccs_id}: {e}")
+            return False
+        return dataset.get("numChildren", 0) > 0
+
+    def _get_barcoded_samples(self, run_uuid, collection_uuid):
+        """Per-barcode sample identity for a collection, plus the LIMS
+        experiment_id stashed in each barcode's sampleData (Sample-Setup
+        convention -- see docs/pacbio_processing_api_contract.md).
+
+        Empty for a collection with no declared barcodes. That includes
+        LongPlex pools (seqWell barcodes are invisible to SMRT Link) and
+        possibly plain single-sample wells too -- whether Sample Setup
+        creates a barcode record for a non-multiplexed well is unconfirmed.
+        """
+        try:
+            barcodes = self._client.get(
+                f"/smrt-link/runs/{run_uuid}/collections/{collection_uuid}/barcodes"
+            )
+        except Exception as e:
+            self._logger.error(f"Could not fetch barcodes for collection {collection_uuid}: {e}")
+            return []
+
+        samples = []
+        for entry in barcodes or []:
+            sample_data = entry.get("sampleData") or {}
+            samples.append({
+                **entry,
+                "experiment_id": sample_data.get("experiment_id"),
+            })
+        return samples
+
+    def _collection_needs_demux(self, collection):
+        """Detects SMRT-Link-visible (native PacBio barcode) multiplexing that
+        hasn't already been split into per-sample datasets.
+
+        Does NOT detect LongPlex pools: seqWell barcodes are internal to the
+        library and invisible to SMRT Link, so a LongPlex well typically
+        reports numBarcodes 0 or 1 despite containing many pooled samples.
+        LongPlex detection needs a separate, out-of-band signal (naming
+        convention, a populated `sampleData` field, or an external sample
+        sheet) that isn't wired up yet — see
+        docs/pacbio_processing_api_contract.md.
+        """
+        if collection.get("numBarcodes", 0) <= 1:
+            return False
+        ccs_id = collection.get("ccsId")
+        if ccs_id and self._dataset_already_split(ccs_id):
+            return False
+        return True
 
     # ── Trigger ────────────────────────────────────────────────
 
@@ -147,19 +201,40 @@ class SMRTLinkSensor(PollingSensor):
             self._logger.error(f"Could not fetch collections for trigger payload: {e}")
             collections = []
 
-        mode, uniform = self._get_uniform_ccs_mode(collections)
-        if not uniform:
-            self._logger.error(
-                "Run %s has mixed ccsExecutionMode values %s — skipping (operator must investigate)",
-                run["name"],
-                mode,
+        for collection in collections:
+            collection["barcoded_samples"] = self._get_barcoded_samples(
+                run["uniqueId"], collection.get("uniqueId")
             )
-            return False
+
+        run_details = self._get_run_details(run["uniqueId"]) or {}
+        multi_job_id = run_details.get("multiJobId")
+
+        if multi_job_id:
+            # SMRT Link already has an analysis multi-job configured to fire
+            # automatically once collections import -- our own demux step
+            # would be redundant (or worse, race with it).
+            self._logger.info(
+                "Run %s has multiJobId=%s; SMRT Link will handle analysis/demux automatically",
+                run["name"],
+                multi_job_id,
+            )
+            needs_demux = False
+        else:
+            needs_demux = any(self._collection_needs_demux(c) for c in collections)
+
+        if not needs_demux:
+            self._logger.warning(
+                "Run %s routed as no-demux-needed based on numBarcodes/multiJobId/numChildren -- "
+                "this cannot detect LongPlex pools (seqWell barcodes are invisible to SMRT Link), "
+                "so a LongPlex run could be silently misrouted here until an out-of-band LongPlex "
+                "marker is implemented.",
+                run["name"],
+            )
 
         trigger_name = (
-            "ductus.pacbio_run_complete"
-            if mode == "OnInstrument"
-            else "ductus.pacbio_run_complete_longplex"
+            "ductus.pacbio_run_complete_longplex"
+            if needs_demux
+            else "ductus.pacbio_run_complete"
         )
         payload = {
             "run_uuid": run.get("uniqueId"),
@@ -172,10 +247,10 @@ class SMRTLinkSensor(PollingSensor):
             payload=payload,
         )
         self._logger.info(
-            "Dispatched %s for run %s (ccsExecutionMode=%s)",
+            "Dispatched %s for run %s (needs_demux=%s)",
             trigger_name,
             run["name"],
-            mode,
+            needs_demux,
         )
         return True
 
