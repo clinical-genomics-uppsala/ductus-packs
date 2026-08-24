@@ -54,6 +54,7 @@ class SMRTClient:
             data=payload,
             headers=headers,
             verify=self.ssl_verify,
+            timeout=30,
         )
         r.raise_for_status()
         self._token = r.json()["access_token"]
