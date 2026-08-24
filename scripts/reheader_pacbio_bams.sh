@@ -75,15 +75,40 @@ find "$inbox_path"/*.bam | while read -r bam; do
     well_id=$(basename "$bam" .bam | cut -d'.' -f2)
     echo "Well ID: $well_id"
 
-    # Try to find the sample in the map. || true prevents exit if grep finds nothing.
-    sample_line=$(grep "$well_id" "$sample_map" || true)
+    # Exact, field-aware lookup, and it must resolve to exactly one row.
+    #
+    # A substring grep over the whole line (what this used to do) matches A01
+    # inside A010, or inside an unrelated value in some other column -- which
+    # would reheader a clinical sample with another sample's SM tag. Several
+    # matches also used to collapse into a multi-line sample_id, corrupting
+    # both the SM tag and the output filename; no match used to `continue`,
+    # so the BAM was silently never produced and the job still exited 0.
+    # Zero or duplicate matches are an operator problem: fail loudly.
+    #
+    # well_id is compared against every field rather than one fixed column,
+    # because only the sample-id column index (3) is known for this file
+    # format. Exact whole-field equality is what matters here; pin the well
+    # column too if that index is ever confirmed. Trailing CR is stripped so
+    # an Excel-exported (CRLF) sample map does not leak \r into the SM tag or
+    # the output filename.
+    match_count=$(awk -F, -v well="$well_id" '
+        { sub(/\r$/, ""); for (i = 1; i <= NF; i++) if ($i == well) { n++; break } }
+        END { print n + 0 }
+    ' "$sample_map")
 
-    if [ -z "$sample_line" ]; then
-        echo "Skipping $bam: Well ID $well_id not found in sample map."
-        continue
+    if [ "$match_count" -ne 1 ]; then
+        echo "ERROR: well id '$well_id' matched $match_count rows in $sample_map (need exactly 1)" >&2
+        exit 1
     fi
 
-    sample_id=$(echo "$sample_line" | cut -d, -f3)
+    sample_id=$(awk -F, -v well="$well_id" '
+        { sub(/\r$/, ""); for (i = 1; i <= NF; i++) if ($i == well) { print $3; exit } }
+    ' "$sample_map")
+
+    if [ -z "$sample_id" ]; then
+        echo "ERROR: the row matching well id '$well_id' in $sample_map has an empty sample id (column 3)" >&2
+        exit 1
+    fi
     echo "Sample ID: $sample_id"
 
     # Reheader the BAM file to change the sample name
