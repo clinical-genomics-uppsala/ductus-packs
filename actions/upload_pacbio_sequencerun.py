@@ -5,6 +5,13 @@ from requests.exceptions import RequestException
 
 from st2common.runners.base_action import Action
 
+# requests has no default timeout: without these a stalled processing api
+# connection blocks forever, which also stalls the wrapping workflow's retry
+# and its bioinfo error notification. Connect is short (internal service);
+# read is generous, since registering a run can create a row per sample.
+CONNECT_TIMEOUT_SECONDS = 5
+READ_TIMEOUT_SECONDS = 60
+
 
 class UploadPacbioSequencerun(Action):
     """Registers a completed PacBio SMRT Link run with the processing api.
@@ -48,7 +55,12 @@ class UploadPacbioSequencerun(Action):
         headers = {"Authorization": "Api-Key {}".format(processing_api_access_key)}
 
         try:
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=(CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS),
+            )
         except RequestException as err:
             self.logger.error("Failed to reach processing api at %s: %s", url, err)
             return False, {"error": str(err)}
