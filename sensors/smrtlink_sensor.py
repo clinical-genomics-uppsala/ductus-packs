@@ -47,11 +47,21 @@ class SMRTLinkSensor(PollingSensor):
     def setup(self):
         # get_value() defaults local=True (namespaced key); local=False reads
         # the bare global key that `st2 key set smrtlink.username ...` writes.
+        ssl_verify = self._config.get("ssl_verify", True)
+        if not ssl_verify:
+            # urllib3's InsecureRequestWarning is suppressed in smrt_client, so
+            # without this there is no signal anywhere that the credentials
+            # get_token() posts are travelling unverified.
+            self._logger.warning(
+                "ssl_verify is disabled: SMRT Link credentials will be sent over a "
+                "connection whose certificate is not validated. Prefer setting "
+                "REQUESTS_CA_BUNDLE to trust an internal CA."
+            )
         self._client = SMRTClient(
             base_url=self._config.get("base_url"),
             username=self._sensor_service.get_value("smrtlink.username", local=False, decrypt=True),
             password=self._sensor_service.get_value("smrtlink.password", local=False, decrypt=True),
-            ssl_verify=self._config.get("ssl_verify", False),
+            ssl_verify=ssl_verify,
         )
 
     def poll(self):
@@ -88,11 +98,18 @@ class SMRTLinkSensor(PollingSensor):
             if state[uid]["triggered"]:
                 continue
 
-            # check if all collections are complete
-            if self._all_collections_complete(uid):
-                self._logger.info(f"Run complete, firing trigger: {state[uid]['name']}")
-                if self._dispatch_trigger(run):
-                    state[uid]["triggered"] = True
+            # fetched once here and passed down -- the completeness check and
+            # the trigger payload need the same collections.
+            collections = self._get_collections(uid)
+            if collections is None:
+                continue  # couldn't ask; retry next poll
+
+            if not collections or not all(c.get("status") == "Complete" for c in collections):
+                continue
+
+            self._logger.info(f"Run complete, firing trigger: {state[uid]['name']}")
+            if self._dispatch_trigger(run, collections):
+                state[uid]["triggered"] = True
 
         self._save_state(state)
 
@@ -117,33 +134,33 @@ class SMRTLinkSensor(PollingSensor):
             self._logger.error(f"Failed to fetch runs: {e}")
             return None
 
-    def _all_collections_complete(self, run_uuid):
+    def _get_collections(self, run_uuid):
+        """Collections for a run, or None if SMRT Link couldn't be asked.
+
+        None is distinct from an empty list: empty means the run genuinely
+        has no collections yet, None means the question went unanswered and
+        the caller should retry rather than draw a conclusion.
+        """
         try:
-            collections = self._client.get(f"/smrt-link/runs/{run_uuid}/collections")
+            return self._client.get(f"/smrt-link/runs/{run_uuid}/collections")
         except Exception as e:
             self._logger.error(f"Failed to fetch collections for {run_uuid}: {e}")
-            return False
+            return None
 
-        if not collections:
-            return False
-
-        return all(c.get("status") == "Complete" for c in collections)
+    # The three helpers below deliberately let client errors propagate. Each
+    # one's "safe" default would be indistinguishable from a real answer --
+    # no barcodes, no multiJobId, not yet split -- so swallowing the error
+    # would register a run with missing sample identity, or misroute its
+    # demux, and mark it triggered so it never retries. _dispatch_trigger
+    # catches these and aborts instead.
 
     def _get_run_details(self, run_uuid):
-        try:
-            return self._client.get(f"/smrt-link/runs/{run_uuid}")
-        except Exception as e:
-            self._logger.error(f"Failed to fetch run details for {run_uuid}: {e}")
-            return None
+        return self._client.get(f"/smrt-link/runs/{run_uuid}")
 
     def _dataset_already_split(self, ccs_id):
         """True if a collection's ConsensusReadSet already has child datasets,
         i.e. it has already been demultiplexed."""
-        try:
-            dataset = self._client.get(f"/smrt-link/datasets/ccsreads/{ccs_id}")
-        except Exception as e:
-            self._logger.error(f"Could not fetch dataset {ccs_id}: {e}")
-            return False
+        dataset = self._client.get(f"/smrt-link/datasets/ccsreads/{ccs_id}")
         return dataset.get("numChildren", 0) > 0
 
     def _get_barcoded_samples(self, run_uuid, collection_uuid):
@@ -151,18 +168,16 @@ class SMRTLinkSensor(PollingSensor):
         experiment_id stashed in each barcode's sampleData (Sample-Setup
         convention -- see docs/pacbio_processing_api_contract.md).
 
-        Empty for a collection with no declared barcodes. That includes
-        LongPlex pools (seqWell barcodes are invisible to SMRT Link) and
-        possibly plain single-sample wells too -- whether Sample Setup
-        creates a barcode record for a non-multiplexed well is unconfirmed.
+        Legitimately empty for a collection with no declared barcodes: that
+        includes LongPlex pools (seqWell barcodes are invisible to SMRT Link)
+        and possibly plain single-sample wells too -- whether Sample Setup
+        creates a barcode record for a non-multiplexed well is unconfirmed,
+        so an empty result is logged to make that observable against real
+        runs rather than silently assumed.
         """
-        try:
-            barcodes = self._client.get(
-                f"/smrt-link/runs/{run_uuid}/collections/{collection_uuid}/barcodes"
-            )
-        except Exception as e:
-            self._logger.error(f"Could not fetch barcodes for collection {collection_uuid}: {e}")
-            return []
+        barcodes = self._client.get(
+            f"/smrt-link/runs/{run_uuid}/collections/{collection_uuid}/barcodes"
+        )
 
         samples = []
         for entry in barcodes or []:
@@ -171,6 +186,13 @@ class SMRTLinkSensor(PollingSensor):
                 **entry,
                 "experiment_id": sample_data.get("experiment_id"),
             })
+
+        if not samples:
+            self._logger.info(
+                "Collection %s declared no barcodes -- no per-sample identity or "
+                "experiment_id available for it",
+                collection_uuid,
+            )
         return samples
 
     def _collection_needs_demux(self, collection):
@@ -194,33 +216,40 @@ class SMRTLinkSensor(PollingSensor):
 
     # ── Trigger ────────────────────────────────────────────────
 
-    def _dispatch_trigger(self, run):
+    def _dispatch_trigger(self, run, collections):
+        # Everything in here needs a complete picture from SMRT Link. If any
+        # part of it can't be fetched, abort without dispatching and without
+        # marking the run triggered -- the next poll retries. Returning a
+        # half-populated payload would register the run with missing sample
+        # identity, or route its demux off a default that looks like a real
+        # answer, and it would never be revisited.
         try:
-            collections = self._client.get(f"/smrt-link/runs/{run['uniqueId']}/collections")
+            for collection in collections:
+                collection["barcoded_samples"] = self._get_barcoded_samples(
+                    run["uniqueId"], collection.get("uniqueId")
+                )
+
+            multi_job_id = self._get_run_details(run["uniqueId"]).get("multiJobId")
+
+            if multi_job_id:
+                # SMRT Link already has an analysis multi-job configured to fire
+                # automatically once collections import -- our own demux step
+                # would be redundant (or worse, race with it).
+                self._logger.info(
+                    "Run %s has multiJobId=%s; SMRT Link will handle analysis/demux automatically",
+                    run["name"],
+                    multi_job_id,
+                )
+                needs_demux = False
+            else:
+                needs_demux = any(self._collection_needs_demux(c) for c in collections)
         except Exception as e:
-            self._logger.error(f"Could not fetch collections for trigger payload: {e}")
-            collections = []
-
-        for collection in collections:
-            collection["barcoded_samples"] = self._get_barcoded_samples(
-                run["uniqueId"], collection.get("uniqueId")
+            self._logger.error(
+                "Incomplete SMRT Link data for run %s (%s) -- not dispatching, will retry next poll",
+                run.get("name"),
+                e,
             )
-
-        run_details = self._get_run_details(run["uniqueId"]) or {}
-        multi_job_id = run_details.get("multiJobId")
-
-        if multi_job_id:
-            # SMRT Link already has an analysis multi-job configured to fire
-            # automatically once collections import -- our own demux step
-            # would be redundant (or worse, race with it).
-            self._logger.info(
-                "Run %s has multiJobId=%s; SMRT Link will handle analysis/demux automatically",
-                run["name"],
-                multi_job_id,
-            )
-            needs_demux = False
-        else:
-            needs_demux = any(self._collection_needs_demux(c) for c in collections)
+            return False
 
         if not needs_demux:
             self._logger.warning(

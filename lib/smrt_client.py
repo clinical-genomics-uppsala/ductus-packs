@@ -12,8 +12,17 @@ TOKEN_REFRESH_MARGIN = 600   # re-auth 10 min before expiry
 
 
 class SMRTClient:
+    """Client for the SMRT Link REST API.
 
-    def __init__(self, base_url, username, password, ssl_verify=False):
+    ssl_verify defaults to True: get_token() sends the username and password
+    in the request body, so an unverified connection exposes real user
+    credentials, not just a token. A SMRT Link install using its default
+    self-signed certificate needs REQUESTS_CA_BUNDLE pointed at that cert on
+    the st2 host -- prefer that over passing ssl_verify=False, which is left
+    available only for local development against a throwaway server.
+    """
+
+    def __init__(self, base_url, username, password, ssl_verify=True):
         self.base_url = base_url
         self.username = username
         self.password = password
@@ -22,6 +31,11 @@ class SMRTClient:
         self._token_acquired_at = None
 
     def get_token(self):
+        # SECRET before KEY, which inverts RFC 6749's client_id:client_secret.
+        # This is not a bug: PacBio's own API guide (PN 103-720-500, Aug 2025)
+        # documents a literal Basic header that base64-decodes to
+        # "<secret>:<key>", and its reference Python client does
+        # ":".join([secret, consumer_key]). Swapping these yields 401.
         credentials = base64.b64encode(
             f"{CLIENT_SECRET}:{CLIENT_KEY}".encode()
         ).decode("utf-8")
@@ -109,5 +123,5 @@ class SMRTClient:
             base_url=config.get("base_url"),
             username=kv.get_value("smrtlink.username", local=False, decrypt=True),
             password=kv.get_value("smrtlink.password", local=False, decrypt=True),
-            ssl_verify=config.get("ssl_verify", False),
+            ssl_verify=config.get("ssl_verify", True),
         )
