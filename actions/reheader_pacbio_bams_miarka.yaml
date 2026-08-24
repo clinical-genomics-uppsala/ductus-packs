@@ -1,11 +1,13 @@
 ---
-name: reheader_pacbio_bams
+name: reheader_pacbio_bams_miarka
 description: >
   Reheaders demultiplexed PacBio LongPlex BAMs on Miarka, fixing the SM: tag
-  so downstream pipelines can consume them
+  so downstream pipelines can consume them. Miarka variant: submits through
+  the processing-service gateway and polls for completion. See
+  ductus.reheader_pacbio_bams_marvin for the SSH-based Marvin equivalent.
 enabled: true
 runner_type: orquesta
-entry_point: workflows/reheader_pacbio_bams.yaml
+entry_point: workflows/reheader_pacbio_bams_miarka.yaml
 pack: ductus
 parameters:
   context:
@@ -13,7 +15,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.reheader_pacbio_bams
+    default: ductus.reheader_pacbio_bams_miarka
     immutable: true
     type: string
   longplex_bam_dir:
@@ -46,6 +48,14 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.pacbio_reheader_runscript_path }}"
+  verify_ssl_cert:
+    description: >
+      Validate the processing-service TLS certificate on both the submit and
+      the poll calls. For an internal/self-signed CA, set REQUESTS_CA_BUNDLE
+      on the st2 host rather than disabling this.
+    required: true
+    type: boolean
+    default: "{{ config_context.miarka_verify_ssl_cert }}"
   mail_bioinfo:
     required: true
     type: string

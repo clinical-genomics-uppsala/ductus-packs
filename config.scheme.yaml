@@ -202,6 +202,27 @@
     required: true
     default: "api/v1/sequencerun/upload/pacbio/"
 
+  # SMRT Link REST API, used by smrtlink_sensor / lib/smrt_client.py.
+  # NOTE: these two keys are named generically because that is what the
+  # sensor reads (self._config.get("base_url") / ("ssl_verify")). Worth
+  # renaming to smrtlink_* before this sensor is deployed -- the pack config
+  # is shared, and it already holds process_host_url, miarka_upload_host etc.
+  base_url:
+    description: >
+      Base url to the SMRT Link API gateway, including scheme and port,
+      e.g. https://smrtlink.example.se:8243
+    type: string
+    required: true
+  ssl_verify:
+    description: >
+      Validate the SMRT Link TLS certificate. Defaults to true: get_token()
+      sends the username and password in the request body, so disabling this
+      exposes real credentials. For SMRT Link's default self-signed
+      certificate, set REQUESTS_CA_BUNDLE on the st2 host instead of setting
+      this to false.
+    type: boolean
+    default: true
+
   # Path, on Miarka, to the runscript that reheaders demultiplexed PacBio LongPlex BAMs
   pacbio_reheader_runscript_path:
     description: path on Miarka to the runscript that reheaders demultiplexed PacBio LongPlex BAMs
@@ -355,6 +376,14 @@
     type: string
     required: true
     default: "miarka1.uppmax.uu.se"
+  miarka_verify_ssl_cert:
+    description: >
+      Validate the Miarka processing-service TLS certificate. Defaults to true;
+      the curl -k previously used did not validate at all, exposing the gateway
+      api key to any MITM. For an internal/self-signed CA, set
+      REQUESTS_CA_BUNDLE on the st2 host rather than setting this to false.
+    type: boolean
+    default: true
   process_host_gateway_port:
     description: Port to Kong-gateway
     type: string

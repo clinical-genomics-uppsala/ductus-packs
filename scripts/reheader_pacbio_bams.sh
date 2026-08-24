@@ -3,23 +3,28 @@
 # Reheaders demultiplexed PacBio LongPlex BAMs, replacing each BAM's SM: tag
 # with the correct sample id looked up from a well-id -> sample-id map.
 #
-# Deployment target: Miarka, invoked as the "runscript" for a start_analysis
-# job submitted by ductus-packs' reheader_pacbio_bams workflow via the miarka
-# processing-service (create_directory -> start_analysis -> poll status).
+# Deployment target: both Marvin and Miarka. One ductus-packs action per
+# cluster invokes it, because the two share no submission mechanism:
+#   - ductus.reheader_pacbio_bams_marvin -- SSH (core.remote), runs
+#     `bash <this script> --inbox-path ... --analysis-path ... --sample-map ...`
+#     directly and synchronously. This calling convention is CONFIRMED: it's
+#     how run_analysis.yaml already invokes runscripts on Marvin.
+#   - ductus.reheader_pacbio_bams_miarka -- via the Miarka processing-service
+#     gateway (create_directory -> start_analysis -> poll status), which
+#     invokes this script on our behalf.
 #
-# ASSUMED CALLING CONVENTION -- NOT CONFIRMED against the actual
-# processing-service invocation code. ductus-packs' start_analysis payload
-# sends three pieces of data relevant here:
+# The Miarka invocation is the one still ASSUMED, not confirmed. Its
+# start_analysis payload sends three relevant fields:
 #   - inbox_path     -> the source directory of demultiplexed BAMs
 #   - analysis_path  -> the output directory for reheadered BAMs
 #   - parameters     -> a single string, assumed appended as extra CLI args
 #                        (matching how process_settings_miarka's `parameters`
 #                        is used for real analyses), set to
 #                        "--sample-map <path>" by the calling workflow.
-# Future maintainer: please verify how the processing-service actually
-# invokes a run_script (flags vs positional args vs env vars vs a parameters
-# file) and adjust the argument parsing below to match if this guess is
-# wrong.
+# Future maintainer: verify how the processing-service actually invokes a
+# run_script (flags vs positional args vs env vars vs a parameters file). If
+# it differs, make the parser below accept both forms rather than switching
+# it -- the Marvin path depends on the named flags.
 
 set -euo pipefail
 

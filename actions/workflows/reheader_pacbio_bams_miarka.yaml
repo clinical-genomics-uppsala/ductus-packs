@@ -11,6 +11,7 @@ input:
   - job_status_url
   - gateway_api_key
   - pacbio_reheader_runscript_path
+  - verify_ssl_cert
   - mail_bioinfo
 
 vars:
@@ -21,15 +22,19 @@ vars:
 
 tasks:
   create_reheader_directory:
-    action: core.local
+    action: ductus.submit_miarka_job
     input:
-      cmd: >
-        curl -s -X POST --data '{"path": "<% ctx(reheader_dir) %>" }'
-        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>create_directory/
-        -H 'apikey: <% ctx(gateway_api_key) %>'
+      process_host_url: <% ctx(process_host_url) %>
+      process_host_gateway_port: <% ctx(process_host_gateway_port) %>
+      job_status_url: <% ctx(job_status_url) %>
+      gateway_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+      endpoint: "create_directory/"
+      payload:
+        path: <% ctx(reheader_dir) %>
     next:
       - when: <% succeeded() %>
-        publish: create_directory_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: create_directory_status_url=<% result().status_url %>
         do:
           - poll_create_directory_status
       - when: <% failed() %>
@@ -44,6 +49,7 @@ tasks:
     input:
       url: <% ctx(create_directory_status_url) %>
       uppmax_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
     next:
       - when: <% succeeded() %>
         do: run_reheader
@@ -55,19 +61,27 @@ tasks:
           - bioinfo_error_notifier
 
   run_reheader:
-    action: core.local
+    action: ductus.submit_miarka_job
     input:
-      cmd: >
-        curl -s -X POST --data '{
-        "analysis_path": "<% ctx(reheader_dir) %>",
-        "runscript": "<% ctx(pacbio_reheader_runscript_path) %>",
-        "inbox_path": "<% ctx(longplex_bam_dir) %>",
-        "parameters": "--sample-map <% ctx(sample_map) %>" }'
-        -k <% ctx(process_host_url) %>:<% ctx(process_host_gateway_port) %><% ctx(job_status_url) %>start_analysis/
-        -H 'apikey: <% ctx(gateway_api_key) %>'
+      process_host_url: <% ctx(process_host_url) %>
+      process_host_gateway_port: <% ctx(process_host_gateway_port) %>
+      job_status_url: <% ctx(job_status_url) %>
+      gateway_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+      endpoint: "start_analysis/"
+      payload:
+        analysis_path: <% ctx(reheader_dir) %>
+        runscript: <% ctx(pacbio_reheader_runscript_path) %>
+        inbox_path: <% ctx(longplex_bam_dir) %>
+        # Still a CLI-args string: the processing-service appends it to the
+        # runscript invocation, so sample_map is shell-interpreted on the
+        # Miarka side. Out of scope here -- that's the service's contract
+        # (see docs/pacbio_reheader_miarka_contract.md) -- but it means this
+        # conversion closes our injection boundary, not that one.
+        parameters: "--sample-map <% ctx(sample_map) %>"
     next:
       - when: <% succeeded() %>
-        publish: run_reheader_status_url=<% concat(ctx(process_host_url),":",ctx(process_host_gateway_port),ctx(job_status_url),result().stdout.link.split("/")[-1]) %>
+        publish: run_reheader_status_url=<% result().status_url %>
         do:
           - poll_reheader_status
       - when: <% failed() %>
@@ -82,6 +96,7 @@ tasks:
     input:
       url: <% ctx(run_reheader_status_url) %>
       uppmax_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
     next:
       - when: <% failed() %>
         publish:
