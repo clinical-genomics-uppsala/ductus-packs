@@ -255,13 +255,18 @@ class SMRTLinkSensor(PollingSensor):
             self._logger.warning(
                 "Run %s routed as no-demux-needed based on numBarcodes/multiJobId/numChildren -- "
                 "this cannot detect LongPlex pools (seqWell barcodes are invisible to SMRT Link), "
-                "so a LongPlex run could be silently misrouted here until an out-of-band LongPlex "
-                "marker is implemented.",
+                "so a LongPlex run lands here until the out-of-band LongPlex marker is wired up.",
                 run["name"],
             )
 
+        # native_demux, not longplex: what was actually detected is declared
+        # PacBio barcodes still awaiting a split, which lima handles. LongPlex
+        # pooling is a different thing that SMRT Link cannot see at all, so no
+        # trigger claims to represent it until the LIMS-side marker
+        # (Analysis.demux_status) is wired up -- naming this one _longplex
+        # mislabelled runs in both directions.
         trigger_name = (
-            "ductus.pacbio_run_complete_longplex"
+            "ductus.pacbio_run_complete_native_demux"
             if needs_demux
             else "ductus.pacbio_run_complete"
         )

@@ -6,7 +6,15 @@
   trigger_types:
     -
       name: "pacbio_run_complete"
-      description: "Fired when all collections in a SMRT Link run reach Complete status (ccsExecutionMode=OnInstrument)"
+      description: >
+        Fired when all collections in a SMRT Link run reach Complete status and
+        no server-side demultiplexing was detected: every collection reports
+        numBarcodes <= 1, or the barcoded collections already have child
+        datasets, or the run has a multiJobId and SMRT Link will handle it.
+        Caveat: LongPlex pools also land here. seqWell barcodes are internal to
+        the library and never declared in the run design, so SMRT Link cannot
+        see them -- a LongPlex run is indistinguishable from a plain one until
+        the LIMS-side marker (Analysis.demux_status) is wired up.
       payload_schema:
         type: "object"
         properties:
@@ -23,8 +31,14 @@
             items:
               type: "object"
     -
-      name: "pacbio_run_complete_longplex"
-      description: "Fired when a SMRT Link run completes and requires LongPlex demultiplexing (ccsExecutionMode=OffInstrument)"
+      name: "pacbio_run_complete_native_demux"
+      description: >
+        Fired when a completed run has native PacBio barcodes still awaiting a
+        split: at least one collection reports numBarcodes > 1 whose
+        ConsensusReadSet has no child datasets yet, and the run has no
+        multiJobId. This is lima-style demultiplexing of barcodes declared in
+        the run design -- it is NOT LongPlex, which SMRT Link cannot detect and
+        which no trigger currently represents.
       payload_schema:
         type: "object"
         properties:

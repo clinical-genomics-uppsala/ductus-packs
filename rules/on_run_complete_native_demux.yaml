@@ -1,10 +1,13 @@
-name: on_run_complete_longplex
+name: on_run_complete_native_demux
 pack: ductus
-description: Register a completed PacBio run requiring LongPlex demultiplexing with the processing api
+description: >
+  Register a completed PacBio run whose native (run-design-declared) barcodes
+  still need demultiplexing. Not the LongPlex path -- SMRT Link cannot detect
+  LongPlex pooling, so those runs currently arrive via on_run_complete instead.
 enabled: false   # enable once ductus.populate_processing_api_with_pacbio_sequencerun exists
 
 trigger:
-  type: ductus.pacbio_run_complete_longplex
+  type: ductus.pacbio_run_complete_native_demux
 
 criteria: {}
 
