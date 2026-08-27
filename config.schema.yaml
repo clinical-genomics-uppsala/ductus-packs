@@ -4,13 +4,17 @@
     type: string
   workspace_runfolder_service_port:
     required: true
-    type: string
+    type: integer
+  workspace_runfolder_api_version:
+    description: API version used when talking to the arteria-runfolder service on the workspace host, ex 1.0
+    type: number
+    required: true
   workspace_demultiplexing_service_address:
     required: true
     type: string
   workspace_demultiplexing_service_port:
     required: true
-    type: string
+    type: integer
   demultiplexing_output_folder:
     required: true
     type: string
@@ -23,16 +27,32 @@
     type: integer
     default: 300
 
+  possible_runfolder_locations:
+    description: List of parent folders that are searched for a runfolder.
+    type: array
+    required: true
+
+  complete_file_dict:
+    description: >
+      Per instrument path (relative to the runfolder) to the file that marks demultiplexing
+      as complete. List of objects with the keys `name` (instrument id, ex NDX550220) and
+      `complete_job_file_path` (glob, ex "Alignment_1/*/CompletedJobInfo.xml").
+    type: array
+    required: true
+
   transfer_to_storage_wait_time_for_fastq_files:
     description: time between retries when counting number of transfered fastq-files from instrument to storage 
     type: integer
     required: true
     default: 10
 
-  arteria_runfolder_addresses:
-    description: list of addresses for arteria-runfolder services
+  arteria_runfolder_services:
+    description: >
+      arteria-runfolder services probed by arteria_runfolder_status_check. List of objects with
+      the keys `address`, `port`, `api_version` and `runfolder_path`.
     type: array
     required: true
+    default: []
   preprocess_transfer_user:
     description: The user that will be used to push data.
     type: string
@@ -71,104 +91,104 @@
     description: get fastq files for a analysis
     type: string
     required: true
-    default: "api/analysis/fastqs/"
+    default: "api/v1/analysis/fastqs/"
 
   # Get all fastq files that should be archived, filtering on analysis_name 
   processing_api_archive_fastq_files_url:
     description: get fastq files for a archiving
     type: string
     required: true
-    default: "api/analysis/archivefastqs/"
+    default: "api/v1/analysis/archivefastqs/"
 
   # Get next waiting analysis
   processing_api_analysis_next_url:
     description: url to query for next waiting analysis task
     type: string
     required: true
-    default: "api/analysis/next/"
+    default: "api/v1/analysis/next/"
 
   # Get all samples included in an analysis, filter using analysis_name (analysis_id__analysis_name)
   processing_api_analysis_samples_url:
     description: get analysis samples
     type: string
     required: true
-    default: "api/analysis/samples/"
+    default: "api/v1/analysis/samples/"
 
   # Get analysis task information
   processing_api_analysis_task_url:
     description: get analysis task and sample information
     type: string
     required: true
-    default: "api/analysis/task/"
+    default: "api/v1/analysis/task/"
 
   # Get list of all tasks
   processing_api_analysis_tasks_url:
     description: get analysis tasks
     type: string
     required: true
-    default: "api/analysis/tasks/"
+    default: "api/v1/analysis/tasks/"
 
   # Update analysis status
   processing_api_analysis_update_status_url:
     description: url to update analysis status
     type: string
     required: true
-    default: "api/analysis/update/status/"
+    default: "api/v1/analysis/update/status/"
 
   # Upload information about a new analysis that should be performed
   processing_api_analysis_upload_new_task_url: 
     description: url to upload new analysis file, ex analysis/upload/
     type: string
     required: true
-    default: "api/analysis/upload/"
+    default: "api/v1/analysis/upload/"
 
   # List all samples, can be filtered using sequence_run__run_id and sequence_run__flowcell
   processing_api_samples_list_url:
     description: url after address used to get samples
     type: string
     required: true
-    default: "api/samples/list"
+    default: "api/v1/samples/list/"
 
   # Add and remove sequence file information for a sample and experiment combination, using a json file
   processing_api_samples_update_fastq_json_url:
     description: update fastq information for samples using a json file
     type: string
     required: true
-    default: "api/samples/fastq/json_update/"
+    default: "api/v1/samples/fastq/json_update/"
 
   # Change variable demultiplex (True, False) for a sequence run, filter using run_id
   processing_api_sequence_run_demultiplex_url:
     description: set sequence run demultiplexing, 1 perform local demultiplexing, 0 machine demultiplex
     type: string
     required: true
-    default: "api/sequencerun/demultiplex/"
+    default: "api/v1/sequencerun/demultiplex/"
     
   # List all sequence runs, can be filtered using primary key, which is run_id
   processing_api_sequence_run_list_url:
     description: url for geting samples or sample
     type: string
     required: true
-    default: "api/sequencerun/list/"
+    default: "api/v1/sequencerun/list/"
 
   # Update file using primary key for file, status (IDLE, COPYING, UPDATING) and archived (True, False) can be updated 
   processing_api_sequence_run_update_url:
     description: update file using primary key for file, status (IDLE, COPYING, UPDATING) and archived (True, False) can be updated 
     type: string
     required: true
-    default: "api/sequencerun/update/"
+    default: "api/v1/sequencerun/update/"
 
   # Fetch next analysis that can be archived
   processing_api_analysis_next_archive_url:
     description: fetch next analysis that can be archived
     type: string
     required: true
-    default: "api/analysis/archive/next/"
+    default: "api/v1/analysis/archive/next/"
 
   processing_api_demultiplexing_next_url:
     description: fetch next sequence run that can be demultiplexed
     type: string
     required: true
-    default: "api/v1/sequencerun/demultiplex/next"
+    default: "api/v1/sequencerun/demultiplex/next/"
 
   processing_api_upload_completed_next_url:
     description: fetch next analysis where upload has been completed
@@ -180,7 +200,7 @@
     description: fetch next analysis available for download
     type: string
     required: true
-    default: "api/v1/analysis/download-available/next/"
+    default: "api/v1/analysis/ready-for-download/next/"
 
   processing_api_sequence_run_archive_status_url:
     description: update archive status for a sequence run
@@ -268,6 +288,20 @@
     type: array
     required: true
 
+  sav_machine_type_fold_and_extra_files:
+    description: >
+      Per instrument archiving settings, keyed on machine id. Each value is an object with the
+      keys `type_folder` and (optionally) `path_metrics` (a list of extra files to archive).
+    type: object
+    required: true
+
+  archive_settings:
+    description: >
+      Where archived FASTQ files are stored. List of objects with the keys `workpackage`,
+      `analysis` and `fastq_files_location`.
+    type: array
+    required: true
+
   no_process_exp:
     description: Experiment names (regex) that must not be processed.
     type: array
@@ -291,9 +325,41 @@
     default: "~/.ssh/id_rsa"
   transfer_from_runfolder_port:
     description: The port used to communiction with remote runfolder service.
-    type: string
+    type: integer
     required: true
     default: "10801"
+  transfer_from_runfolder_api_version:
+    description: API version used when talking to the arteria-runfolder service on the outbox host, ex 1.0
+    type: number
+    required: true
+
+  #Marvin specific variables
+  process_host_ip:
+    description: The Marvin host that analyses are run on.
+    type: string
+    required: true
+  process_host_user:
+    description: The user account used when running analyses on Marvin.
+    type: string
+    required: true
+    default: "stanley"
+  process_host_key:
+    description: Path to the SSH private key used when connecting to Marvin.
+    type: string
+    required: true
+    default: "~/.ssh/id_rsa"
+  process_runfolder_service_address:
+    description: Address of the arteria-runfolder service on the Marvin host.
+    type: string
+    required: true
+  process_runfolder_service_port:
+    description: Port of the arteria-runfolder service on the Marvin host.
+    type: integer
+    required: true
+  process_runfolder_api_version:
+    description: API version used when talking to the arteria-runfolder service on Marvin, ex 1.0
+    type: number
+    required: true
 
   miarka_upload_host:
     description: The Miarka cluster host that data is uploaded to.
@@ -332,6 +398,10 @@
     type: string
     required: true
     default: "~/.ssh/id_rsa"
+  miarka_download_path_prefix:
+    description: Remote path prefix on Miarka that results are downloaded from.
+    type: string
+    required: true
   #Miarka specific variables
   job_status_url: 
     description: The url to the job-endpoint on miarka-processing-service.
@@ -353,3 +423,43 @@
     type: string
     required: true
     default: "9999"
+  miarka_api_key:
+    description: API key for the Kong gateway in front of the miarka-processing-service.
+    type: string
+    required: true
+
+  #Pipeline and delivery settings
+  process_settings:
+    description: >
+      Pipeline settings for analyses run on Marvin, keyed on workpackage and then analysis. Each
+      leaf object holds `run_script`, `parameters`, and optionally `timeout`,
+      `outbox_files_and_folders` and `cold_storage_files_and_folders`.
+    type: object
+    required: true
+
+  process_settings_miarka:
+    description: >
+      Pipeline settings for analyses run on Miarka, keyed on workpackage and then analysis. Each
+      leaf object holds `run_script`, `parameters`, and optionally `timeout`,
+      `outbox_files_and_folders` and `outbox_files_and_folders_that_may_exist`.
+    type: object
+    required: true
+
+  result_settings:
+    description: >
+      Where results are delivered, keyed on workpackage and then analysis/method. Each leaf object
+      holds `result_location` and optionally `move_qc` and `qc_location`.
+    type: object
+    required: true
+
+  #Notification settings
+  notification_mail_bioinfo:
+    description: Address that error notifications are sent to.
+    type: string
+    required: true
+
+  notification_mail:
+    description: >
+      Notification addresses for the lab, ex {"lab": {"<workpackage>": "<address>"}}.
+    type: object
+    required: true
