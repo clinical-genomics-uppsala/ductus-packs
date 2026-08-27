@@ -156,6 +156,21 @@ tasks:
           - failed_step: " update_processing_status_upload_completed -- Unable to update analysis status to upload completed (UC) %>"
         do:
           - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - remove_staging_directory
+
+  remove_staging_directory:
+    action: core.local
+    input:
+      cmd: rm -r <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: " remove_staging_directory -- Unable to remove staging directory %>"
+        do:
+          - bioinfo_error_notifier
 
 
   bioinfo_error_notifier:
