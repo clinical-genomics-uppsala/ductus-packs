@@ -61,6 +61,10 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_update_status_url }}"
+  processing_api_analysis_task_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_task_url }}"
   mail_bioinfo:
     required: true
     type: string
