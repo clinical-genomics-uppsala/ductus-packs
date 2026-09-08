@@ -417,3 +417,81 @@
     type: string
     required: true
     default: "9999"
+
+  # BAM transfer from the sequencing storage mounted on the st2 host to a
+  # processing cluster, used by ductus.transfer_bams / ductus.wait_for_transfer.
+  #
+  # Everything cluster-shaped lives here, which is what makes switching a run
+  # between Marvin and Miarka a config change rather than a code path: the
+  # actions contain no host, user, key or path of their own.
+  #
+  # Secrets: the SSH key is referenced by PATH on the st2 host. No key
+  # material and no password belongs in this pack. A passphrase-protected key
+  # needs ssh-agent on the st2 host -- the actions run with
+  # BatchMode=yes and will fail rather than prompt, by design.
+  transfer:
+    description: HPC transfer settings for PacBio BAMs
+    type: object
+    required: false
+    additionalProperties: false
+    properties:
+      default_destination:
+        description: >
+          Which entry in destinations to use when a caller does not say.
+        type: string
+        default: "marvin"
+      staging_dir:
+        description: >
+          Directory on the ST2 HOST (not the cluster) holding one
+          subdirectory per transfer with its manifest, expected sizes,
+          generated script, log and pid, plus the flock files. Must be
+          writable by the user st2 runs actions as, and must persist for the
+          life of a transfer -- the lock lives here and the log is what a
+          failure is diagnosed from.
+        type: string
+        default: "/var/lib/st2/ductus/transfers"
+      file_patterns:
+        description: >
+          Globs collected from each source directory given to
+          ductus.transfer_bams, at its own level and one level below (Revio
+          writes <run>/<collection>/<movie>.hifi_reads.bam).
+
+          BOTH defaults are needed. "*.hifi_reads.bam" matches an
+          undemultiplexed collection and nothing else: a glob must match the
+          END of the name, and a SMRT Link-demultiplexed child BAM ends with
+          .bcM####.bam (or .bc1015--bc1015.bam, or .unassigned.bam). With
+          only the first pattern, every LongPlex run -- the reason this
+          pipeline exists -- would fail with "no files matched".
+
+          Adding "*.hifi_reads.bam.pbi" costs about 1% more bytes and saves a
+          full BAM re-read for pbindex on the cluster;
+          "*.consensusreadset.xml" is the other candidate. Config-driven so
+          neither needs a code change.
+        type: array
+        default:
+          - "*.hifi_reads.bam"
+          - "*.hifi_reads.*.bam"
+      destinations:
+        description: >
+          One entry per cluster, keyed by the name callers pass as
+          `destination`. Deliberately not constrained further here: the keys
+          are cluster names, not a fixed set.
+
+          Each value is an object:
+            host             required  ssh host
+            user             required  ssh user (a service account)
+            ssh_key_path     required  path to the private key ON THE ST2 HOST
+            dest_root        required  parent dir for per-run directories,
+                                       e.g. /scratch/pacbio/runs
+            bwlimit          optional  rsync notation, default "200M"
+            ssh_extra_opts   optional  array, e.g. ["-o", "IPQoS=throughput"]
+            rsync_extra      optional  array of extra rsync flags
+            transfer_method  optional  "rsync" (the only implemented value;
+                                       the key exists so Globus can be added
+                                       later without changing the actions'
+                                       interface)
+
+          No value may contain whitespace in ssh_key_path or ssh_extra_opts:
+          rsync word-splits the string it is given for -e, so such a value
+          cannot be passed through and is refused with a clear error.
+        type: object

@@ -1,0 +1,127 @@
+---
+name: 'transfer_bams'
+runner_type: 'python-script'
+description: >
+  Launches an rsync-over-SSH transfer of a completed PacBio Revio run's HiFi
+  BAMs from the sequencing storage mounted on the st2 host to a processing
+  cluster, and returns immediately.
+
+  This is the step that was missing between "SMRT Link run registered" and
+  "BAMs available on the processing cluster" (see
+  docs/pacbio_transfer_open_questions.md).
+  ductus.reheader_pacbio_bams_{marvin,miarka} and
+  ductus.build_longplex_inputs_marvin were both written assuming their input
+  directory already existed on the cluster, and nothing put it there.
+
+  It starts a transfer rather than performing one: a 200 GB BAM outlives any
+  sane action timeout, so the copy is generated as a script, launched
+  detached, and keeps running after this action returns in seconds. Gate
+  anything downstream on ductus.wait_for_transfer, never on this action's
+  success -- success here means "started", not "arrived".
+
+  No cluster-specific behaviour. Host, user, key, destination root, bandwidth
+  ceiling and any extra ssh/rsync options come from pack config under
+  transfer.destinations, so moving a run from Marvin to Miarka is this
+  action's `destination` parameter and a config entry -- no code path.
+
+  Safe to rerun. A completed transfer is detected (sentinel plus an itemised
+  size-only dry run) and copies nothing, returning skipped: true; a transfer
+  already in progress is refused rather than duplicated, because the flock is
+  held by the launched script for the life of the copy rather than by this
+  action, which exits immediately.
+
+  Deliberately narrow scope: BAMs only, matched by transfer.file_patterns. No
+  run directories, no subread data, no SMRT Link statistics. Nothing here
+  deletes anything on the destination except its own two sentinel files, and
+  only to stop a previous attempt's outcome being read as this one's.
+enabled: true
+entry_point: 'transfer_bams.py'
+pack: ductus
+parameters:
+  timeout:
+    description: >
+      Seconds this action may take. Small on purpose: it only launches the
+      transfer. The copy itself is unbounded and watched by
+      ductus.wait_for_transfer.
+    type: 'integer'
+    default: 120
+  run_name:
+    description: >
+      The run's name, used as the destination subdirectory unless dest_subdir
+      is given. Must be usable as a directory name (letters, digits, '.', '_',
+      '-'); a name that is not is rejected rather than rewritten, since a
+      rewritten name no longer matches the run it came from.
+    type: 'string'
+    required: true
+  source_paths:
+    description: >
+      Absolute paths on the st2 host: BAM files directly, or directories to
+      be globbed with file_patterns at their own level and one level below
+      (Revio writes <run>/<collection>/<movie>.hifi_reads.bam). A path given
+      as a file is taken as given, unfiltered.
+
+      These originate from SMRT Link's collectionPathUri and must be visible
+      on the st2 host's own filesystem. If they are not, that is a mount
+      problem to fix before this action is useful, and it is reported as
+      such.
+    type: 'array'
+    required: true
+  destination:
+    description: >
+      Which entry in transfer.destinations to send to. Defaults to
+      transfer.default_destination.
+    type: 'string'
+    required: false
+  dest_subdir:
+    description: >
+      Overrides run_name as the leaf directory on the destination. Use it when
+      the run name is not a usable directory name, or to keep a reprocessing
+      run separate from the original.
+    type: 'string'
+    required: false
+  file_patterns:
+    description: >
+      Overrides transfer.file_patterns. The default is two patterns:
+      *.hifi_reads.bam for an undemultiplexed collection and
+      *.hifi_reads.*.bam for the per-pool children SMRT Link's own demux
+      writes (*.hifi_reads.bcM####.bam), which the first pattern does not
+      match. Adding *.hifi_reads.bam.pbi costs about 1% more bytes and saves
+      a full BAM re-read for pbindex on the cluster.
+
+      Note for the demux path: two collections can produce identically named
+      per-pool BAMs, which the basename-collision check refuses because the
+      destination is flat. If that turns up, transfer those collections with
+      separate dest_subdir calls rather than loosening the check.
+    type: 'array'
+    required: false
+  verify:
+    description: >
+      How the far side is checked before the completion sentinel is written.
+
+      size (default) compares the transferred sizes against the sizes read
+      from the source before the copy: that catches truncation, which is the
+      realistic failure mode after a clean rsync exit. checksum adds a second
+      --checksum pass, which re-reads both copies end to end and roughly
+      doubles wall time on a multi-hundred-gigabyte BAM -- worth paying only
+      when it is worth paying.
+    type: 'string'
+    required: false
+    default: 'size'
+    enum:
+      - 'size'
+      - 'checksum'
+  bwlimit:
+    description: >
+      Overrides the destination's bandwidth ceiling, in rsync's own notation
+      (e.g. 200M, 1G). Validated rather than quoted, since it is the one value
+      interpolated bare into the rsync command line.
+    type: 'string'
+    required: false
+  dry_run:
+    description: >
+      Add -n to rsync: report what would be transferred, write no sentinel,
+      and remove nothing on the destination. The run directory is still
+      created, because rsync needs a destination to compare against.
+    type: 'boolean'
+    required: false
+    default: false
