@@ -229,6 +229,34 @@
     type: string
     required: true
 
+  # seqWell LongPlex demultiplexing, used by ductus.resolve_longplex_pools /
+  # scripts/build_longplex_inputs.py. All three are cluster-side values: the
+  # script that reads them runs on Marvin or Miarka, not on the st2 host.
+  longplex_barcode_dir:
+    description: >
+      The LongPlex pipeline's barcodes/ directory on the processing cluster.
+      FLAT: the six FASTAs (LongPlex_set{1,2,3}_i{7,5}_trimmed_adapters.fa)
+      sit directly in it, there are no per-set subdirectories.
+    type: string
+    required: true
+  longplex_default_barcode_set:
+    description: >
+      Which seqWell barcode set to assume when a caller does not say. set1 is
+      kits bought after product launch, set3 is early-access kits; set2 also
+      ships with the pipeline but the vendor README does not say who it is
+      for.
+    type: string
+    required: true
+    default: "set1"
+  longplex_build_inputs_runscript_path:
+    description: >
+      Path on the processing cluster to scripts/build_longplex_inputs.py,
+      which writes the pipeline's pool_sheet.csv and rename_map.csv. Mirrors
+      pacbio_reheader_runscript_path -- the script is deployed to the cluster,
+      not run from the pack.
+    type: string
+    required: true
+
   processing_api_lanes_to_demultiplex_url:
     description: fetch lanes that will be demultiplexced on server
     type: string

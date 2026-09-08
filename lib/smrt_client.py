@@ -69,7 +69,13 @@ class SMRTClient:
             return self.get_token()
         return self._token
 
-    def get(self, endpoint):
+    def get(self, endpoint, params=None):
+        """GET a SMRT Link endpoint.
+
+        params is passed to requests rather than concatenated onto endpoint,
+        so callers never have to url-encode a value themselves -- the child
+        dataset lookup passes a uuid this way.
+        """
         self.refresh_if_needed()
         headers = {
             "Authorization": f"Bearer {self._token}",
@@ -78,6 +84,7 @@ class SMRTClient:
         r = requests.get(
             f"{self.base_url}/SMRTLink/1.0.0{endpoint}",
             headers=headers,
+            params=params,
             verify=self.ssl_verify,
             timeout=30,
         )
@@ -88,6 +95,7 @@ class SMRTClient:
             r = requests.get(
                 f"{self.base_url}/SMRTLink/1.0.0{endpoint}",
                 headers=headers,
+                params=params,
                 verify=self.ssl_verify,
                 timeout=30,
             )
@@ -110,6 +118,75 @@ class SMRTClient:
         r.raise_for_status()
         return r
 
+    # ------------------------------------------------------------------
+    # Run / collection / dataset resolution
+    #
+    # Endpoint shapes below were checked against the SMRT Link swagger spec
+    # (revio_docs/smrtlink_swagger.json in the st2_smrtlink repo), not
+    # guessed: /smrt-link/runs/{runId}, .../collections,
+    # /smrt-link/datasets/ccsreads/{datasetId},
+    # /smrt-link/datasets/{datasetType} (which documents parentUuid and
+    # numChildren as query params) and
+    # /smrt-link/datasets/{datasetType}/{datasetId}/details all exist there.
+    # ------------------------------------------------------------------
+
+    def get_run(self, run_uuid):
+        return self.get(f"/smrt-link/runs/{run_uuid}")
+
+    def get_run_collections(self, run_uuid):
+        return self.get(f"/smrt-link/runs/{run_uuid}/collections")
+
+    def get_collection_barcodes(self, run_uuid, collection_uuid):
+        return self.get(
+            f"/smrt-link/runs/{run_uuid}/collections/{collection_uuid}/barcodes"
+        )
+
+    def get_ccsread(self, dataset_id):
+        """One ConsensusReadSet by uuid.
+
+        Note the `path` on the response is the .consensusreadset.xml, NOT the
+        BAM -- use get_dataset_bam_paths() for that.
+        """
+        return self.get(f"/smrt-link/datasets/ccsreads/{dataset_id}")
+
+    def get_child_ccsreads(self, parent_uuid):
+        """The ConsensusReadSets produced by demultiplexing parent_uuid.
+
+        SMRT Link's own outer (SMRTbell barcode) demux writes one child
+        ConsensusReadSet per barcode. parentUuid is a documented query
+        parameter on /smrt-link/datasets/{datasetType}; the response is a
+        list of ConsensusReadDetails, each carrying parentUuid,
+        dnaBarcodeName, numChildren, path and uuid.
+
+        ASSUMPTION not yet confirmed against a live server: that filtering by
+        parentUuid returns only direct children and an empty list (rather
+        than an error) when there are none. Marked here the same way the
+        secret/key inversion in get_token() is -- if a real response
+        disagrees, this is the place to fix it.
+        """
+        return self.get("/smrt-link/datasets/ccsreads", params={"parentUuid": parent_uuid})
+
+    def get_dataset_details(self, dataset_id, dataset_type="ccsreads"):
+        """The DataSet XML for a dataset, rendered as JSON."""
+        return self.get(f"/smrt-link/datasets/{dataset_type}/{dataset_id}/details")
+
+    def get_dataset_bam_paths(self, dataset_id, dataset_type="ccsreads"):
+        """Every BAM listed in a dataset's ExternalResources, in order.
+
+        Reads the resource list rather than globbing the dataset directory:
+        a glob picks up the .pbi sidecars, and on older layouts also scraps
+        BAMs, neither of which is the HiFi read file.
+
+        The details response is XML-turned-JSON, so the exact nesting and
+        capitalisation of ExternalResources/ResourceId is not something we
+        can pin down without a live server. Rather than hardcode a path into
+        that structure, walk it and collect anything that looks like a
+        resource id ending in .bam.
+        """
+        details = self.get_dataset_details(dataset_id, dataset_type=dataset_type)
+        return _collect_bam_resource_ids(details)
+
+
     @classmethod
     def from_st2(cls, sensor_or_action):
         """Convenience constructor — pulls config and credentials from ST2."""
@@ -126,3 +203,31 @@ class SMRTClient:
             password=kv.get_value("smrtlink.password", local=False, decrypt=True),
             ssl_verify=config.get("ssl_verify", True),
         )
+
+
+def _collect_bam_resource_ids(node, found=None):
+    """Depth-first walk collecting resource-id-ish strings ending in .bam.
+
+    Deliberately shape-tolerant (see get_dataset_bam_paths). Only keys whose
+    name looks like a resource id are considered, so a stray description or
+    comment mentioning a bam filename is not mistaken for the read file.
+    De-duplicates while preserving first-seen order, because the same
+    resource can appear under both an ExternalResource and its FileIndices.
+    """
+    if found is None:
+        found = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if (
+                isinstance(value, str)
+                and key.lower() in ("resourceid", "resource_id")
+                and value.endswith(".bam")
+            ):
+                if value not in found:
+                    found.append(value)
+            else:
+                _collect_bam_resource_ids(value, found)
+    elif isinstance(node, list):
+        for item in node:
+            _collect_bam_resource_ids(item, found)
+    return found

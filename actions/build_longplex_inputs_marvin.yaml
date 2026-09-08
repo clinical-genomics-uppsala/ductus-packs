@@ -1,0 +1,122 @@
+---
+name: build_longplex_inputs_marvin
+description: >
+  Builds the LongPlex pipeline's pool_sheet.csv and rename_map.csv for a
+  completed SMRT Link run, on Marvin.
+
+  Three steps across a host boundary: resolve the run's pools from the SMRT
+  Link API on st2 (ductus.resolve_longplex_pools), ship the resulting
+  manifest to the run's working directory, then run
+  scripts/build_longplex_inputs.py over SSH to validate the transferred BAMs
+  and write the CSVs beside them. The boundary is forced -- SMRT Link
+  credentials are encrypted st2 datastore keys and must not leave st2, while
+  dest_dir and the pool BAMs are on cluster scratch that st2 does not mount.
+
+  Marvin variant, mirroring ductus.reheader_pacbio_bams_marvin: Marvin has no
+  processing-service gateway, so the runscript is invoked directly over SSH
+  and runs synchronously, with nothing to poll.
+
+  DISABLED, and not merely untested: dest_dir is populated by the
+  SMRTLink-storage-to-cluster transfer step, which does not exist yet (see
+  docs/pacbio_transfer_open_questions.md). Until it does, every pool BAM check
+  in the runscript will correctly fail. Passing unit tests on the CSV half do
+  not make this reachable.
+enabled: false
+runner_type: orquesta
+entry_point: workflows/build_longplex_inputs_marvin.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.build_longplex_inputs_marvin
+    immutable: true
+    type: string
+  run_id:
+    description: SMRT Link run UUID.
+    required: true
+    type: string
+  dest_dir:
+    description: >
+      The run's working directory on Marvin -- where the transfer step put the
+      pool BAMs, and where pool_sheet.csv / rename_map.csv will be written.
+    required: true
+    type: string
+  sample_map:
+    description: >
+      Path on Marvin to the sample sheet giving well -> sample name
+      (.csv or .xlsx). Optional: leave it empty and no rename_map is written,
+      so the pipeline's outputs keep their pool_ID.well_ID names.
+
+      Expected columns, matched case-insensitively with surrounding
+      whitespace tolerated, and located by header so preamble rows above them
+      are skipped:
+        Sample_ID  the output sample name    (also: sample, sample_name)
+        Index_ID   the LongPlex inner well   (also: well, well_id)
+        pool_ID    OPTIONAL, the SMRT Link barcode naming the pool
+                   (also: pool, pool_barcode)
+      Any other column (Project, Run_nr, concentrations...) is ignored. A bare
+      'barcode' column is deliberately NOT accepted as the pool: on a PacBio
+      sheet it could mean either barcode layer, and binding the wrong one
+      would produce a valid-looking rename_map with the wrong sample names.
+      Two columns claiming the same role is an error, not a first-wins race.
+
+      Wells must be A01-H12: a letter A-H and a zero-padded column 01-12.
+      'A1' and 'A00' are both rejected by name rather than normalised,
+      because a mis-read well silently mis-names clinical output.
+
+      pool_ID is optional only because a single-pool run needs no
+      disambiguation. On a multi-pool run without it the runscript fails
+      rather than guessing -- the sheet cannot be joined on well, since
+      SMRT Link's well is the Revio plate well of the whole collection while
+      Index_ID is the seqWell well inside a pool.
+    required: false
+    type: string
+    default: ""
+  barcode_set:
+    description: >
+      seqWell barcode set. set1 is post-launch kits, set3 early access; set2
+      also ships with the pipeline.
+    required: false
+    type: string
+    default: "{{ config_context.longplex_default_barcode_set }}"
+  longplex_barcode_dir:
+    description: The LongPlex pipeline's flat barcodes/ directory, on Marvin.
+    required: true
+    type: string
+    default: "{{ config_context.longplex_barcode_dir }}"
+  longplex_build_inputs_runscript_path:
+    required: true
+    type: string
+    default: "{{ config_context.longplex_build_inputs_runscript_path }}"
+  manifest_staging_path:
+    description: >
+      Directory on the st2 host where the pool manifest is written before
+      being shipped. Reuses the existing staging location rather than adding
+      a config key; the manifest is small and short-lived.
+    required: true
+    type: string
+    default: "{{ config_context.hospital_upload_staging_path }}"
+  process_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_ip }}"
+  process_key:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_key }}"
+  process_user:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_user }}"
+  build_inputs_timeout:
+    description: SSH timeout in seconds for the runscript.
+    required: true
+    type: integer
+    default: 900
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
