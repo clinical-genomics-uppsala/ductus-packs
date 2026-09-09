@@ -1,0 +1,56 @@
+---
+name: reheader_pacbio_bams_marvin
+description: >
+  Reheaders demultiplexed PacBio LongPlex BAMs on Marvin, fixing the SM: tag
+  so downstream pipelines can consume them. Marvin variant of
+  ductus.reheader_pacbio_bams: Marvin has no processing-service gateway, so
+  the runscript is invoked directly over SSH and runs synchronously -- there
+  is no directory-creation call (the script mkdir -p's its own output dir)
+  and nothing to poll.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/reheader_pacbio_bams_marvin.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.reheader_pacbio_bams_marvin
+    immutable: true
+    type: string
+  longplex_bam_dir:
+    required: true
+    type: string
+  reheader_dir:
+    required: true
+    type: string
+  sample_map:
+    required: true
+    type: string
+  process_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_ip }}"
+  process_key:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_key }}"
+  process_user:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_user }}"
+  pacbio_reheader_runscript_path:
+    required: true
+    type: string
+    default: "{{ config_context.pacbio_reheader_runscript_path }}"
+  reheader_timeout:
+    description: SSH timeout in seconds for the reheader run.
+    required: true
+    type: integer
+    default: 7200
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

@@ -1,0 +1,18 @@
+name: on_run_complete
+pack: ductus
+description: Register a completed PacBio run (no demux required) with the processing api
+enabled: false   # enable once ductus.populate_processing_api_with_pacbio_sequencerun exists
+
+trigger:
+  type: ductus.pacbio_run_complete
+
+criteria: {}   # no filtering — all completed runs proceed
+
+action:
+  ref: ductus.populate_processing_api_with_pacbio_sequencerun
+  parameters:
+    run_uuid: "{{ trigger.run_uuid }}"
+    run_name: "{{ trigger.run_name }}"
+    collection_paths: "{{ trigger.collection_paths }}"
+    collections: "{{ trigger.collections }}"
+    requires_demultiplex: false

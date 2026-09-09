@@ -1,0 +1,43 @@
+---
+name: 'submit_miarka_job'
+runner_type: 'python-script'
+description: 'POST a JSON job request to the Miarka processing-service'
+enabled: true
+entry_point: 'submit_miarka_job.py'
+parameters:
+  process_host_url:
+    type: 'string'
+    description: 'Url to the host running processing-service. Must include the
+      https:// scheme -- the request carries an api key, so the action refuses
+      to send it in the clear.'
+    required: true
+  process_host_gateway_port:
+    type: 'string'
+    required: true
+  job_status_url:
+    type: 'string'
+    description: 'Path to the jobs endpoint, e.g. /analysis_service/api/1.0/jobs/'
+    required: true
+  endpoint:
+    type: 'string'
+    description: 'Job endpoint to submit to. Restricted to a known set so a
+      caller cannot redirect the request elsewhere under the same host.'
+    required: true
+    enum:
+      - 'create_directory/'
+      - 'start_analysis/'
+  payload:
+    type: 'object'
+    description: 'Request body, serialized as JSON. Structured rather than a
+      string so no field is ever shell-interpreted.'
+    required: true
+  gateway_api_key:
+    type: 'string'
+    required: true
+    secret: true
+  verify_ssl_cert:
+    type: 'boolean'
+    description: 'Validate the TLS certificate. Defaults to true; the curl -k
+      this replaced did not validate at all. For an internal/self-signed CA,
+      set REQUESTS_CA_BUNDLE on the st2 host rather than turning this off.'
+    default: true

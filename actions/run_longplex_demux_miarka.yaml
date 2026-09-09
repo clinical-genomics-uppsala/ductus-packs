@@ -1,0 +1,173 @@
+---
+name: run_longplex_demux_miarka
+description: >
+  Runs the seqWell LongPlex Nextflow pipeline on Miarka, demultiplexing a
+  run's pool BAMs into per-well BAMs and FASTQs.
+
+  Miarka variant of ductus.run_longplex_demux_marvin, driving the same
+  deployed start script (scripts/run_longplex_demux.sh) through the
+  processing-service gateway instead of over SSH: create_directory ->
+  start_analysis -> poll, mirroring ductus.reheader_pacbio_bams_miarka.
+  Submissions go through ductus.submit_miarka_job, so the payload is typed
+  JSON and nothing this action sends is shell-interpreted on our side.
+
+  Two things about the gateway path are ASSUMED rather than confirmed, the
+  same assumptions docs/pacbio_reheader_miarka_contract.md records:
+
+    1. how the processing-service invokes a run_script with analysis_path,
+       inbox_path and parameters. The start script accepts --analysis-path as
+       an alias for --output for this reason, so it works whether the service
+       passes the output directory as its own field or leaves it in
+       parameters;
+    2. that `parameters` is appended to the command line as extra CLI args.
+       Only samples_info and rename_map travel that way, and both are
+       single-quoted in it: an unquoted empty rename_map would end the string
+       with a valueless --rename-map and consume nothing, so the quotes are
+       what let an optional value stay optional. The start script reads an
+       empty value as "not supplied".
+
+       The deployment-specific settings (pipeline directory, profile, work
+       dir, extra config) do NOT travel that way at all -- they are read on
+       the cluster from LONGPLEX_PIPELINE_DIR / LONGPLEX_PROFILE /
+       LONGPLEX_SITE_CONFIG, which is also the only route that still works if
+       the service turns out not to append `parameters` to a command line.
+
+  samples_info is the pipeline's OWN samplesheet, pool_sheet.csv -- NOT the
+  clinical Project,Run_nr,Sample_ID,Index_ID sheet that sample_map means
+  elsewhere in this pack. The start script checks the header and refuses the
+  wrong file. rename_map is optional and renames the pipeline's outputs after
+  the sample; see its own description.
+
+  HANDOFF NOTE, for a run WITHOUT rename_map: the pipeline writes
+  <output>/<pool_ID>/merged_bam/<pool_ID>.<well>.bam, nested per pool, while
+  scripts/reheader_pacbio_bams.sh globs *.bam in ONE flat directory. On a
+  multi-pool run ductus.reheader_pacbio_bams_miarka must therefore be invoked
+  once per pool, with longplex_bam_dir set to that pool's merged_bam
+  directory.
+
+  NO RULE WIRES THIS, and it is invoked by hand like the reheader actions --
+  the sensor cannot detect a LongPlex run at all, so there is no trigger to
+  hang a rule off. Only the Marvin variant of LongPlex input generation
+  exists, so pool_sheet.csv is produced by running
+  scripts/build_longplex_inputs.py on the cluster by hand first.
+
+  UNVERIFIED WALL CLOCK, and the reason to prefer the Marvin path until
+  someone checks it: ductus.poll_status loops with no deadline of its own
+  (max_retries bounds only the unreadable-state branch), and poll_status.yaml
+  declares no timeout parameter -- so whatever the st2 python-script runner
+  defaults to becomes the real bound on a poll that has to last for hours.
+  If that default is minutes, this path reports failure on every real demux
+  while the job keeps running on Miarka. The Marvin variant has no such
+  ambiguity: its budget is demux_timeout, explicit and 72h.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/run_longplex_demux_miarka.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.run_longplex_demux_miarka
+    immutable: true
+    type: string
+  inbox_path:
+    description: >
+      Directory on Miarka holding the run's pool BAMs -- the transfer's
+      destination, and where the CSVs were written.
+
+      The pipeline itself takes each pool's location from pool_sheet.csv's
+      absolute pool_path values, so this is the anchor for the start script's
+      pre-flight checks and interface uniformity rather than a pipeline
+      input.
+    required: true
+    type: string
+  samples_info:
+    description: >
+      Path on Miarka to the pipeline's pool_sheet.csv:
+      pool_ID,pool_path,i7_barcode,i5_barcode (in any order -- the start
+      script binds the columns by name). Normally
+      <inbox_path>/pool_sheet.csv.
+    required: true
+    type: string
+  output_path:
+    description: >
+      Directory on Miarka for the pipeline's output. Created by the
+      create_directory call before the pipeline starts, unlike the Marvin
+      path where the start script does it.
+    required: true
+    type: string
+  rename_map:
+    description: >
+      Optional path on the cluster to the pipeline's rename_map.csv --
+      pool_ID.well_ID,sample_ID -- as written by
+      scripts/build_longplex_inputs.py alongside pool_sheet.csv. Empty for
+      none.
+
+      Forwarded to LongPlex's own optional rename_map parameter, which names
+      the merged BAM and FASTQ <sample_ID>.bam / .fastq.gz instead of
+      <pool_ID>.<well_ID>, and labels the demux QC report with the sample
+      names. Any well the file does not mention keeps its default name.
+
+      Two things to know before using it:
+
+        - it does NOT touch the SM: tag inside the BAMs. samtools merge keeps
+          whatever the pool's reads carried, so fixing SM: is still
+          ductus.reheader_pacbio_bams_*'s job -- but that script reads the
+          well from the second dot-separated field of the filename, which a
+          renamed BAM no longer has. The two do not compose as written.
+        - rename_map is a comparatively recent pipeline parameter, and the
+          `version` file cannot distinguish a checkout that has it from one
+          that does not (both say 2.1.0). The start script therefore checks
+          the checkout's own nextflow_schema.json and refuses rather than let
+          nextflow accept the parameter and silently ignore it, which is what
+          an older checkout does.
+    required: false
+    type: string
+    default: ""
+  longplex_demux_runscript_path:
+    description: >
+      Path on the cluster to scripts/run_longplex_demux.sh. Mirrors
+      pacbio_reheader_runscript_path -- the script is deployed to the
+      cluster, not shipped by this action.
+    required: true
+    type: string
+    default: "{{ config_context.longplex_demux_runscript_path }}"
+  process_host_url:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_url }}"
+  process_host_gateway_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_gateway_port }}"
+  job_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.job_status_url }}"
+  gateway_api_key:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_api_key }}"
+    secret: true
+  verify_ssl_cert:
+    description: >
+      Validate the processing-service TLS certificate on the submit and both
+      poll calls. For an internal or self-signed CA, set REQUESTS_CA_BUNDLE
+      on the st2 host rather than disabling this.
+    required: true
+    type: boolean
+    default: "{{ config_context.miarka_verify_ssl_cert }}"
+  poll_sleep:
+    description: >
+      Minutes between status polls. ductus.poll_status defaults to 1, which
+      is a lot of requests across a run measured in hours; the demux does not
+      finish any sooner for being asked more often.
+    required: true
+    type: integer
+    default: 5
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

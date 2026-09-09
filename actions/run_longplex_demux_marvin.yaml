@@ -1,0 +1,190 @@
+---
+name: run_longplex_demux_marvin
+description: >
+  Runs the seqWell LongPlex Nextflow pipeline on Marvin, demultiplexing a
+  run's pool BAMs into per-well BAMs and FASTQs.
+
+  Invokes the deployed start script (scripts/run_longplex_demux.sh) over SSH
+  with the same three-flag interface the other pipelines on these clusters
+  use -- --inbox-path, --samples-info, --output. Everything nextflow-specific
+  (module loads, -profile, -work-dir, -resume) lives in that script, not
+  here.
+
+  Marvin variant, mirroring ductus.reheader_pacbio_bams_marvin: Marvin has no
+  processing-service gateway, so the script is invoked directly over SSH.
+  core.remote is synchronous and the script blocks for the pipeline's whole
+  duration, so this action does too -- hence demux_timeout's 72h default,
+  matching run_analysis's run_pipeline. There is nothing to poll and no
+  directory to create (the script mkdir -p's its own output).
+
+  A re-run is cheap rather than a restart: the script passes -resume with a
+  stable -work-dir, so a run killed by demux_timeout or a dropped SSH
+  session picks up where it stopped.
+
+  samples_info is the pipeline's OWN samplesheet, pool_sheet.csv, as written
+  by ductus.build_longplex_inputs_marvin -- NOT the clinical
+  Project,Run_nr,Sample_ID,Index_ID sheet that sample_map means elsewhere in
+  this pack. The start script checks the header and refuses the wrong file.
+
+  rename_map is that same step's other output, and optional: with it the
+  pipeline names its merged BAMs and FASTQs after the sample instead of
+  <pool_ID>.<well_ID>. See the parameter's own description for why it does
+  not compose with the reheader step as written.
+
+  HANDOFF NOTE, for a run WITHOUT rename_map: the pipeline writes
+  <output>/<pool_ID>/merged_bam/<pool_ID>.<well>.bam, nested per pool, while
+  scripts/reheader_pacbio_bams.sh globs *.bam in ONE flat directory. On a
+  multi-pool run ductus.reheader_pacbio_bams_marvin must therefore be invoked
+  once per pool, with longplex_bam_dir set to that pool's merged_bam
+  directory.
+
+  NO RULE WIRES THIS. Like the reheader actions, it is invoked by hand:
+
+    st2 run ductus.run_longplex_demux_marvin inbox_path=... samples_info=... output_path=...
+
+  The sensor cannot detect a LongPlex run at all -- seqWell barcodes are
+  internal to the library and never reach SMRT Link -- so there is no trigger
+  to hang a rule off. pool_sheet.csv comes from
+  ductus.build_longplex_inputs_marvin, which is still disabled itself, so
+  today that CSV is produced by running scripts/build_longplex_inputs.py by
+  hand first.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/run_longplex_demux_marvin.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.run_longplex_demux_marvin
+    immutable: true
+    type: string
+  inbox_path:
+    description: >
+      Directory on Marvin holding the run's pool BAMs -- the transfer's
+      destination, and where build_longplex_inputs wrote the CSVs.
+
+      The pipeline itself takes each pool's location from pool_sheet.csv's
+      absolute pool_path values, so this is the anchor for the start script's
+      pre-flight checks and interface uniformity rather than a pipeline
+      input.
+    required: true
+    type: string
+  samples_info:
+    description: >
+      Path on Marvin to the pipeline's pool_sheet.csv:
+      pool_ID,pool_path,i7_barcode,i5_barcode (in any order -- the start
+      script binds the columns by name). Normally
+      <inbox_path>/pool_sheet.csv.
+    required: true
+    type: string
+  output_path:
+    description: >
+      Directory on Marvin for the pipeline's output; created if absent.
+      Receives <pool_ID>/{lima_out,merged_bam,merged_fastq,hybrids,
+      demux_summary}/, plus logs/ and multiqc/.
+    required: true
+    type: string
+  rename_map:
+    description: >
+      Optional path on the cluster to the pipeline's rename_map.csv --
+      pool_ID.well_ID,sample_ID -- as written by
+      scripts/build_longplex_inputs.py alongside pool_sheet.csv. Empty for
+      none.
+
+      Forwarded to LongPlex's own optional rename_map parameter, which names
+      the merged BAM and FASTQ <sample_ID>.bam / .fastq.gz instead of
+      <pool_ID>.<well_ID>, and labels the demux QC report with the sample
+      names. Any well the file does not mention keeps its default name.
+
+      Two things to know before using it:
+
+        - it does NOT touch the SM: tag inside the BAMs. samtools merge keeps
+          whatever the pool's reads carried, so fixing SM: is still
+          ductus.reheader_pacbio_bams_*'s job -- but that script reads the
+          well from the second dot-separated field of the filename, which a
+          renamed BAM no longer has. The two do not compose as written.
+        - rename_map is a comparatively recent pipeline parameter, and the
+          `version` file cannot distinguish a checkout that has it from one
+          that does not (both say 2.1.0). The start script therefore checks
+          the checkout's own nextflow_schema.json and refuses rather than let
+          nextflow accept the parameter and silently ignore it, which is what
+          an older checkout does.
+    required: false
+    type: string
+    default: ""
+  longplex_demux_runscript_path:
+    description: >
+      Path on the cluster to scripts/run_longplex_demux.sh. Mirrors
+      pacbio_reheader_runscript_path and
+      longplex_build_inputs_runscript_path -- the script is deployed to the
+      cluster, not shipped by this action.
+    required: true
+    type: string
+    default: "{{ config_context.longplex_demux_runscript_path }}"
+  longplex_pipeline_dir:
+    description: >
+      The LongPlex checkout on the cluster. Must contain main.nf: the
+      pipeline resolves schemas/input_schema.json relative to its own
+      project directory, so a copied main.nf cannot validate the samplesheet.
+    required: true
+    type: string
+    default: "{{ config_context.longplex_pipeline_dir }}"
+  longplex_nextflow_profile:
+    description: >
+      nextflow -profile. The pipeline ships apptainer, singularity, conda,
+      docker and aws; apptainer is the realistic default on an HPC login
+      node, where docker is not available.
+    required: true
+    type: string
+    default: "{{ config_context.longplex_nextflow_profile }}"
+  longplex_work_dir:
+    description: >
+      nextflow -work-dir. Empty means <output_path>/work.
+
+      Worth overriding when the output area cannot hold it: the work
+      directory keeps every intermediate BAM and can be several times the
+      input size. It is also what -resume needs, so it must not be cleaned
+      between attempts on the same run.
+    required: false
+    type: string
+    default: ""
+  longplex_site_config:
+    description: >
+      Optional extra nextflow config (-c), empty for none.
+
+      This is the hook for a scheduler: the pipeline ships per-process cpus
+      and memory but no executor, so it runs everything wherever nextflow
+      itself runs. Fanning out over SLURM means a site config setting
+      process.executor; without one, size the login-node/allocation for the
+      pipeline's heaviest process (LIMA_BOTH_END asks for 32G and 8 cpus).
+    required: false
+    type: string
+    default: "{{ config_context.longplex_nextflow_site_config }}"
+  process_host:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_ip }}"
+  process_key:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_key }}"
+  process_user:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_user }}"
+  demux_timeout:
+    description: >
+      SSH timeout in seconds for the whole pipeline run. 72h, matching
+      run_analysis's run_pipeline default: core.remote is synchronous, so
+      this is the wall-clock budget for the demux itself, not for a
+      submission.
+    required: true
+    type: integer
+    default: 259200
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

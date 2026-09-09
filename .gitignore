@@ -1,3 +1,8 @@
 .idea
 local_files
 __pycache__
+
+# AI
+CLAUDE.md
+.claude/
+docs/

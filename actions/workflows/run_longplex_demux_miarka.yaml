@@ -1,0 +1,160 @@
+version: "1.0" # Orquesta version
+
+description: >
+  Runs the seqWell LongPlex demultiplexing pipeline on Miarka, through the
+  processing-service gateway
+
+input:
+  - inbox_path
+  - samples_info
+  - output_path
+  - rename_map
+  - longplex_demux_runscript_path
+  - process_host_url
+  - process_host_gateway_port
+  - job_status_url
+  - gateway_api_key
+  - verify_ssl_cert
+  - poll_sleep
+  - mail_bioinfo
+
+vars:
+  - create_directory_status_url: null
+  - run_demux_status_url: null
+  - failed_step: null
+  - stderr: null
+
+tasks:
+  # Unlike the Marvin path, the output directory is created through the
+  # gateway rather than by the start script: this is the convention every
+  # other Miarka action here follows, and the script's own mkdir -p makes it
+  # harmless if the service creates it first.
+  create_output_directory:
+    action: ductus.submit_miarka_job
+    input:
+      process_host_url: <% ctx(process_host_url) %>
+      process_host_gateway_port: <% ctx(process_host_gateway_port) %>
+      job_status_url: <% ctx(job_status_url) %>
+      gateway_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+      endpoint: "create_directory/"
+      payload:
+        path: <% ctx(output_path) %>
+    next:
+      # `result().result.status_url` and not `result().status_url`: the st2
+      # python runner wraps what an action returns in
+      # {stdout, stderr, exit_code, result}, so a returned dict's fields sit
+      # one level down. reheader_pacbio_bams_miarka.yaml reads the shorter
+      # form and is therefore one level short -- logged as item 8 of
+      # docs/deferred_findings.md, and deliberately not repeated here.
+      - when: <% succeeded() %>
+        publish: create_directory_status_url=<% result().result.status_url %>
+        do:
+          - poll_create_directory_status
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "create_output_directory -- Couldn't create the LongPlex output directory <% ctx(output_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  poll_create_directory_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(create_directory_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+    next:
+      - when: <% succeeded() %>
+        do: run_demux
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_create_directory_status -- Couldn't create the LongPlex output directory <% ctx(output_path) %>"
+        do:
+          - bioinfo_error_notifier
+
+  run_demux:
+    action: ductus.submit_miarka_job
+    input:
+      process_host_url: <% ctx(process_host_url) %>
+      process_host_gateway_port: <% ctx(process_host_gateway_port) %>
+      job_status_url: <% ctx(job_status_url) %>
+      gateway_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+      endpoint: "start_analysis/"
+      payload:
+        analysis_path: <% ctx(output_path) %>
+        runscript: <% ctx(longplex_demux_runscript_path) %>
+        inbox_path: <% ctx(inbox_path) %>
+        # Still a CLI-args string: the processing-service appends it to the
+        # runscript invocation, so this is shell-interpreted on the Miarka
+        # side. That's the service's contract rather than ours (see
+        # docs/pacbio_reheader_miarka_contract.md).
+        #
+        # The two values are quoted DIFFERENTLY, on purpose.
+        #
+        # samples_info is unquoted, matching reheader_pacbio_bams_miarka:
+        # that form works whether the service hands `parameters` to a shell
+        # or merely splits it on whitespace. Quoting it would make the
+        # required flag depend on the shell assumption, which is a narrowing
+        # of the fallback for no gain -- it is always populated.
+        #
+        # rename_map IS quoted, because quoting is the only way an empty
+        # optional value survives: unquoted and empty, the string would end
+        # with a valueless --rename-map and the start script would (rightly)
+        # refuse the run. The cost is that this one flag does depend on the
+        # shell assumption -- if the service does not shell-interpret,
+        # '' arrives as a literal two-quote path and the run fails by name.
+        # Loud, and on a path whose calling convention is unverified anyway.
+        #
+        # Everything else the start script can take (--pipeline-dir,
+        # --profile, --work-dir, --site-config) is read on the cluster from
+        # LONGPLEX_PIPELINE_DIR / LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG,
+        # which is also the only way to set them if the service turns out
+        # not to append `parameters` to a command line at all.
+        parameters: "--samples-info <% ctx(samples_info) %> --rename-map '<% ctx(rename_map) %>'"
+    next:
+      - when: <% succeeded() %>
+        publish: run_demux_status_url=<% result().result.status_url %>
+        do:
+          - poll_demux_status
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "run_demux -- Couldn't start the LongPlex demultiplexing job for <% ctx(samples_info) %>"
+        do:
+          - bioinfo_error_notifier
+
+  # The pipeline runs for hours, so this poll is the long one. poll_sleep is
+  # passed rather than left at ductus.poll_status's 1-minute default: the
+  # demux does not finish sooner for being asked more often.
+  poll_demux_status:
+    action: ductus.poll_status
+    input:
+      url: <% ctx(run_demux_status_url) %>
+      uppmax_api_key: <% ctx(gateway_api_key) %>
+      verify_ssl_cert: <% ctx(verify_ssl_cert) %>
+      sleep: <% ctx(poll_sleep) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "poll_demux_status -- LongPlex demultiplexing failed for <% ctx(samples_info) %>; see <% ctx(output_path) %>/logs/nextflow.log"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - LongPlex demultiplexing on Miarka, <% ctx(inbox_path) %>"
+      body: Something went wrong demultiplexing LongPlex pools from <% ctx(inbox_path) %> on Miarka, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

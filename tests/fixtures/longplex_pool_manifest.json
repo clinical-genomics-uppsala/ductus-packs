@@ -1,0 +1,23 @@
+{
+  "barcode_set": "set1",
+  "dest_dir": "/scratch/run_x",
+  "pools": [
+    {
+      "bam_basename": "m84.hifi_reads.bc1015.bam",
+      "collection": "test_run_001_A01",
+      "dataset_uuid": "dddddddd-0000-0000-0000-000000000015",
+      "pool_ID": "bc1015",
+      "pool_path": "/scratch/run_x/bc1015/m84.hifi_reads.bc1015.bam"
+    },
+    {
+      "bam_basename": "m84.hifi_reads.bc1016.bam",
+      "collection": "test_run_001_A01",
+      "dataset_uuid": "dddddddd-0000-0000-0000-000000000016",
+      "pool_ID": "bc1016",
+      "pool_path": "/scratch/run_x/bc1016/m84.hifi_reads.bc1016.bam"
+    }
+  ],
+  "run_id": "aaaaaaaa-0000-0000-0000-000000000001",
+  "run_name": "test_run_001",
+  "warnings": []
+}

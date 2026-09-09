@@ -1,0 +1,92 @@
+---
+# Example pack config for the PacBio BAM transfer (ductus.transfer_bams /
+# ductus.wait_for_transfer). Copy the transfer: block into the pack's real
+# config (/opt/stackstorm/configs/ductus.yaml) and fill in the values.
+#
+# This file is an example only: it is not read by st2 and must never hold a
+# real key, password or token. The SSH key is referenced by PATH; a
+# passphrase-protected key needs ssh-agent on the st2 host, because the
+# actions run ssh with BatchMode=yes and will fail rather than prompt.
+#
+# Everything below is data. Adding a cluster, changing a bandwidth ceiling or
+# moving a destination root is an edit here and nothing else -- there is no
+# per-cluster code path in the actions.
+
+transfer:
+  default_destination: "marvin"
+
+  # On the st2 host. Holds one directory per transfer (manifest, expected
+  # sizes, generated script, log, pid) plus the lock files. Must be writable
+  # by the user st2 runs actions as, and must survive for the life of a
+  # transfer.
+  staging_dir: "/var/lib/st2/ductus/transfers"
+
+  # BAMs only, and both patterns matter: the first matches an undemultiplexed
+  # collection, the second the per-pool children SMRT Link's own demux writes
+  # (*.hifi_reads.bcM####.bam). Dropping the second breaks every LongPlex run.
+  # Add "*.hifi_reads.bam.pbi" to save a full-BAM pbindex pass on the cluster
+  # for ~1% more bytes.
+  file_patterns:
+    - "*.hifi_reads.bam"
+    - "*.hifi_reads.*.bam"
+
+  destinations:
+    # Local cluster.
+    marvin:
+      host: "marvin.example.internal"
+      user: "REPLACE_ME"
+      ssh_key_path: "/home/REPLACE_ME/.ssh/id_ductus_transfer"
+      dest_root: "/scratch/pacbio/runs"
+      bwlimit: "200M"
+
+    # UPPMAX-hosted. Values only -- there is no miarka-specific code. Three
+    # things are expected to differ here and are all config:
+    #
+    #  * user must be a service account exempt from interactive 2FA.
+    #    BatchMode=yes means anything that would prompt fails instead, which
+    #    is the intended behaviour: a transfer must not hang waiting for a
+    #    human.
+    #  * dest_root should be project-scoped, under the project's nobackup
+    #    area, matching miarka_upload_path_prefix / process_host_proj_path.
+    #  * host should be a dedicated transfer host if one exists rather than a
+    #    login node -- an eight-hour rsync on a shared login node is
+    #    antisocial and may be killed by a process reaper.
+    #
+    # A lower bwlimit than marvin's: this crosses a WAN link that other
+    # traffic shares.
+    miarka:
+      host: "miarka-transfer.uppmax.uu.se"
+      user: "REPLACE_ME"
+      ssh_key_path: "/home/REPLACE_ME/.ssh/id_ductus_miarka"
+      dest_root: "/proj/REPLACE_ME/nobackup/pacbio/runs"
+      bwlimit: "100M"
+      # ssh_extra_opts: ["-o", "IPQoS=throughput"]
+      # rsync_extra: []
+
+# ---------------------------------------------------------------------------
+# seqWell LongPlex demultiplexing (ductus.run_longplex_demux_marvin /
+# _miarka). All four are paths and values ON THE CLUSTER, not on the st2
+# host: the start script that reads them runs there.
+#
+# The last three can equally be set as LONGPLEX_PIPELINE_DIR /
+# LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG in the cluster environment, and on
+# the Miarka path that is the only route -- the gateway's `parameters` string
+# is the sole channel for extra CLI flags there, and an empty value in it
+# would be parsed as the next flag's argument.
+# ---------------------------------------------------------------------------
+
+longplex_demux_runscript_path: "/opt/ductus/scripts/run_longplex_demux.sh"
+
+# Must contain main.nf. The pipeline loads schemas/input_schema.json relative
+# to its own project directory, so this has to be the real checkout.
+longplex_pipeline_dir: "/opt/longplex/LongPlex-v3.1"
+
+# docker is not available on an HPC login node; the pipeline also ships
+# singularity, conda and aws profiles.
+longplex_nextflow_profile: "apptainer"
+
+# Empty = no extra -c. Set this to a config declaring
+# process.executor = 'slurm' to fan the pipeline's processes out over the
+# scheduler; with no config, whatever runs nextflow must itself be big enough
+# for LIMA_BOTH_END (32G, 8 cpus).
+longplex_nextflow_site_config: ""

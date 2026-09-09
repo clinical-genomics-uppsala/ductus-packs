@@ -1,2 +1,10 @@
 #-e git+git@bitbucket.org:clinsequu/ductus-core.git#egg=ductus-core
 jsonpickle
+# >=2.32.4 for CVE-2024-47081 (.netrc credentials leaked to a third party via a
+# crafted URL), which also picks up CVE-2024-35195 (a Session that made one
+# verify=False request silently skipped verification for that host afterwards)
+# and CVE-2023-32681 (Proxy-Authorization leaked on cross-host redirect). This
+# pack sends SMRT Link user credentials, a processing api key and a Kong
+# gateway api key through requests, so all three are credential-leak paths.
+requests>=2.32.4
+paramiko
