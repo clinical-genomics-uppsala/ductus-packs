@@ -62,3 +62,31 @@ transfer:
       bwlimit: "100M"
       # ssh_extra_opts: ["-o", "IPQoS=throughput"]
       # rsync_extra: []
+
+# ---------------------------------------------------------------------------
+# seqWell LongPlex demultiplexing (ductus.run_longplex_demux_marvin /
+# _miarka). All four are paths and values ON THE CLUSTER, not on the st2
+# host: the start script that reads them runs there.
+#
+# The last three can equally be set as LONGPLEX_PIPELINE_DIR /
+# LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG in the cluster environment, and on
+# the Miarka path that is the only route -- the gateway's `parameters` string
+# is the sole channel for extra CLI flags there, and an empty value in it
+# would be parsed as the next flag's argument.
+# ---------------------------------------------------------------------------
+
+longplex_demux_runscript_path: "/opt/ductus/scripts/run_longplex_demux.sh"
+
+# Must contain main.nf. The pipeline loads schemas/input_schema.json relative
+# to its own project directory, so this has to be the real checkout.
+longplex_pipeline_dir: "/opt/longplex/LongPlex-v3.1"
+
+# docker is not available on an HPC login node; the pipeline also ships
+# singularity, conda and aws profiles.
+longplex_nextflow_profile: "apptainer"
+
+# Empty = no extra -c. Set this to a config declaring
+# process.executor = 'slurm' to fan the pipeline's processes out over the
+# scheduler; with no config, whatever runs nextflow must itself be big enough
+# for LIMA_BOTH_END (32G, 8 cpus).
+longplex_nextflow_site_config: ""

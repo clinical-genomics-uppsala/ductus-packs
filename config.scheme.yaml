@@ -257,6 +257,54 @@
     type: string
     required: true
 
+  # Running the LongPlex pipeline itself, used by
+  # ductus.run_longplex_demux_marvin / _miarka. Also cluster-side values: the
+  # start script that reads them runs on Marvin or Miarka.
+  #
+  # The last three are equally settable as LONGPLEX_PIPELINE_DIR /
+  # LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG in the cluster environment. That
+  # is the only route on the Miarka path, where the gateway's `parameters`
+  # string is the sole channel for extra CLI flags and an empty value in it
+  # would be parsed as the next flag's argument.
+  longplex_demux_runscript_path:
+    description: >
+      Path on the processing cluster to scripts/run_longplex_demux.sh, the
+      start script that runs the LongPlex pipeline. Mirrors
+      pacbio_reheader_runscript_path -- deployed to the cluster, not run from
+      the pack.
+    type: string
+    required: true
+  longplex_pipeline_dir:
+    description: >
+      The LongPlex checkout on the processing cluster. Must contain main.nf:
+      the pipeline resolves schemas/input_schema.json relative to its own
+      project directory, so a main.nf copied elsewhere cannot validate the
+      samplesheet.
+    type: string
+    required: true
+  longplex_nextflow_profile:
+    description: >
+      nextflow -profile for the LongPlex run. The pipeline ships apptainer,
+      singularity, conda, docker and aws; apptainer is the default here
+      because docker is not available on an HPC login node.
+    type: string
+    required: true
+    default: "apptainer"
+  longplex_nextflow_site_config:
+    description: >
+      Optional extra nextflow config file (-c) for the LongPlex run, empty
+      for none.
+
+      This is the hook for a scheduler. The pipeline sets per-process cpus
+      and memory but declares no executor, so by default every process runs
+      wherever nextflow itself runs. Fanning out over SLURM needs a config
+      here setting process.executor; with no config, whatever runs nextflow
+      must be sized for the heaviest process (LIMA_BOTH_END asks for 32G and
+      8 cpus).
+    type: string
+    required: false
+    default: ""
+
   processing_api_lanes_to_demultiplex_url:
     description: fetch lanes that will be demultiplexced on server
     type: string

@@ -1,0 +1,90 @@
+version: "1.0" # Orquesta version
+
+description: >
+  Runs the seqWell LongPlex demultiplexing pipeline on Marvin, over SSH
+
+input:
+  - inbox_path
+  - samples_info
+  - output_path
+  - rename_map
+  - longplex_demux_runscript_path
+  - longplex_pipeline_dir
+  - longplex_nextflow_profile
+  - longplex_work_dir
+  - longplex_site_config
+  - process_host
+  - process_key
+  - process_user
+  - demux_timeout
+  - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: null
+
+tasks:
+  # One task, like reheader_pacbio_bams_marvin: no create-directory step (the
+  # start script mkdir -p's its own output) and nothing to poll (core.remote
+  # is synchronous). This blocks until the pipeline finishes or demux_timeout
+  # expires, which for a demux is hours rather than minutes -- see
+  # demux_timeout's default.
+  #
+  # The exit code is the whole failure signal. The start script runs nextflow
+  # and exits with its status, so failed() here means the pipeline failed;
+  # nextflow's own log is at <output_path>/logs/nextflow.log on the cluster,
+  # which is where a failure is actually diagnosed. The task's stderr only
+  # carries the tail of what the script printed.
+  #
+  # Paths are single-quoted because core.remote runs cmd through a remote
+  # shell: unlike the Miarka REST path, a command line IS the transport here,
+  # so quoting is the mitigation rather than removal. A path containing a
+  # literal single quote would still break out -- the same residual gap as
+  # reheader_pacbio_bams_marvin and build_longplex_inputs_marvin, tracked
+  # together in docs/deferred_findings.md item 5.
+  #
+  # --rename-map, --work-dir and --site-config are always passed and may be
+  # empty: the start script treats an empty value as "not supplied" and falls
+  # back to no rename_map, <output>/work and no -c respectively. Deciding
+  # that in the script rather than with a YAQL conditional here keeps the
+  # branch in tested code. The quotes are what make it work -- an unquoted
+  # empty value would leave a flag with the next flag as its argument.
+  run_demux:
+    action: core.remote
+    input:
+      username: <% ctx(process_user) %>
+      private_key: <% ctx(process_key) %>
+      hosts: <% ctx(process_host) %>
+      timeout: <% ctx(demux_timeout) %>
+      cmd: >
+        bash '<% ctx(longplex_demux_runscript_path) %>'
+        --inbox-path '<% ctx(inbox_path) %>'
+        --samples-info '<% ctx(samples_info) %>'
+        --output '<% ctx(output_path) %>'
+        --rename-map '<% ctx(rename_map) %>'
+        --pipeline-dir '<% ctx(longplex_pipeline_dir) %>'
+        --profile '<% ctx(longplex_nextflow_profile) %>'
+        --work-dir '<% ctx(longplex_work_dir) %>'
+        --site-config '<% ctx(longplex_site_config) %>'
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "run_demux -- LongPlex demultiplexing failed on Marvin for <% ctx(samples_info) %>; see <% ctx(output_path) %>/logs/nextflow.log"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - LongPlex demultiplexing on Marvin, <% ctx(inbox_path) %>"
+      body: Something went wrong demultiplexing LongPlex pools from <% ctx(inbox_path) %> on Marvin, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
