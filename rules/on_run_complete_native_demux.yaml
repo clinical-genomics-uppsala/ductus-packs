@@ -4,7 +4,11 @@ description: >
   Register a completed PacBio run whose native (run-design-declared) barcodes
   still need demultiplexing. Not the LongPlex path -- SMRT Link cannot detect
   LongPlex pooling, so those runs currently arrive via on_run_complete instead.
-enabled: false   # enable once ductus.populate_processing_api_with_pacbio_sequencerun exists
+# The action this calls exists and is enabled. The real blocker is the
+# Processing API's upload/pacbio/ endpoint, which lives in ductus_processing_api
+# and has not been built -- contract drafted in
+# docs/pacbio_processing_api_contract.md. Enable once that endpoint answers.
+enabled: false
 
 trigger:
   type: ductus.pacbio_run_complete_native_demux
