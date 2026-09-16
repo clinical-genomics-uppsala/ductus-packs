@@ -4,7 +4,7 @@ description: >
   Archive runfolder
 enabled: true
 runner_type: orquesta
-entry_point: workflows/archive_runfolder_and_undetermined.yaml
+entry_point: workflows/archive/archive_runfolder_and_undetermined.yaml
 pack: ductus
 parameters:
   context:
