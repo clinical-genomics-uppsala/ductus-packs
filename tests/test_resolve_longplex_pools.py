@@ -47,10 +47,22 @@ except ImportError:
 
 
 class _NullLogger(object):
+    # Must cover every level any action under test logs at, not just the ones
+    # this module's action uses: the stub base class is installed into
+    # sys.modules for the whole process, so whichever test module imports
+    # first supplies the logger every later module's action gets. A missing
+    # level here surfaces as an AttributeError in an unrelated suite that
+    # passes when run on its own.
     def info(self, *args, **kwargs):
         pass
 
+    def warning(self, *args, **kwargs):
+        pass
+
     def error(self, *args, **kwargs):
+        pass
+
+    def debug(self, *args, **kwargs):
         pass
 
 
