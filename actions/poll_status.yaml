@@ -28,4 +28,41 @@ parameters:
   ignore_result:
     type: 'boolean'
     default: false
-  
+  max_retries:
+    description: >
+      How many consecutive state-less responses to tolerate before giving up.
+      Bounds only the unreadable-state branch -- it is not a poll limit.
+    type: 'integer'
+    default: 3
+  timeout:
+    description: >
+      Intended as the python runner's own timeout override, in seconds: the
+      hard kill, where st2 stops the action with no result. Kept above
+      timeout_sec so that timeout_sec is what actually ends a long poll,
+      reporting the elapsed time and the last state on the way out.
+
+      Declared because callers were already passing it (run_analysis_miarka
+      passes 259200 and 1200) against an action that did not list it, and
+      because every caller that does not pass one otherwise falls back to the
+      python runner's default, which is measured in minutes -- far short of a
+      LongPlex demux. See docs/deferred_findings.md item 3.
+
+      UNVERIFIED against a registered pack: `timeout` collides with a runner
+      parameter name, so st2 may consume it as the runner's and never pass it
+      to run(). That is harmless -- run() defaults timeout_sec itself, and
+      timeout_sec is the deadline that reports -- but it means the two-tier
+      behaviour described above is reasoning, not an observation. Confirm with
+      `st2 action get ductus.poll_status` after registering, the same check
+      wait_for_transfer's own timeout override still needs.
+    type: 'integer'
+    default: 259500
+  timeout_sec:
+    description: >
+      Wall-clock seconds to keep polling before giving up. Three days by
+      default, matching the longest timeout callers already ask for.
+
+      The loop itself only ever exits on a terminal state, so without this
+      there is no deadline at all: a job stuck in "pending" polls forever.
+    type: 'integer'
+    default: 259200
+
