@@ -33,8 +33,12 @@ tasks:
       payload:
         path: <% ctx(reheader_dir) %>
     next:
+      # `result().result.status_url` and not `result().status_url`: the st2
+      # python runner wraps what an action returns in
+      # {stdout, stderr, exit_code, result}, so a returned dict's fields sit
+      # one level down.
       - when: <% succeeded() %>
-        publish: create_directory_status_url=<% result().status_url %>
+        publish: create_directory_status_url=<% result().result.status_url %>
         do:
           - poll_create_directory_status
       - when: <% failed() %>
@@ -81,7 +85,7 @@ tasks:
         parameters: "--sample-map <% ctx(sample_map) %>"
     next:
       - when: <% succeeded() %>
-        publish: run_reheader_status_url=<% result().status_url %>
+        publish: run_reheader_status_url=<% result().result.status_url %>
         do:
           - poll_reheader_status
       - when: <% failed() %>

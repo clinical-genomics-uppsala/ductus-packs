@@ -44,9 +44,8 @@ tasks:
       # `result().result.status_url` and not `result().status_url`: the st2
       # python runner wraps what an action returns in
       # {stdout, stderr, exit_code, result}, so a returned dict's fields sit
-      # one level down. reheader_pacbio_bams_miarka.yaml reads the shorter
-      # form and is therefore one level short -- logged as item 8 of
-      # docs/deferred_findings.md, and deliberately not repeated here.
+      # one level down. reheader_pacbio_bams_miarka.yaml used to read the
+      # shorter form; fixed, see item A of docs/deferred_findings.md.
       - when: <% succeeded() %>
         publish: create_directory_status_url=<% result().result.status_url %>
         do:
