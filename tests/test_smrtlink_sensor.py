@@ -522,16 +522,29 @@ class StateTests(unittest.TestCase):
         self.assertTrue(service.saved_state()[RUN_UUID]["triggered"])
 
     def test_dispatch_return_value_is_not_consulted(self):
-        """Pins what the code actually does, against the docs.
+        """Pins what the code actually does, and why it must stay that way.
 
         pacbio_implementation_summary.md §2 says the run is marked triggered
-        "only if the dispatch returned True". That is true of
-        _dispatch_trigger's return, but _dispatch_trigger returns True
-        unconditionally once it has a complete payload -- it never looks at
-        what sensor_service.dispatch() returned. So a dispatch that reported
-        failure would still mark the run triggered, and it would never be
-        retried. Recorded here as observed behaviour, not endorsed: if this is
-        meant to be a guard, it is not one today.
+        "only if the dispatch returned True". That reads as a guard on
+        sensor_service.dispatch(), and it is not one: _dispatch_trigger
+        returns True unconditionally once it has a complete payload, and
+        never looks at what dispatch() returned.
+
+        That cannot be repaired by propagating the return value.
+        sensor_service.dispatch() returns None on success *and* None on a
+        validation failure that dropped the trigger -- the chain bottoms out
+        in TriggerDispatcher.dispatch(), which ends in publish_trigger() with
+        no return statement (st2common/transport/reactor.py). Propagating it
+        would make _dispatch_trigger always falsy, so no run would ever be
+        marked triggered and every run inside the 30-day window would
+        re-dispatch on every 600s poll.
+
+        The real gap, which a return-value check cannot close: if payload
+        validation fails while system.validate_trigger_payload is enabled,
+        st2 logs a warning, drops the trigger and returns None --
+        indistinguishable from success. The run is marked triggered and never
+        retried. Closing that means validating the payload before dispatching,
+        not inspecting a return value that carries no status.
         """
 
         class RefusingService(FakeSensorService):
