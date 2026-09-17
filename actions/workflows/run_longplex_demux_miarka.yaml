@@ -8,7 +8,6 @@ input:
   - inbox_path
   - samples_info
   - output_path
-  - rename_map
   - longplex_demux_runscript_path
   - process_host_url
   - process_host_gateway_port
@@ -91,28 +90,18 @@ tasks:
         # side. That's the service's contract rather than ours (see
         # docs/pacbio_reheader_miarka_contract.md).
         #
-        # The two values are quoted DIFFERENTLY, on purpose.
-        #
         # samples_info is unquoted, matching reheader_pacbio_bams_miarka:
         # that form works whether the service hands `parameters` to a shell
         # or merely splits it on whitespace. Quoting it would make the
-        # required flag depend on the shell assumption, which is a narrowing
-        # of the fallback for no gain -- it is always populated.
-        #
-        # rename_map IS quoted, because quoting is the only way an empty
-        # optional value survives: unquoted and empty, the string would end
-        # with a valueless --rename-map and the start script would (rightly)
-        # refuse the run. The cost is that this one flag does depend on the
-        # shell assumption -- if the service does not shell-interpret,
-        # '' arrives as a literal two-quote path and the run fails by name.
-        # Loud, and on a path whose calling convention is unverified anyway.
+        # required flag depend on the shell assumption for no gain -- it is
+        # always populated, so there is no empty case to protect.
         #
         # Everything else the start script can take (--pipeline-dir,
         # --profile, --work-dir, --site-config) is read on the cluster from
         # LONGPLEX_PIPELINE_DIR / LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG,
         # which is also the only way to set them if the service turns out
         # not to append `parameters` to a command line at all.
-        parameters: "--samples-info <% ctx(samples_info) %> --rename-map '<% ctx(rename_map) %>'"
+        parameters: "--samples-info <% ctx(samples_info) %>"
     next:
       - when: <% succeeded() %>
         publish: run_demux_status_url=<% result().result.status_url %>

@@ -20,11 +20,9 @@ description: >
        passes the output directory as its own field or leaves it in
        parameters;
     2. that `parameters` is appended to the command line as extra CLI args.
-       Only samples_info and rename_map travel that way, and both are
-       single-quoted in it: an unquoted empty rename_map would end the string
-       with a valueless --rename-map and consume nothing, so the quotes are
-       what let an optional value stay optional. The start script reads an
-       empty value as "not supplied".
+       Only samples_info travels that way, unquoted -- it is always
+       populated, so there is no empty case to protect and quoting it would
+       only make a required flag depend on the shell assumption for nothing.
 
        The deployment-specific settings (pipeline directory, profile, work
        dir, extra config) do NOT travel that way at all -- they are read on
@@ -35,10 +33,19 @@ description: >
   samples_info is the pipeline's OWN samplesheet, pool_sheet.csv -- NOT the
   clinical Project,Run_nr,Sample_ID,Index_ID sheet that sample_map means
   elsewhere in this pack. The start script checks the header and refuses the
-  wrong file. rename_map is optional and renames the pipeline's outputs after
-  the sample; see its own description.
+  wrong file.
 
-  HANDOFF NOTE, for a run WITHOUT rename_map: the pipeline writes
+  No rename_map parameter: this deployment runs LongPlex v3.1, whose
+  nextflow_schema.json declares only pool_sheet and output. Upstream
+  seqwell/LongPlex's main branch has since added an optional rename_map that
+  renames merged BAMs/FASTQs after the sample, but forwarding it here would
+  be speculative support for a checkout this pack does not run -- both
+  versions report the same `version` file (2.1.0), so a deployed checkout
+  cannot be assumed to have it. Giving clinical sample names to LongPlex's
+  own <pool_ID>.<well_ID> output is entirely ductus.reheader_pacbio_bams_*'s
+  job.
+
+  HANDOFF NOTE: the pipeline writes
   <output>/<pool_ID>/merged_bam/<pool_ID>.<well>.bam, nested per pool, while
   scripts/reheader_pacbio_bams.sh globs *.bam in ONE flat directory. On a
   multi-pool run ductus.reheader_pacbio_bams_miarka must therefore be invoked
@@ -98,34 +105,6 @@ parameters:
       path where the start script does it.
     required: true
     type: string
-  rename_map:
-    description: >
-      Optional path on the cluster to the pipeline's rename_map.csv --
-      pool_ID.well_ID,sample_ID -- as written by
-      scripts/build_longplex_inputs.py alongside pool_sheet.csv. Empty for
-      none.
-
-      Forwarded to LongPlex's own optional rename_map parameter, which names
-      the merged BAM and FASTQ <sample_ID>.bam / .fastq.gz instead of
-      <pool_ID>.<well_ID>, and labels the demux QC report with the sample
-      names. Any well the file does not mention keeps its default name.
-
-      Two things to know before using it:
-
-        - it does NOT touch the SM: tag inside the BAMs. samtools merge keeps
-          whatever the pool's reads carried, so fixing SM: is still
-          ductus.reheader_pacbio_bams_*'s job -- but that script reads the
-          well from the second dot-separated field of the filename, which a
-          renamed BAM no longer has. The two do not compose as written.
-        - rename_map is a comparatively recent pipeline parameter, and the
-          `version` file cannot distinguish a checkout that has it from one
-          that does not (both say 2.1.0). The start script therefore checks
-          the checkout's own nextflow_schema.json and refuses rather than let
-          nextflow accept the parameter and silently ignore it, which is what
-          an older checkout does.
-    required: false
-    type: string
-    default: ""
   longplex_demux_runscript_path:
     description: >
       Path on the cluster to scripts/run_longplex_demux.sh. Mirrors

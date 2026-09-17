@@ -7,7 +7,6 @@ input:
   - inbox_path
   - samples_info
   - output_path
-  - rename_map
   - longplex_demux_runscript_path
   - longplex_pipeline_dir
   - longplex_nextflow_profile
@@ -43,12 +42,12 @@ tasks:
   # reheader_pacbio_bams_marvin and build_longplex_inputs_marvin, tracked
   # together in docs/deferred_findings.md item 5.
   #
-  # --rename-map, --work-dir and --site-config are always passed and may be
-  # empty: the start script treats an empty value as "not supplied" and falls
-  # back to no rename_map, <output>/work and no -c respectively. Deciding
-  # that in the script rather than with a YAQL conditional here keeps the
-  # branch in tested code. The quotes are what make it work -- an unquoted
-  # empty value would leave a flag with the next flag as its argument.
+  # --work-dir and --site-config are always passed and may be empty: the
+  # start script treats an empty value as "not supplied" and falls back to
+  # <output>/work and no -c respectively. Deciding that in the script rather
+  # than with a YAQL conditional here keeps the branch in tested code. The
+  # quotes are what make it work -- an unquoted empty value would leave a
+  # flag with the next flag as its argument.
   run_demux:
     action: core.remote
     input:
@@ -61,7 +60,6 @@ tasks:
         --inbox-path '<% ctx(inbox_path) %>'
         --samples-info '<% ctx(samples_info) %>'
         --output '<% ctx(output_path) %>'
-        --rename-map '<% ctx(rename_map) %>'
         --pipeline-dir '<% ctx(longplex_pipeline_dir) %>'
         --profile '<% ctx(longplex_nextflow_profile) %>'
         --work-dir '<% ctx(longplex_work_dir) %>'

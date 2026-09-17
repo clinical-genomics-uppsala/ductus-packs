@@ -11,8 +11,8 @@ mistakes in an Orquesta action actually live. Three classes of them:
   - `result().status_url` instead of `result().result.status_url`. The st2
     python runner wraps a returned dict in {stdout, stderr, exit_code,
     result}, so the shorter form reads nothing. The Miarka reheader workflow
-    has this bug today (docs/deferred_findings.md item 8) and it is the file
-    the Miarka variant here was written from;
+    had this bug (docs/deferred_findings.md item A, fixed 2026-09-16) and it
+    is the file the Miarka variant here was written from;
   - --samples-info vs --sample-map. Both exist in this pack, mean different
     files, and are one word apart.
 """
@@ -144,7 +144,7 @@ class MarvinAction(ActionContract, unittest.TestCase):
         """core.remote builds a remote command line, so quoting is the
         mitigation (docs/deferred_findings.md item 5)."""
         text = self.workflow_text()
-        for flag in ("--inbox-path", "--samples-info", "--output", "--rename-map"):
+        for flag in ("--inbox-path", "--samples-info", "--output"):
             self.assertIn(
                 "%s '<%%" % flag,
                 text,
@@ -176,24 +176,13 @@ class MiarkaAction(ActionContract, unittest.TestCase):
         self.assertIn("result().result.status_url", text)
         self.assertNotIn("<% result().status_url %>", text)
 
-    def test_the_parameters_string_quotes_only_the_optional_value(self):
-        """Deliberate asymmetry, and it is load-bearing.
-
-        `parameters` is one string the processing-service appends to a
+    def test_samples_info_is_unquoted_in_the_parameters_string(self):
+        """`parameters` is one string the processing-service appends to a
         command line, and whether it reaches a shell is unverified.
-
-        rename_map must be quoted: unquoted and empty, the string ends with a
-        valueless --rename-map and the start script refuses the run. Quoting
-        is the only way an empty optional value survives -- at the cost of
-        depending on the shell assumption.
-
-        samples_info must NOT be quoted: unquoted works under either
-        interpretation, so quoting it would make the REQUIRED flag depend on
-        that same assumption for nothing. It is always populated, so it has
-        no empty case to protect.
-        """
+        samples_info is always populated, so there is no empty case to
+        protect, and quoting it would make the required flag depend on the
+        shell assumption for nothing."""
         text = self.workflow_text()
-        self.assertIn("--rename-map '<%", text)
         self.assertIn("--samples-info <%", text)
         self.assertNotIn("--samples-info '<%", text)
 
@@ -221,19 +210,18 @@ class SharedConventions(unittest.TestCase):
                 "{{ config_context.longplex_demux_runscript_path }}",
             )
 
-    def test_both_actions_accept_an_optional_rename_map(self):
-        """The pipeline's own optional rename_map parameter.
-
-        Default empty, which the start script reads as "not supplied", so
-        neither workflow needs a YAQL conditional to leave the flag out.
-        """
+    def test_neither_action_offers_rename_map(self):
+        """This deployment runs LongPlex v3.1, whose nextflow_schema.json
+        declares only pool_sheet and output. Forwarding an optional
+        rename_map would be speculative support for a checkout this pack
+        does not run -- both a checkout that has it and one that doesn't
+        report the same `version` file (2.1.0), so a deployed checkout
+        cannot be assumed to have it."""
         for name in ("run_longplex_demux_marvin", "run_longplex_demux_miarka"):
             action = load(os.path.join(ACTIONS, "%s.yaml" % name))
-            self.assertIn("rename_map", action["parameters"])
-            self.assertEqual(action["parameters"]["rename_map"]["default"], "")
-            self.assertFalse(action["parameters"]["rename_map"]["required"])
+            self.assertNotIn("rename_map", action["parameters"])
             workflow = load(os.path.join(ACTIONS, action["entry_point"]))
-            self.assertIn("rename_map", workflow["input"])
+            self.assertNotIn("rename_map", workflow["input"])
 
     def test_both_actions_can_be_invoked_by_hand(self):
         """enabled: true, as the reheader actions are.
