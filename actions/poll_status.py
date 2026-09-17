@@ -149,12 +149,18 @@ class PollStatus(Action):
         """
         retry_attempts = 0
         state = "started"
-        started_at = time.time()
+        # monotonic, not time(): this measures a duration, and on a three-day
+        # deadline the wall clock is not a safe way to do that. An NTP step or
+        # a VM resuming from suspend moves time() in either direction, which
+        # would end a healthy poll early or let a dead one run past its
+        # timeout. monotonic() cannot go backwards and is unaffected by clock
+        # corrections. time.sleep() below is a relative duration and is fine.
+        started_at = time.monotonic()
 
         def _remaining():
             if timeout_sec is None:
                 return None
-            return timeout_sec - (time.time() - started_at)
+            return timeout_sec - (time.monotonic() - started_at)
 
         def _sleep_bounded():
             """Sleep the poll interval, but never past the deadline.
@@ -172,7 +178,7 @@ class PollStatus(Action):
         while state == "started" or state == "pending" or not state:
             remaining = _remaining()
             if remaining is not None and remaining <= 0:
-                elapsed = int(time.time() - started_at)
+                elapsed = int(time.monotonic() - started_at)
                 self.logger.error(
                     "{} still reported state {} after {}s "
                     "(timeout_sec={}). Giving up polling.".format(
