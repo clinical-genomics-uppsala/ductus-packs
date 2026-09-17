@@ -27,6 +27,9 @@ except ImportError:
 POLL_INTERVAL = 600      # seconds
 RUN_MAX_AGE_DAYS = 30    # ignore runs older than this on startup
 STATE_KEY = "smrtlink.run_state"
+# Where a state value that cannot be decoded is copied before the sensor
+# refuses to run. Separate key so the original is recoverable by hand.
+QUARANTINE_KEY = "smrtlink.run_state.corrupt"
 
 
 class SMRTLinkSensor(PollingSensor):
@@ -66,6 +69,10 @@ class SMRTLinkSensor(PollingSensor):
 
     def poll(self):
         state = self._load_state()
+        if state is None:
+            # Corrupt dedup state. Dispatching now would re-fire every run in
+            # the window; see _load_state.
+            return
 
         runs = self._get_runs()
         if runs is None:
@@ -291,13 +298,50 @@ class SMRTLinkSensor(PollingSensor):
     # ── State store ────────────────────────────────────────────
 
     def _load_state(self):
+        """The dedup state, or None if it could not be decoded.
+
+        None is deliberately not {}: an empty dict is a valid state meaning
+        "no run has ever been triggered", which on a populated SMRT Link
+        re-dispatches every run inside the RUN_MAX_AGE_DAYS window at once.
+        This used to reset to {} on a decode error and do exactly that.
+
+        Note the caller must stop rather than continue with a default -- and
+        that the corrupt value is left in place on purpose. Clearing it would
+        let the very next poll read an empty state and replay the window,
+        which is the failure this is here to prevent. The error repeating
+        every poll is the alert; repairing STATE_KEY by hand resumes it.
+
+        One way this happens without anyone corrupting anything: get_value()
+        defaults to decrypt=False, so a value written with `st2 key set
+        --encrypt` comes back as ciphertext. The credentials next to it in
+        this namespace are documented as encrypted, so it is an easy habit to
+        extend to this key by mistake.
+        """
         raw = self._sensor_service.get_value(STATE_KEY)
-        if raw:
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                self._logger.warning("Corrupt state, resetting")
-        return {}
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            self._quarantine_corrupt_state(raw)
+            return None
+
+    def _quarantine_corrupt_state(self, raw):
+        # Keep the first corrupt value seen: a later poll must not overwrite
+        # the evidence with something derived from it.
+        if not self._sensor_service.get_value(QUARANTINE_KEY):
+            self._sensor_service.set_value(QUARANTINE_KEY, raw)
+
+        self._logger.error(
+            "Could not decode %s as JSON. Copied it to %s and dispatched "
+            "nothing this poll: proceeding on empty state would re-fire every "
+            "run created in the last %s days. Repair %s by hand to resume "
+            "(check whether it was written with --encrypt).",
+            STATE_KEY,
+            QUARANTINE_KEY,
+            RUN_MAX_AGE_DAYS,
+            STATE_KEY,
+        )
 
     def _save_state(self, state):
         self._sensor_service.set_value(STATE_KEY, json.dumps(state))

@@ -564,25 +564,6 @@ class StateTests(unittest.TestCase):
 
         self.assertTrue(service.saved_state()[RUN_UUID]["triggered"])
 
-    def test_corrupt_state_resets_and_replays_the_window(self):
-        """docs/deferred_findings.md item 8: a corrupt KV entry reads as "no
-        run has ever been triggered", so every run inside the 30-day window is
-        dispatched again. Pinned so the fix, when it comes, has a failing test
-        to flip."""
-        client = FakeSMRTClient(
-            runs=[make_run()], collections={RUN_UUID: [make_collection()]}
-        )
-        service = FakeSensorService()
-        service.store[sensor_mod.STATE_KEY] = "{not json"
-        sensor = sensor_mod.SMRTLinkSensor(
-            sensor_service=service, config={"base_url": "https://smrtlink.test"}
-        )
-        sensor._client = client
-        sensor.poll()
-
-        self.assertEqual(len(service.dispatched), 1)
-        self.assertIn("Corrupt state", service.logger.text("warning"))
-
     def test_unreachable_smrtlink_leaves_state_untouched(self):
         client = FakeSMRTClient(fail_on=("/smrt-link/runs",))
         sensor, service = build_sensor(client)
@@ -590,6 +571,89 @@ class StateTests(unittest.TestCase):
 
         self.assertEqual(service.dispatched, [])
         self.assertEqual(service.saved_state(), {})
+
+
+class CorruptStateTests(unittest.TestCase):
+    """docs/deferred_findings.md item 8, now fixed: a state value that cannot
+    be decoded used to reset to {} and re-dispatch every run in the window."""
+
+    def _corrupt(self, raw="{not json", quarantined=None):
+        client = FakeSMRTClient(
+            runs=[make_run()], collections={RUN_UUID: [make_collection()]}
+        )
+        service = FakeSensorService()
+        service.store[sensor_mod.STATE_KEY] = raw
+        if quarantined is not None:
+            service.store[sensor_mod.QUARANTINE_KEY] = quarantined
+        sensor = sensor_mod.SMRTLinkSensor(
+            sensor_service=service, config={"base_url": "https://smrtlink.test"}
+        )
+        sensor._client = client
+        sensor.poll()
+        return service
+
+    def test_nothing_is_dispatched(self):
+        service = self._corrupt()
+
+        self.assertEqual(service.dispatched, [])
+
+    def test_the_corrupt_value_is_copied_aside_for_recovery(self):
+        service = self._corrupt()
+
+        self.assertEqual(
+            service.store[sensor_mod.QUARANTINE_KEY], "{not json"
+        )
+
+    def test_the_corrupt_value_is_left_in_place(self):
+        """The crux. Clearing STATE_KEY would let the next poll read a valid
+        empty state and replay the window -- the same bug, one poll later. It
+        has to keep failing until a human repairs it."""
+        service = self._corrupt()
+
+        self.assertEqual(service.store[sensor_mod.STATE_KEY], "{not json")
+
+    def test_an_existing_quarantined_value_is_not_overwritten(self):
+        """A second poll must not clobber the first corrupt value seen."""
+        service = self._corrupt(quarantined="the original corruption")
+
+        self.assertEqual(
+            service.store[sensor_mod.QUARANTINE_KEY], "the original corruption"
+        )
+
+    def test_it_is_logged_as_an_error_not_a_warning(self):
+        """It needs an operator. A warning among 600s poll logs is not that."""
+        service = self._corrupt()
+
+        self.assertIn("Could not decode", service.logger.text("error"))
+        self.assertNotIn("Could not decode", service.logger.text("warning"))
+
+    def test_ciphertext_is_treated_as_corruption(self):
+        """get_value() defaults to decrypt=False, so a key written with
+        `st2 key set --encrypt` returns ciphertext. The credentials beside it
+        in this namespace are documented as encrypted, so this is a plausible
+        operator slip rather than an exotic failure."""
+        service = self._corrupt(raw="U2FsdGVkX1+b0gV9nQ8wZmFrZWNpcGhlcnRleHQ=")
+
+        self.assertEqual(service.dispatched, [])
+
+    def test_a_valid_empty_state_still_dispatches(self):
+        """Guards the fix from the other side: first boot has no state at all,
+        and must not be mistaken for corruption."""
+        client = FakeSMRTClient(
+            runs=[make_run()], collections={RUN_UUID: [make_collection()]}
+        )
+        sensor, service = build_sensor(client)
+        sensor.poll()
+
+        self.assertEqual(len(service.dispatched), 1)
+
+    def test_an_explicitly_empty_json_object_still_dispatches(self):
+        """"{}" decodes fine and means "nothing triggered yet"."""
+        service = self._corrupt(raw="{}")
+
+        self.assertEqual(len(service.dispatched), 1)
+        self.assertNotIn(sensor_mod.QUARANTINE_KEY, service.store)
+
 
 
 if __name__ == "__main__":
