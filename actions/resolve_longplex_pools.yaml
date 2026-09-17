@@ -1,0 +1,61 @@
+---
+name: 'resolve_longplex_pools'
+runner_type: 'python-script'
+description: >
+  Resolves the LongPlex pools of a completed SMRT Link run into a pool
+  manifest, for scripts/build_longplex_inputs.py to turn into the LongPlex
+  pipeline's pool_sheet.csv / rename_map.csv on the cluster.
+
+  Reads the child ConsensusReadSets that SMRT Link's own outer (SMRTbell
+  barcode) demux produced -- one per pool -- and, for each, the HiFi BAM out
+  of the dataset's ExternalResources. A collection with no outer barcode
+  declared is handled as a valid single-pool case. The inner seqWell i7/i5
+  wells are invisible to SMRT Link and are not resolved here; they come from
+  the sample map, on the cluster side.
+
+  Does network work only: no path is stat'ed and no file is read, because the
+  st2 host does not mount cluster scratch. Conversely the SMRT Link
+  credentials never leave st2. Does not decide whether a run is LongPlex --
+  that routing happens upstream.
+enabled: true
+entry_point: 'resolve_longplex_pools.py'
+parameters:
+  run_id:
+    type: 'string'
+    description: 'SMRT Link run UUID.'
+    required: true
+  dest_dir:
+    type: 'string'
+    description: >
+      Run working directory on cluster scratch -- where the transfer step put
+      the pool BAMs, and where the CSVs will be written. Used here only to
+      derive pool_path as {dest_dir}/{pool_ID}/{bam_basename}; nothing checks
+      it exists at this stage, since it is on a filesystem st2 cannot see.
+    required: true
+  barcode_set:
+    type: 'string'
+    description: >
+      Which seqWell barcode set the kit used. Defaults to
+      longplex_default_barcode_set from the pack config. set1 is post-launch
+      kits, set3 early-access; set2 also ships with the pipeline.
+    required: false
+    enum:
+      - 'set1'
+      - 'set2'
+      - 'set3'
+  bam_path_overrides:
+    type: 'object'
+    description: >
+      {pool_ID: absolute_path}. Wins over the derived path and skips the
+      ExternalResources lookup for that pool. Escape hatch for reprocessing
+      and for a pool whose BAM was staged out of band. An override naming a
+      pool the run does not have is an error, not a warning.
+    required: false
+  manifest_path:
+    type: 'string'
+    description: >
+      If given, the manifest is also written here as JSON, so it can be
+      shipped to the cluster as a file. Prefer this to passing the manifest
+      through a command line -- it is nested JSON, and a shell is the
+      transport on the Marvin path.
+    required: false

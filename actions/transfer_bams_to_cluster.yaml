@@ -1,0 +1,102 @@
+---
+name: transfer_bams_to_cluster
+description: >
+  Transfers a completed PacBio run's HiFi BAMs from the sequencing storage
+  mounted on the st2 host to a processing cluster, and does not finish until
+  they are verifiably there.
+
+  Two tasks: ductus.transfer_bams launches a detached rsync and returns in
+  seconds, then ductus.wait_for_transfer polls the destination for the
+  .transfer_complete sentinel that the transfer's own script writes only after
+  the far-side sizes have been checked. Gate anything downstream on this
+  workflow, never on transfer_bams alone -- that action's success means
+  "started".
+
+  Its dest_path output is what the existing cluster-side PacBio actions have
+  always assumed somebody else had produced:
+  ductus.build_longplex_inputs_marvin's dest_dir, and
+  ductus.reheader_pacbio_bams_{marvin,miarka}'s longplex_bam_dir.
+
+  One workflow for both clusters, not a _marvin and a _miarka variant: every
+  cluster-shaped value lives in pack config under transfer.destinations, so
+  Miarka is the `destination` parameter rather than a second code path. That
+  is also why there is no processing-service gateway step here -- nothing in
+  this path goes through one.
+
+  DISABLED, and honestly so. Nothing about it has run against a real cluster:
+  it needs the transfer.destinations config block to exist (see
+  config.yaml.example), a service account that BatchMode ssh can actually use,
+  and an rsync on the st2 host new enough for --info=progress2 (3.1+) and
+  --protect-args (3.0+). Passing unit tests do not make an untested
+  eight-hour write to cluster scratch something to leave switched on by
+  default. Set enabled: true once one real run has been through it.
+enabled: false
+runner_type: orquesta
+entry_point: workflows/transfer_bams_to_cluster.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.transfer_bams_to_cluster
+    immutable: true
+    type: string
+  run_name:
+    description: >
+      The run's name. Becomes the destination subdirectory, and is what
+      ductus.wait_for_transfer derives the path to watch from, so both tasks
+      see the same value.
+    required: true
+    type: string
+  source_paths:
+    description: >
+      Absolute paths on the st2 host -- BAM files, or collection/run
+      directories to glob. These come from SMRT Link's collectionPathUri and
+      must be visible on the st2 host's own filesystem.
+    required: true
+    type: array
+  destination:
+    description: >
+      Which entry in transfer.destinations to send to (marvin, miarka).
+      Defaults to transfer.default_destination.
+    required: false
+    type: string
+    default: "{{ config_context.transfer.default_destination }}"
+  dest_subdir:
+    description: Overrides run_name as the leaf directory on the destination.
+    required: false
+    type: string
+    default: ""
+  file_patterns:
+    description: Overrides transfer.file_patterns.
+    required: false
+    type: array
+  verify:
+    description: >
+      size (default) or checksum. checksum re-reads both copies end to end and
+      roughly doubles wall time.
+    required: false
+    type: string
+    default: "size"
+  bwlimit:
+    description: Overrides the destination's bandwidth ceiling, e.g. 200M.
+    required: false
+    type: string
+  transfer_timeout_sec:
+    description: >
+      How long to wait for the BAMs to arrive. Eight hours by default: a
+      multi-hundred-gigabyte run at a throttled rate over a WAN link is a
+      whole-shift operation.
+    required: true
+    type: integer
+    default: 28800
+  poll_interval_sec:
+    required: true
+    type: integer
+    default: 60
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

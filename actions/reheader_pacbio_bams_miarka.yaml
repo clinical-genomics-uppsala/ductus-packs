@@ -1,0 +1,62 @@
+---
+name: reheader_pacbio_bams_miarka
+description: >
+  Reheaders demultiplexed PacBio LongPlex BAMs on Miarka, fixing the SM: tag
+  so downstream pipelines can consume them. Miarka variant: submits through
+  the processing-service gateway and polls for completion. See
+  ductus.reheader_pacbio_bams_marvin for the SSH-based Marvin equivalent.
+enabled: true
+runner_type: orquesta
+entry_point: workflows/reheader_pacbio_bams_miarka.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.reheader_pacbio_bams_miarka
+    immutable: true
+    type: string
+  longplex_bam_dir:
+    required: true
+    type: string
+  reheader_dir:
+    required: true
+    type: string
+  sample_map:
+    required: true
+    type: string
+  process_host_url:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_url }}"
+  process_host_gateway_port:
+    required: true
+    type: string
+    default: "{{ config_context.process_host_gateway_port }}"
+  job_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.job_status_url }}"
+  gateway_api_key:
+    required: true
+    type: string
+    default: "{{ config_context.miarka_api_key }}"
+    secret: true
+  pacbio_reheader_runscript_path:
+    required: true
+    type: string
+    default: "{{ config_context.pacbio_reheader_runscript_path }}"
+  verify_ssl_cert:
+    description: >
+      Validate the processing-service TLS certificate on both the submit and
+      the poll calls. For an internal/self-signed CA, set REQUESTS_CA_BUNDLE
+      on the st2 host rather than disabling this.
+    required: true
+    type: boolean
+    default: "{{ config_context.miarka_verify_ssl_cert }}"
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"

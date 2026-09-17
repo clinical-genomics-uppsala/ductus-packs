@@ -1,0 +1,111 @@
+---
+name: 'wait_for_transfer'
+runner_type: 'python-script'
+description: >
+  Waits for a ductus.transfer_bams transfer to finish, by polling the
+  destination for the .transfer_complete sentinel that the transfer's own
+  script writes only after the far-side sizes have been verified. A success
+  here means every BAM is fully there, which is what makes it safe to gate a
+  downstream pipeline on -- gate on this, not on transfer_bams.
+
+  One long-lived action rather than an Orquesta `retry` loop on purpose: 480
+  retried tasks produce 480 execution records to page through, and hide the
+  elapsed time, the poll count and the log tail that actually explain a
+  failure. This produces one execution with all of that in its result.
+
+  It distinguishes "not finished yet" from "could not tell", which is the
+  whole reason it is not a one-line ssh test:
+
+    .transfer_failed present  fail immediately, reporting the far side's own
+                              reason and the tail of the local transfer log.
+                              Waiting out an eight-hour timeout on a known
+                              failure wastes a working day.
+    ssh could not answer      warn and keep polling. A login node that
+                              blinks must not fail a healthy six-hour
+                              transfer. Only max_ssh_failures *consecutive*
+                              failures give up; the count resets on any good
+                              answer.
+    unparseable answer        also "could not tell". A login banner read as
+                              "still going" would wait out the whole timeout
+                              on a transfer that had already finished.
+
+  Fails by returning (False, result) rather than raising, so a workflow can
+  read the reason, the elapsed time and the log tail out of the result rather
+  than scraping stderr.
+enabled: true
+entry_point: 'wait_for_transfer.py'
+pack: ductus
+parameters:
+  timeout:
+    description: >
+      Seconds this action may take. Kept above timeout_sec so the action's own
+      timeout is never what ends the wait -- timeout_sec is, and it reports
+      the elapsed time and the log tail on the way out.
+    type: 'integer'
+    default: 29100
+  dest_path:
+    description: >
+      The destination directory to watch -- transfer_bams' dest_path result.
+      The sentinel is looked for directly inside it.
+
+      Optional: give run_name (or dest_subdir) instead and this action derives
+      the same path transfer_bams derived, from the same pack config. That is
+      what the workflow does. It couples the two tasks through config rather
+      than through workflow plumbing, and it means an operator can run this by
+      hand against a run that is already in flight. An explicit dest_path
+      wins.
+    type: 'string'
+    required: false
+  destination:
+    description: >
+      Which entry in transfer.destinations to poll. Must be the destination
+      the transfer was sent to. Defaults to transfer.default_destination.
+    type: 'string'
+    required: false
+  run_name:
+    description: >
+      The run whose transfer to wait for, used to derive dest_path and
+      log_path when they are not given. Must be the same value transfer_bams
+      was given.
+    type: 'string'
+    required: false
+  dest_subdir:
+    description: >
+      Overrides run_name when deriving the paths, exactly as in
+      ductus.transfer_bams. Pass the same value that transfer was given.
+    type: 'string'
+    required: false
+  timeout_sec:
+    description: >
+      How long to wait for the sentinel. Eight hours by default: a
+      multi-hundred-gigabyte run at a throttled rate over a WAN link is a
+      whole-shift operation, and failing early on a transfer that is still
+      making progress is worse than waiting.
+    type: 'integer'
+    required: false
+    default: 28800
+  poll_interval_sec:
+    description: >
+      Seconds between polls. Each poll is one short ssh round trip; a minute
+      apart is already hundreds of connections over a long wait, against a
+      login node that may be logging and rate-limiting them.
+    type: 'integer'
+    required: false
+    default: 60
+  log_path:
+    description: >
+      The local transfer log on the st2 host (transfer_bams' log_path
+      result). Optional, and only used for reporting: its last 40 lines are
+      included with a failure or a timeout, which is where an rsync error
+      message actually is -- the sentinel carries only the exit status.
+
+      Derived from run_name / dest_subdir when not given.
+    type: 'string'
+    required: false
+  max_ssh_failures:
+    description: >
+      How many *consecutive* unanswered polls to tolerate before giving up.
+      At the default poll interval, 10 is a ten-minute outage.
+    type: 'integer'
+    required: false
+    default: 10

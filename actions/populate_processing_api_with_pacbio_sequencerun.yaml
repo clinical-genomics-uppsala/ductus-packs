@@ -1,0 +1,49 @@
+---
+name: populate_processing_api_with_pacbio_sequencerun
+description: >
+  This workflow will register a completed PacBio SMRT Link run with the processing api
+enabled: true
+runner_type: orquesta
+entry_point: workflows/populate_processing_api_with_pacbio_sequencerun.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.populate_processing_api_with_pacbio_sequencerun
+    immutable: true
+    type: string
+  run_uuid:
+    required: true
+    type: string
+  run_name:
+    required: true
+    type: string
+  collection_paths:
+    required: true
+    type: array
+  collections:
+    required: true
+    type: array
+  requires_demultiplex:
+    required: true
+    type: boolean
+  mail_bioinfo:
+    required: true
+    type: string
+    default: "{{ config_context.notification_mail_bioinfo }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
+    secret: true
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_sequence_run_upload_pacbio_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_sequence_run_upload_pacbio_url }}"

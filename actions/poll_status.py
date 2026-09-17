@@ -30,10 +30,21 @@ class PollStatus(Action):
             formatter = logging.Formatter("[%(asctime)s] " + handler.formatter._fmt)
             handler.setFormatter(formatter)
 
+    # (connect, read). Without a read timeout a single unanswered GET blocks
+    # forever, and the wall-clock deadline below never gets a chance to run --
+    # which is the difference between "this job took too long" and an st2
+    # worker wedged until it is restarted.
+    REQUEST_TIMEOUT = (5, 60)
+
     def query(self, url, verify_ssl_cert, api_key=None):
         try:
             headers = {"apikey": api_key} if api_key else None
-            resp = requests.get(url, headers=headers, verify=verify_ssl_cert)
+            resp = requests.get(
+                url,
+                headers=headers,
+                verify=verify_ssl_cert,
+                timeout=self.REQUEST_TIMEOUT,
+            )
             resp.raise_for_status()
             return resp
         except RequestException as err:
@@ -77,6 +88,7 @@ class PollStatus(Action):
                 headers=headers,
                 data=json.dumps(cleaned_body),
                 verify=verify_ssl_cert,
+                timeout=self.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
             response_json = response.json()
@@ -115,7 +127,14 @@ class PollStatus(Action):
             raise err
 
     def check_status(
-        self, url, sleep, ignore_result, verify_ssl_cert, max_retries, api_key=None
+        self,
+        url,
+        sleep,
+        ignore_result,
+        verify_ssl_cert,
+        max_retries,
+        api_key=None,
+        timeout_sec=None,
     ):
         """
         Query the url end-point. Can be called directly from StackStorm, or via the script cli
@@ -124,12 +143,56 @@ class PollStatus(Action):
         :param ignore_result: return 0 exit status even if polling failed (for known errors).
         :param verify_ssl_cert: Set to False to skip verifying the ssl cert when making requests
         :param max_retries: maximum number of retries
-        :return: None
+        :param timeout_sec: wall-clock seconds to keep polling before giving up.
+                            None polls forever, which is the old behaviour.
+        :return: (bool, dict)
         """
         retry_attempts = 0
         state = "started"
+        # monotonic, not time(): this measures a duration, and on a three-day
+        # deadline the wall clock is not a safe way to do that. An NTP step or
+        # a VM resuming from suspend moves time() in either direction, which
+        # would end a healthy poll early or let a dead one run past its
+        # timeout. monotonic() cannot go backwards and is unaffected by clock
+        # corrections. time.sleep() below is a relative duration and is fine.
+        started_at = time.monotonic()
+
+        def _remaining():
+            if timeout_sec is None:
+                return None
+            return timeout_sec - (time.monotonic() - started_at)
+
+        def _sleep_bounded():
+            """Sleep the poll interval, but never past the deadline.
+
+            Without the cap a 3-day deadline with a 60m interval overshoots by
+            up to an hour, and the timeout is reported later than it happened.
+            """
+            interval = sleep * 60
+            remaining = _remaining()
+            if remaining is not None:
+                interval = min(interval, max(remaining, 0))
+            if interval > 0:
+                time.sleep(interval)
 
         while state == "started" or state == "pending" or not state:
+            remaining = _remaining()
+            if remaining is not None and remaining <= 0:
+                elapsed = int(time.monotonic() - started_at)
+                self.logger.error(
+                    "{} still reported state {} after {}s "
+                    "(timeout_sec={}). Giving up polling.".format(
+                        url, state or "<none>", elapsed, timeout_sec
+                    )
+                )
+                return False, {
+                    "timed_out": True,
+                    "elapsed_sec": elapsed,
+                    "timeout_sec": timeout_sec,
+                    "last_state": state,
+                    "url": url,
+                }
+
             resp = self.query(url, verify_ssl_cert, api_key=api_key)
             json_resp = resp.json()
             state = json_resp["state"]
@@ -139,7 +202,7 @@ class PollStatus(Action):
                     "{} returned state {}. "
                     "Sleeping {}m until retrying again...".format(url, state, sleep)
                 )
-                time.sleep(sleep * 60)
+                _sleep_bounded()
             elif state == "done":
                 self.logger.info(
                     "{} returned state {}. "
@@ -170,7 +233,7 @@ class PollStatus(Action):
                         url, retry_attempts, max_retries
                     )
                 )
-                time.sleep(sleep * 60)
+                _sleep_bounded()
             else:
                 self.logger.error(
                     "{} returned state unknown state {}. "
@@ -188,6 +251,7 @@ class PollStatus(Action):
         verify_ssl_cert,
         max_retries=3,
         uppmax_api_key=None,
+        timeout_sec=259200,
     ):
         #start_response = self.post_to_endpoint(
         #    url, body, uppmax_mode, verify_ssl_cert, uppmax_api_key
@@ -201,6 +265,7 @@ class PollStatus(Action):
             verify_ssl_cert,
             max_retries,
             uppmax_api_key,
+            timeout_sec,
         )
         return status_val, {
             "response_from_last_status_check": status_response,

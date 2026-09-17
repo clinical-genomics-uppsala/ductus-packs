@@ -195,6 +195,116 @@
     required: true
     default: "api/v1/sequencerun/upload/illumina/"
 
+  # Upload new sequence run originating from a PacBio (SMRT Link) machine
+  processing_api_sequence_run_upload_pacbio_url:
+    description: upload new sequence run originating from a PacBio (SMRT Link) machine
+    type: string
+    required: true
+    default: "api/v1/sequencerun/upload/pacbio/"
+
+  # SMRT Link REST API, used by smrtlink_sensor / lib/smrt_client.py.
+  # NOTE: these two keys are named generically because that is what the
+  # sensor reads (self._config.get("base_url") / ("ssl_verify")). Worth
+  # renaming to smrtlink_* before this sensor is deployed -- the pack config
+  # is shared, and it already holds process_host_url, miarka_upload_host etc.
+  base_url:
+    description: >
+      Base url to the SMRT Link API gateway, including scheme and port,
+      e.g. https://smrtlink.example.se:8243
+    type: string
+    required: true
+  ssl_verify:
+    description: >
+      Validate the SMRT Link TLS certificate. Defaults to true: get_token()
+      sends the username and password in the request body, so disabling this
+      exposes real credentials. For SMRT Link's default self-signed
+      certificate, set REQUESTS_CA_BUNDLE on the st2 host instead of setting
+      this to false.
+    type: boolean
+    default: true
+
+  # Path, on Miarka, to the runscript that reheaders demultiplexed PacBio LongPlex BAMs
+  pacbio_reheader_runscript_path:
+    description: path on Miarka to the runscript that reheaders demultiplexed PacBio LongPlex BAMs
+    type: string
+    required: true
+
+  # seqWell LongPlex demultiplexing, used by ductus.resolve_longplex_pools /
+  # scripts/build_longplex_inputs.py. All three are cluster-side values: the
+  # script that reads them runs on Marvin or Miarka, not on the st2 host.
+  longplex_barcode_dir:
+    description: >
+      The LongPlex pipeline's barcodes/ directory on the processing cluster.
+      FLAT: the six FASTAs (LongPlex_set{1,2,3}_i{7,5}_trimmed_adapters.fa)
+      sit directly in it, there are no per-set subdirectories.
+    type: string
+    required: true
+  longplex_default_barcode_set:
+    description: >
+      Which seqWell barcode set to assume when a caller does not say. set1 is
+      kits bought after product launch, set3 is early-access kits; set2 also
+      ships with the pipeline but the vendor README does not say who it is
+      for.
+    type: string
+    required: true
+    default: "set1"
+  longplex_build_inputs_runscript_path:
+    description: >
+      Path on the processing cluster to scripts/build_longplex_inputs.py,
+      which writes the pipeline's pool_sheet.csv and rename_map.csv. Mirrors
+      pacbio_reheader_runscript_path -- the script is deployed to the cluster,
+      not run from the pack.
+    type: string
+    required: true
+
+  # Running the LongPlex pipeline itself, used by
+  # ductus.run_longplex_demux_marvin / _miarka. Also cluster-side values: the
+  # start script that reads them runs on Marvin or Miarka.
+  #
+  # The last three are equally settable as LONGPLEX_PIPELINE_DIR /
+  # LONGPLEX_PROFILE / LONGPLEX_SITE_CONFIG in the cluster environment. That
+  # is the only route on the Miarka path, where the gateway's `parameters`
+  # string is the sole channel for extra CLI flags and an empty value in it
+  # would be parsed as the next flag's argument.
+  longplex_demux_runscript_path:
+    description: >
+      Path on the processing cluster to scripts/run_longplex_demux.sh, the
+      start script that runs the LongPlex pipeline. Mirrors
+      pacbio_reheader_runscript_path -- deployed to the cluster, not run from
+      the pack.
+    type: string
+    required: true
+  longplex_pipeline_dir:
+    description: >
+      The LongPlex checkout on the processing cluster. Must contain main.nf:
+      the pipeline resolves schemas/input_schema.json relative to its own
+      project directory, so a main.nf copied elsewhere cannot validate the
+      samplesheet.
+    type: string
+    required: true
+  longplex_nextflow_profile:
+    description: >
+      nextflow -profile for the LongPlex run. The pipeline ships apptainer,
+      singularity, conda, docker and aws; apptainer is the default here
+      because docker is not available on an HPC login node.
+    type: string
+    required: true
+    default: "apptainer"
+  longplex_nextflow_site_config:
+    description: >
+      Optional extra nextflow config file (-c) for the LongPlex run, empty
+      for none.
+
+      This is the hook for a scheduler. The pipeline sets per-process cpus
+      and memory but declares no executor, so by default every process runs
+      wherever nextflow itself runs. Fanning out over SLURM needs a config
+      here setting process.executor; with no config, whatever runs nextflow
+      must be sized for the heaviest process (LIMA_BOTH_END asks for 32G and
+      8 cpus).
+    type: string
+    required: false
+    default: ""
+
   processing_api_lanes_to_demultiplex_url:
     description: fetch lanes that will be demultiplexced on server
     type: string
@@ -348,8 +458,94 @@
     type: string
     required: true
     default: "miarka1.uppmax.uu.se"
+  miarka_verify_ssl_cert:
+    description: >
+      Validate the Miarka processing-service TLS certificate. Defaults to true;
+      the curl -k previously used did not validate at all, exposing the gateway
+      api key to any MITM. For an internal/self-signed CA, set
+      REQUESTS_CA_BUNDLE on the st2 host rather than setting this to false.
+    type: boolean
+    default: true
   process_host_gateway_port:
     description: Port to Kong-gateway
     type: string
     required: true
     default: "9999"
+
+  # BAM transfer from the sequencing storage mounted on the st2 host to a
+  # processing cluster, used by ductus.transfer_bams / ductus.wait_for_transfer.
+  #
+  # Everything cluster-shaped lives here, which is what makes switching a run
+  # between Marvin and Miarka a config change rather than a code path: the
+  # actions contain no host, user, key or path of their own.
+  #
+  # Secrets: the SSH key is referenced by PATH on the st2 host. No key
+  # material and no password belongs in this pack. A passphrase-protected key
+  # needs ssh-agent on the st2 host -- the actions run with
+  # BatchMode=yes and will fail rather than prompt, by design.
+  transfer:
+    description: HPC transfer settings for PacBio BAMs
+    type: object
+    required: false
+    additionalProperties: false
+    properties:
+      default_destination:
+        description: >
+          Which entry in destinations to use when a caller does not say.
+        type: string
+        default: "marvin"
+      staging_dir:
+        description: >
+          Directory on the ST2 HOST (not the cluster) holding one
+          subdirectory per transfer with its manifest, expected sizes,
+          generated script, log and pid, plus the flock files. Must be
+          writable by the user st2 runs actions as, and must persist for the
+          life of a transfer -- the lock lives here and the log is what a
+          failure is diagnosed from.
+        type: string
+        default: "/var/lib/st2/ductus/transfers"
+      file_patterns:
+        description: >
+          Globs collected from each source directory given to
+          ductus.transfer_bams, at its own level and one level below (Revio
+          writes <run>/<collection>/<movie>.hifi_reads.bam).
+
+          BOTH defaults are needed. "*.hifi_reads.bam" matches an
+          undemultiplexed collection and nothing else: a glob must match the
+          END of the name, and a SMRT Link-demultiplexed child BAM ends with
+          .bcM####.bam (or .bc1015--bc1015.bam, or .unassigned.bam). With
+          only the first pattern, every LongPlex run -- the reason this
+          pipeline exists -- would fail with "no files matched".
+
+          Adding "*.hifi_reads.bam.pbi" costs about 1% more bytes and saves a
+          full BAM re-read for pbindex on the cluster;
+          "*.consensusreadset.xml" is the other candidate. Config-driven so
+          neither needs a code change.
+        type: array
+        default:
+          - "*.hifi_reads.bam"
+          - "*.hifi_reads.*.bam"
+      destinations:
+        description: >
+          One entry per cluster, keyed by the name callers pass as
+          `destination`. Deliberately not constrained further here: the keys
+          are cluster names, not a fixed set.
+
+          Each value is an object:
+            host             required  ssh host
+            user             required  ssh user (a service account)
+            ssh_key_path     required  path to the private key ON THE ST2 HOST
+            dest_root        required  parent dir for per-run directories,
+                                       e.g. /scratch/pacbio/runs
+            bwlimit          optional  rsync notation, default "200M"
+            ssh_extra_opts   optional  array, e.g. ["-o", "IPQoS=throughput"]
+            rsync_extra      optional  array of extra rsync flags
+            transfer_method  optional  "rsync" (the only implemented value;
+                                       the key exists so Globus can be added
+                                       later without changing the actions'
+                                       interface)
+
+          No value may contain whitespace in ssh_key_path or ssh_extra_opts:
+          rsync word-splits the string it is given for -e, so such a value
+          cannot be passed through and is refused with a clear error.
+        type: object

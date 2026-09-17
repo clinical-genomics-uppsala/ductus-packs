@@ -1,0 +1,18 @@
+{
+  "barcode_set": "set1",
+  "dest_dir": "/scratch/run_y",
+  "pools": [
+    {
+      "bam_basename": "m84.hifi_reads.bam",
+      "collection": "test_run_002_A01",
+      "dataset_uuid": "cccccccc-0000-0000-0000-000000000001",
+      "pool_ID": "A01",
+      "pool_path": "/scratch/run_y/A01/m84.hifi_reads.bam"
+    }
+  ],
+  "run_id": "aaaaaaaa-0000-0000-0000-000000000002",
+  "run_name": "test_run_002",
+  "warnings": [
+    "collection test_run_002_A01 has no outer barcode; treating it as a single undemultiplexed pool named A01 after its well"
+  ]
+}

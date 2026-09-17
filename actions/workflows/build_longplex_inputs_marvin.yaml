@@ -1,0 +1,135 @@
+version: "1.0" # Orquesta version
+
+description: >
+  Builds the LongPlex pipeline's CSV inputs for a SMRT Link run, on Marvin:
+  resolve pools on st2, ship the manifest, write the CSVs on the cluster.
+
+input:
+  - run_id
+  - dest_dir
+  - sample_map
+  - barcode_set
+  - longplex_barcode_dir
+  - longplex_build_inputs_runscript_path
+  - manifest_staging_path
+  - process_host
+  - process_key
+  - process_user
+  - build_inputs_timeout
+  - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: null
+  # Named once and reused for the local path, the rsync source and the remote
+  # --pool-manifest argument, so the three cannot drift apart. run_id is a
+  # SMRT Link uuid, so this stays a well-behaved filename. Joined with an
+  # explicit '/' at each use rather than concatenated, so it does not depend
+  # on manifest_staging_path carrying a trailing slash -- a doubled slash is
+  # harmless, a missing one silently writes into the parent directory.
+  - manifest_basename: <% "longplex_pool_manifest_" + ctx().run_id + ".json" %>
+
+tasks:
+  # Network half, on st2: reads the run's child ConsensusReadSets and each
+  # pool's HiFi BAM from ExternalResources. Nothing on disk is touched, and
+  # the SMRT Link credentials stay here.
+  resolve_pools:
+    action: ductus.resolve_longplex_pools
+    input:
+      run_id: <% ctx(run_id) %>
+      dest_dir: <% ctx(dest_dir) %>
+      barcode_set: <% ctx(barcode_set) %>
+      manifest_path: <% ctx(manifest_staging_path) %>/<% ctx(manifest_basename) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "resolve_pools -- Could not resolve LongPlex pools for run <% ctx(run_id) %> from SMRT Link"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - ship_manifest
+
+  # The manifest travels as a file, never as a command-line argument: it is
+  # nested JSON, and on this path a remote shell IS the transport. This is
+  # the typed rsync action rather than a core.local rsync string for the same
+  # reason.
+  #
+  # UNVERIFIED, and only checkable against a real cluster (this whole action
+  # is disabled until the transfer step exists):
+  #   - dest_dir must already exist on the remote host. Nothing here creates
+  #     it; the transfer step that puts the pool BAMs there is what does.
+  #   - ductus.rsync_data_between_hosts signals failure by returning
+  #     (False, 1..4). Confirm Orquesta's failed() actually fires on that
+  #     rather than treating it as a succeeded execution with a falsy
+  #     result -- if it does not, this error branch is dead and the workflow
+  #     would run build_inputs against a manifest that never arrived.
+  ship_manifest:
+    action: ductus.rsync_data_between_hosts
+    input:
+      from_path: <% ctx(manifest_staging_path) %>/<% ctx(manifest_basename) %>
+      to_path: <% ctx(dest_dir) %>
+      remote_address: <% ctx(process_host) %>
+      user: <% ctx(process_user) %>
+      identity_file: <% ctx(process_key) %>
+      push_or_pull: 2
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "ship_manifest -- Could not copy the pool manifest to <% ctx(dest_dir) %> on Marvin"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - build_inputs
+
+  # Filesystem half, on Marvin: validates that every pool BAM actually landed
+  # and is non-empty, parses the sample map, and writes the two CSVs. No
+  # network. core.remote is synchronous, so this blocks until it finishes or
+  # build_inputs_timeout expires -- there is nothing to poll.
+  #
+  # Paths are single-quoted because core.remote runs cmd through a remote
+  # shell, the same mitigation and the same residual gap as
+  # reheader_pacbio_bams_marvin: a path containing a literal single quote
+  # would still break out. These inputs are operator- and config-supplied.
+  # --sample-map is always passed and may be empty: the runscript treats an
+  # empty value as "not supplied". Deciding that there rather than with a
+  # YAQL conditional here keeps the branch in typed, tested code.
+  build_inputs:
+    action: core.remote
+    input:
+      username: <% ctx(process_user) %>
+      private_key: <% ctx(process_key) %>
+      hosts: <% ctx(process_host) %>
+      timeout: <% ctx(build_inputs_timeout) %>
+      cmd: >
+        python3 '<% ctx(longplex_build_inputs_runscript_path) %>'
+        --pool-manifest '<% ctx(dest_dir) %>/<% ctx(manifest_basename) %>'
+        --dest-dir '<% ctx(dest_dir) %>'
+        --barcode-dir '<% ctx(longplex_barcode_dir) %>'
+        --barcode-set '<% ctx(barcode_set) %>'
+        --sample-map '<% ctx(sample_map) %>'
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "build_inputs -- Could not build LongPlex CSV inputs in <% ctx(dest_dir) %> on Marvin"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - LongPlex input generation on Marvin, run <% ctx(run_id) %>"
+      body: Something went wrong building the LongPlex CSV inputs for SMRT Link run <% ctx(run_id) %> in <% ctx(dest_dir) %> on Marvin, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

@@ -1,0 +1,66 @@
+version: "1.0" # Orquesta version
+
+description: Reheaders demultiplexed PacBio LongPlex BAMs on Marvin, over SSH
+
+input:
+  - longplex_bam_dir
+  - reheader_dir
+  - sample_map
+  - process_host
+  - process_key
+  - process_user
+  - pacbio_reheader_runscript_path
+  - reheader_timeout
+  - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: null
+
+tasks:
+  # No create-directory step: Marvin has no processing-service gateway, and
+  # the runscript mkdir -p's its own output dir. core.remote is synchronous,
+  # so there is nothing to poll either -- this task blocks until the reheader
+  # finishes or reheader_timeout expires.
+  #
+  # The paths are single-quoted because core.remote runs cmd through a remote
+  # shell: unlike the Miarka REST path (ductus.submit_miarka_job, where the
+  # request is structured JSON and a shell was never needed), a command line
+  # IS the transport here, so quoting is the mitigation rather than removal.
+  # A path containing a literal single quote would still break out. See the
+  # note in the response/docs about closing that fully via paramiko +
+  # shlex.quote if these inputs ever stop being operator-supplied.
+  run_reheader:
+    action: core.remote
+    input:
+      username: <% ctx(process_user) %>
+      private_key: <% ctx(process_key) %>
+      hosts: <% ctx(process_host) %>
+      timeout: <% ctx(reheader_timeout) %>
+      cmd: >
+        bash '<% ctx(pacbio_reheader_runscript_path) %>'
+        --inbox-path '<% ctx(longplex_bam_dir) %>'
+        --analysis-path '<% ctx(reheader_dir) %>'
+        --sample-map '<% ctx(sample_map) %>'
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "run_reheader -- Reheader failed on Marvin for <% ctx(longplex_bam_dir) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - PacBio BAM reheadering on Marvin, <% ctx(longplex_bam_dir) %>"
+      body: Something went wrong reheadering PacBio LongPlex BAMs in <% ctx(longplex_bam_dir) %> on Marvin, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>

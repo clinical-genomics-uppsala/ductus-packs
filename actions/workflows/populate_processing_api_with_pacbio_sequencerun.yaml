@@ -1,0 +1,66 @@
+version: "1.0" # Orquesta version
+
+description: Will register a completed PacBio SMRT Link run with the processing api
+
+input:
+  - run_uuid
+  - run_name
+  - collection_paths
+  - collections
+  - requires_demultiplex
+  - mail_bioinfo
+  - processing_api_access_key
+  - processing_api_service_url
+  - processing_api_sequence_run_upload_pacbio_url
+
+vars:
+  - failed_step: null
+  - stderr: null
+
+tasks:
+  upload_sequencerun:
+    action: ductus.upload_pacbio_sequencerun
+    input:
+      run_uuid: <% ctx(run_uuid) %>
+      run_name: <% ctx(run_name) %>
+      collection_paths: <% ctx(collection_paths) %>
+      collections: <% ctx(collections) %>
+      requires_demultiplex: <% ctx(requires_demultiplex) %>
+      processing_api_service_url: <% ctx(processing_api_service_url) %>
+      processing_api_sequence_run_upload_pacbio_url: <% ctx(processing_api_sequence_run_upload_pacbio_url) %>
+      processing_api_access_key: <% ctx(processing_api_access_key) %>
+    retry:
+      delay: 10
+      count: 5
+    next:
+      - when: <% succeeded() %>
+        do:
+          - sequencerun_uploaded_notifier
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "upload_sequencerun -- Couldn't upload PacBio run <% ctx(run_name) %> to processing api"
+        do:
+          - bioinfo_error_notifier
+
+  sequencerun_uploaded_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][INFO] - PacBio run registered, <% ctx(run_name) %>"
+      body: PacBio run <% ctx(run_name) %> (<% ctx(run_uuid) %>) has been registered with the processing api.
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - PacBio run registration, <% ctx(run_name) %>"
+      body: Something went wrong registering PacBio run <% ctx(run_name) %> with the processing api, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %>
+    next:
+      - do:
+          - fail
+
+output:
+  - stderr: <% ctx(stderr) %>
