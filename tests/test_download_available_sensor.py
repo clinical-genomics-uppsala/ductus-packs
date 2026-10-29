@@ -8,7 +8,17 @@ class DownloadAvailableSensorTestCase(BaseSensorTestCase):
     CONFIG = {
         'processing_api_service_url': 'http://processing_api:8080/',
         'processing_api_download_available_next_url': 'api/v1/analysis/download-available/next/',
-        'processing_api_access_key': 'asdajl3j5ads'
+        'processing_api_access_key': 'asdajl3j5ads',
+        'transfer_settings_download': {
+            'miarka': {
+                'download_host': 'miarka1.uppmax.uu.se',
+                'download_user': 'funk_907',
+                'download_key': '/home/stanley/.ssh/funk_907_id_ed25519',
+                'download_path_prefix': '',
+                'download_copy_method': 'remote',
+            },
+        },
+        'transfer_settings_upload': {},
     }
 
     def _setup_and_poll(self, mock_get, status_code, response_text):

@@ -1,8 +1,8 @@
 from st2reactor.sensor.base import PollingSensor
 from processing_api_client import ProcessingApiClient
+from processing_location_config import ProcessingLocationConfig
 from datetime import datetime, timezone
-import yaml
-import os
+
 
 class ProcessingApiSensor(PollingSensor):
 
@@ -22,6 +22,7 @@ class ProcessingApiSensor(PollingSensor):
         api_key = self._config["processing_api_access_key"]
         self._client = ProcessingApiClient(client_urls, api_key, self._logger)
         self._infolog("Created client: {0}".format(self._client))
+        self._location_config = ProcessingLocationConfig(self._config, self._logger)
         self._infolog("setup finished")
 
     def poll(self):
@@ -47,10 +48,12 @@ class ProcessingApiSensor(PollingSensor):
     def _handle_result(self, result):
         self._infolog("_handle_result")
         trigger = self._trigger
-        
+
         analysis_data = result['response']
+        process_location_params = self._location_config.get_upload_transfer_settings(analysis_data['process_location'])
         payload = {
             **analysis_data,
+            **process_location_params,
             'event': 'analysis_waiting',
             'timestamp': datetime.now(timezone.utc).isoformat(),
         }

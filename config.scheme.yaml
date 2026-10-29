@@ -295,29 +295,6 @@
     required: true
     default: "10801"
 
-  miarka_upload_host:
-    description: The Miarka cluster host that data is uploaded to.
-    type: string
-    required: true
-  miarka_upload_user:
-    description: The user account used when uploading data to Miarka.
-    type: string
-    required: true
-    default: "stanley"
-  miarka_upload_key:
-    description: Path to the SSH private key used when uploading data to Miarka.
-    type: string
-    required: true
-    default: "~/.ssh/id_rsa"
-  miarka_upload_path_prefix:
-    description: Remote path prefix on Miarka under which uploaded analysis directories are placed.
-    type: string
-    required: true
-  hospital_upload_staging_path:
-    description: Local path on the hospital host used to stage data (symlinked FASTQs + settings JSON) before rsync to Miarka.
-    type: string
-    required: true
-
   miarka_download_host:
     description: The Miarka cluster host that results are downloaded from.
     type: string
@@ -332,6 +309,58 @@
     type: string
     required: true
     default: "~/.ssh/id_rsa"
+
+  transfer_settings_upload:
+    description: Settings for uploading data to each processing location, keyed by location name (e.g. marvin, miarka, berk).
+    type: object
+    required: true
+    additionalProperties:
+      type: object
+      properties:
+        upload_host:
+          description: Host to connect to when uploading to the location. Required when upload_copy_method is "remote".
+          type: string
+        upload_user:
+          description: User to connect as when uploading to the location. Required when upload_copy_method is "remote".
+          type: string
+        upload_key:
+          description: Path to the SSH private key used when uploading to the location. Required when upload_copy_method is "remote".
+          type: string
+        upload_path_prefix:
+          type: string
+          required: true
+        upload_hospital_staging_path:
+          type: string
+          required: true
+        upload_copy_method:
+          description: How data is copied to the location, "local" or "remote".
+          type: string
+          required: true
+          enum: ["local", "remote"]
+  transfer_settings_download:
+    description: Settings for downloading results from each processing location, keyed by location name (e.g. miarka).
+    type: object
+    required: true
+    additionalProperties:
+      type: object
+      properties:
+        download_host:
+          description: Host to connect to when downloading from the location. Required when download_copy_method is "remote".
+          type: string
+        download_user:
+          description: User to connect as when downloading from the location. Required when download_copy_method is "remote".
+          type: string
+        download_key:
+          description: Path to the SSH private key used when downloading from the location. Required when download_copy_method is "remote".
+          type: string
+        download_path_prefix:
+          type: string
+          required: true
+        download_copy_method:
+          description: How results are copied from the location, "local" or "remote".
+          type: string
+          required: true
+          enum: ["local", "remote"]
   #Miarka specific variables
   job_status_url: 
     description: The url to the job-endpoint on miarka-processing-service.
