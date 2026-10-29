@@ -1,0 +1,29 @@
+---
+name: "transfer_data_to_cluster"
+pack: "ductus"
+description: "Rule that triggers workflow that will move files to a processing cluster"
+enabled: false
+
+trigger:
+    type: "ductus.processing_api"
+
+criteria:
+    trigger.event:
+      type: "equals"
+      pattern: "analysis_waiting"
+
+action:
+    ref: "ductus.run_workflow_with_trace_tags"
+    parameters:
+        workflow_ref: "ductus.transfer_data_to_cluster"
+        parameters:
+          analysis_name: "{{trigger.analysis_name}}"
+          process_location: "{{trigger.process_location}}"
+          upload_host: "{{trigger.upload_host}}"
+          upload_user: "{{trigger.upload_user}}"
+          upload_key: "{{trigger.upload_key}}"
+          upload_path_prefix: "{{trigger.upload_path_prefix}}"
+          upload_hospital_staging_path: "{{trigger.upload_hospital_staging_path}}"
+          upload_copy_method: "{{trigger.upload_copy_method}}"
+        trace_tags:
+          - "{{trigger.analysis_name}}"
