@@ -1,3 +1,4 @@
+import copy
 from unittest import mock
 from st2tests.base import BaseSensorTestCase
 from sensors.processing_api_sensor import ProcessingApiSensor
@@ -36,13 +37,13 @@ class AnalysisWaitingSensorTestCase(BaseSensorTestCase):
         'transfer_settings_download': {},
     }
 
-    def _setup_and_poll(self, mock_get, status_code, response_text):
+    def _setup_and_poll(self, mock_get, status_code, response_text, config=None):
         mock_response = mock.MagicMock()
         mock_response.status_code = status_code
         mock_response.text = response_text
         mock_get.return_value = mock_response
 
-        sensor = self.get_sensor_instance(config=self.CONFIG)
+        sensor = self.get_sensor_instance(config=config or self.CONFIG)
         sensor.setup()
         sensor.poll()
         return self.get_dispatched_triggers()
@@ -105,3 +106,19 @@ class AnalysisWaitingSensorTestCase(BaseSensorTestCase):
         contexts = self._setup_and_poll(mock_get, 204, '{}')
 
         self.assertEqual(len(contexts), 0)
+
+    @mock.patch('sensors.processing_api_client.requests.get')
+    def test_get_analysis_waiting_event_missing_keys(self, mock_get):
+        """Test that a remote location without host, user and key raises instead of dispatching"""
+        config = copy.deepcopy(self.CONFIG)
+        config['transfer_settings_upload']['berk']['upload_copy_method'] = 'remote'
+
+        with self.assertRaisesRegex(ValueError, 'upload_host, upload_user, upload_key'):
+            self._setup_and_poll(
+                mock_get, 200,
+                '{"analysis_name": "260202-KLMNOP",'
+                '"process_location": "berk"}',
+                config=config
+            )
+
+        self.assertEqual(len(self.get_dispatched_triggers()), 0)
