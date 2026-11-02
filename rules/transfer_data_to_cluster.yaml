@@ -11,6 +11,9 @@ criteria:
     trigger.event:
       type: "equals"
       pattern: "analysis_waiting"
+    trigger.process_location:
+      type: "inside"
+      pattern: ["miarka", "berk"]
 
 action:
     ref: "ductus.run_workflow_with_trace_tags"
