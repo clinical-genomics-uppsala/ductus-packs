@@ -192,7 +192,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: " remove_staging_directory -- Unable to remove staging directory %>"
+          - failed_step: " remove_staging_directory -- Unable to remove staging directory <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier
 

@@ -295,6 +295,20 @@
     required: true
     default: "10801"
 
+  notification_mail:
+    description: Mail recipients, with 'bioinfo' for bioinformaticians and 'lab' keyed by workpackage.
+    type: object
+  notification_mail_bioinfo:
+    description: Mail address that error notifications for bioinformaticians are sent to.
+    type: string
+  result_settings:
+    description: >
+      Result and QC locations per workpackage and analysis, with result_location, qc_location and move_qc.
+      move_qc: True requires analysis names without a -DNA/-RNA suffix,
+      since mv_multiqc looks for the results in a folder named after the full analysis name.
+    type: object
+    required: true
+
   miarka_download_host:
     description: The Miarka cluster host that results are downloaded from.
     type: string
