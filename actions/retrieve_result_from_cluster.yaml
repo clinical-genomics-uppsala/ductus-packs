@@ -1,0 +1,71 @@
+---
+name: retrieve_result_from_cluster
+description: >
+  Retrieve processed data from a remote or mounted cluster
+enabled: true
+runner_type: orquesta
+entry_point: workflows/retrieve_result_from_cluster.yaml
+pack: ductus
+parameters:
+  context:
+    default: {}
+    immutable: true
+    type: object
+  workflow:
+    default: ductus.retrieve_result_from_cluster
+    immutable: true
+    type: string
+  analysis_name:
+    required: true
+    type: string
+  analysis:
+    required: true
+    type: string
+  workpackage:
+    required: true
+    type: string
+  created_date:
+    required: true
+    type: string
+  process_location:
+    required: true
+    type: string
+  download_host:
+    required: true
+    type: string
+  download_user:
+    required: true
+    type: string
+  download_key:
+    required: true
+    type: string
+  download_path_prefix:
+    required: true
+    type: string
+  download_copy_method:
+    required: true
+    type: string
+  processing_api_service_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_service_url }}"
+  processing_api_access_key:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_access_key }}"
+  processing_api_analysis_tasks_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_tasks_url }}"
+  processing_api_analysis_update_status_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_update_status_url }}"
+  result_settings:
+    required: true
+    type: object
+    default: "{{ config_context.result_settings }}"
+  mail_settings:
+    required: true
+    type: object
+    default: "{{ config_context.notification_mail }}"
