@@ -309,21 +309,6 @@
     type: object
     required: true
 
-  miarka_download_host:
-    description: The Miarka cluster host that results are downloaded from.
-    type: string
-    required: true
-  miarka_download_user:
-    description: The user account used when downloading results from Miarka.
-    type: string
-    required: true
-    default: "stanley"
-  miarka_download_key:
-    description: Path to the SSH private key used when downloading results from Miarka.
-    type: string
-    required: true
-    default: "~/.ssh/id_rsa"
-
   transfer_settings_upload:
     description: Settings for uploading data to each processing location, keyed by location name (e.g. marvin, miarka, berk).
     type: object
@@ -375,6 +360,13 @@
           type: string
           required: true
           enum: ["local", "remote"]
+  process_settings:
+    description: >
+      Processing settings per location, keyed by location name (e.g. miarka, berk, marvin).
+      Each location holds the gateway settings (process_host_url, process_host_gateway_port,
+      process_host_proj_path, job_status_url, gateway_api_key) and one section per workpackage and analysis.
+    type: object
+    required: true
   #Miarka specific variables
   job_status_url: 
     description: The url to the job-endpoint on miarka-processing-service.
