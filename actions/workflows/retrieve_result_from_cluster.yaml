@@ -25,6 +25,7 @@ vars:
   - result_storage_folder: null
   - run_year: null
   - samplesheet_storage_folder: null
+  - failed_step: null
   - stderr: null
 
 tasks:
