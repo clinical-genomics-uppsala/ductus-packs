@@ -30,7 +30,7 @@ parameters:
   process_settings:
     required: true 
     type: object
-    default: "{{ config_context.process_settings[process_location] }}"
+    default: "{{ config_context.process_settings_remote_cluster[process_location] }}"
   processing_api_access_key:
     required: true
     type: string

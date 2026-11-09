@@ -360,7 +360,7 @@
           type: string
           required: true
           enum: ["local", "remote"]
-  process_settings:
+  process_settings_remote_cluster:
     description: >
       Processing settings per location, keyed by location name (e.g. miarka, berk, marvin).
       Each location holds the gateway settings (process_host_url, process_host_gateway_port,
