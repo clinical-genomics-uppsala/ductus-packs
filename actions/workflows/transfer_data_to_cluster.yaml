@@ -99,7 +99,6 @@ tasks:
       items: <% ctx(fastq_files) %>
     action: core.local
     input:
-   
       cmd: "ln -s -t <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
     next:
       - when: <% failed() %>
