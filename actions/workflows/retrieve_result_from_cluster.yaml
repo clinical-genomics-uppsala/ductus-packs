@@ -1,5 +1,5 @@
 version: "1.0" # mistral version
-description: Will rsync result back from miarka
+description: Will rsync result back from processing cluster
 
 input:
   - analysis_name

@@ -20,7 +20,6 @@ vars:
   - process_host_proj_path: null
   - process_host_url: null
   - process_host_gateway_port: null
-  - gateway_api_key: null
   - job_status_url: null
   - run_statistics_path: null
   - create_folder_status_url: null
@@ -51,6 +50,7 @@ tasks:
           - failed_step: "read_process_host_settings -- Couldn't read host specific settings for <% ctx(process_location) %> !"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   update_processing_status_started:
     action: core.local
@@ -66,6 +66,7 @@ tasks:
           - failed_step: "mark_as_started -- Couldn't mark <% ctx(analysis_name) %> as started!"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   analysis_folder_path:
     action: core.local
@@ -82,6 +83,7 @@ tasks:
           - failed_step: "analysis_folder_path -- create analysis folder path string"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   create_analysis_folder:
     action: core.local
@@ -101,6 +103,7 @@ tasks:
           - failed_step: "create_folders -- Couldn't create analysis folder <% ctx(analysis_folder_path) %>"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   poll_create_folder_status:
     action: ductus.poll_status
@@ -116,6 +119,7 @@ tasks:
           - failed_step: "poll_create_folder_status"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   run_pipeline:
     action: core.local
@@ -141,6 +145,7 @@ tasks:
         do:
           - bioinfo_error_notifier
           - wp_error_notifier
+          - update_processing_status_failed
 
   poll_analysis_status:
     action: ductus.poll_status
@@ -172,6 +177,7 @@ tasks:
           - failed_step: "generate_outbox_path=Couldn't generate outbox path"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   create_outbox_folder:
     action: core.local
@@ -191,6 +197,7 @@ tasks:
           - failed_step: "create_outbox_folder=Couldn't create outbox <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   poll_create_outbox_status:
     action: ductus.poll_status
@@ -203,6 +210,7 @@ tasks:
       - when: <% failed() %>
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   sync_data_to_outbox:
     action: core.local
@@ -226,6 +234,7 @@ tasks:
           - failed_step: "sync_data_to_outbox=Couldn't not sync to outbox <% ctx(outbox_folder) %>"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   poll_sync_to_outbox_status:
     action: ductus.poll_status
@@ -239,6 +248,7 @@ tasks:
       - when: <% failed() %>
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   set_ready_for_download:
     action: core.local
@@ -253,6 +263,7 @@ tasks:
           - failed_step: "set_ready_for_download -- Couldn't update status in processingapi for <% ctx(analysis_name) %>"
         do:
           - bioinfo_error_notifier
+          - update_processing_status_failed
 
   generate_cold_storage_path:
     action: core.local

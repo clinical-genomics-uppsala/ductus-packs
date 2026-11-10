@@ -1,7 +1,7 @@
 ---
 name: "retrieve_result_from_cluster"
 pack: "ductus"
-description: "Rule that triggers a result retrieval workflow when a Miarka analysis is available for download"
+description: "Rule that triggers a result retrieval workflow when an analysis is available for download"
 enabled: false
 
 trigger:
