@@ -48,6 +48,11 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_task_url }}"
+  gateway_api_key:
+    required: true 
+    type: string
+    default: "{{ config_context.gateway_api_key_remote_cluster[process_location] }}"
+    secret: true
   mail_bioinfo:
     required: true
     type: string

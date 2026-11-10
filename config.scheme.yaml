@@ -364,9 +364,14 @@
     description: >
       Processing settings per location, keyed by location name (e.g. miarka, berk, marvin).
       Each location holds the gateway settings (process_host_url, process_host_gateway_port,
-      process_host_proj_path, job_status_url, gateway_api_key) and one section per workpackage and analysis.
+      process_host_proj_path, job_status_url) and one section per workpackage and analysis.
     type: object
     required: true
+  gateway_api_key:
+    description: Api-key to Kong-gateway
+    type: string
+    required: true 
+    secret: true
   #Miarka specific variables
   job_status_url: 
     description: The url to the job-endpoint on miarka-processing-service.

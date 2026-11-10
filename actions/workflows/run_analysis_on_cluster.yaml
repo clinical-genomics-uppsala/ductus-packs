@@ -12,6 +12,7 @@ input:
     - processing_api_service_url
     - processing_api_analysis_update_status_url
     - processing_api_analysis_task_url
+    - gateway_api_key
     - mail_bioinfo
     - mail_settings
 
@@ -41,7 +42,6 @@ tasks:
           - process_host_proj_path: <% ctx(process_settings).get('process_host_proj_path') %>
           - process_host_url: <% ctx(process_settings).get('process_host_url') %>
           - process_host_gateway_port: <% ctx(process_settings).get('process_host_gateway_port') %>
-          - gateway_api_key: <% ctx(process_settings).get('gateway_api_key') %>
           - job_status_url: <% ctx(process_settings).get('job_status_url') %>
         do:
           - update_processing_status_started
