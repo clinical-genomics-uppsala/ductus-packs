@@ -155,7 +155,7 @@ tasks:
      action: core.local
      input:
        cwd: <% ctx(upload_hospital_staging_path) %>
-       cmd:  "rsync -vrRL  ./.<% ctx(upload_path) %> <% ctx(upload_path_prefix) %>"
+       cmd:  "rsync -vcrRL  ./.<% ctx(upload_path) %> <% ctx(upload_path_prefix) %>"
        timeout: 86400
      next:
        - when: <% failed() %>
