@@ -50,7 +50,11 @@ class ProcessingApiSensor(PollingSensor):
         trigger = self._trigger
 
         analysis_data = result['response']
-        process_location_params = self._location_config.get_upload_transfer_settings(analysis_data['process_location'])
+        try:
+            process_location_params = self._location_config.get_upload_transfer_settings(analysis_data['process_location'])
+        except ValueError as e:
+            self._logger.error("Could not dispatch {0}: {1}".format(analysis_data['analysis_name'], e))
+            raise
         payload = {
             **analysis_data,
             **process_location_params,
