@@ -1,10 +1,10 @@
 ---
-name: retrieve_result_wp_miarka
+name: retrieve_result_from_cluster
 description: >
-  Retrieve processed data from miarka
+  Retrieve processed data from a remote or mounted cluster
 enabled: true
 runner_type: orquesta
-entry_point: workflows/retrieve_result_wp_miarka.yaml
+entry_point: workflows/retrieve_result_from_cluster.yaml
 pack: ductus
 parameters:
   context:
@@ -12,7 +12,7 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.retrieve_result_wp_miarka
+    default: ductus.retrieve_result_from_cluster
     immutable: true
     type: string
   analysis_name:
@@ -27,22 +27,24 @@ parameters:
   created_date:
     required: true
     type: string
-  miarka_download_user:
+  process_location:
     required: true
     type: string
-    default: "{{ config_context.miarka_download_user }}"
-  miarka_download_key:
+  download_host:
     required: true
     type: string
-    default: "{{ config_context.miarka_download_key }}"
-  miarka_download_host:
+  download_user:
     required: true
     type: string
-    default: "{{ config_context.miarka_download_host }}"
-  miarka_download_path_prefix:
+  download_key:
     required: true
     type: string
-    default: "{{ config_context.miarka_download_path_prefix }}"
+  download_path_prefix:
+    required: true
+    type: string
+  download_copy_method:
+    required: true
+    type: string
   processing_api_service_url:
     required: true
     type: string

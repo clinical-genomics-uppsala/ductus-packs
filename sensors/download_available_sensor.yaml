@@ -20,6 +20,16 @@
            type: "string"
          process_location:
            type: "string"
+         download_host:
+           type: "string"
+         download_user:
+           type: "string"
+         download_key:
+           type: "string"
+         download_path_prefix:
+           type: "string"
+         download_copy_method:
+           type: "string"
          event:
            type: "string"
          timestamp:
