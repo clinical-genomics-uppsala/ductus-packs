@@ -1,15 +1,17 @@
 version: "1.0" # mistral version
-description: Will rsync result back from miarka
+description: Will rsync result back from processing cluster
 
 input:
   - analysis_name
   - analysis
   - workpackage
   - created_date
-  - miarka_download_user
-  - miarka_download_key
-  - miarka_download_host
-  - miarka_download_path_prefix
+  - process_location
+  - download_host
+  - download_user
+  - download_key
+  - download_path_prefix
+  - download_copy_method
   - processing_api_service_url
   - processing_api_access_key
   - processing_api_analysis_tasks_url
@@ -23,6 +25,7 @@ vars:
   - result_storage_folder: null
   - run_year: null
   - samplesheet_storage_folder: null
+  - failed_step: null
   - stderr: null
 
 tasks:
@@ -54,7 +57,9 @@ tasks:
       cmd: "python3 -c 'import sys; sys.stdout.write(\"<% ctx(created_date) %>\".split(\"-\")[0])'"
     next:
       - when: <% succeeded() %>
-        publish: run_year=<% result().stdout %>
+        publish:
+          - run_year: <% result().stdout %>
+          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(analysis)).get('result_location') %>/<% ctx(run_year) %>
         do:
           - create_year_folder
       - when: <% failed() %>
@@ -70,28 +75,29 @@ tasks:
   create_year_folder:
     action: core.local
     input:
-      cmd: mkdir -p <% ctx(result_settings).get(ctx(workpackage)).get(ctx(analysis)).get('result_location') %>/<% ctx(run_year) %>
+      cmd: mkdir -p <% ctx(result_storage_folder) %>
     next:
-      - when: <% succeeded() %>
-        publish: 
-          - result_storage_folder: <% ctx(result_settings).get(ctx(workpackage)).get(ctx(analysis)).get('result_location') %>/<% ctx(run_year) %>
+      - when: <% succeeded() and ctx(download_copy_method) = "remote" %>
         do:
-          - transfer_result
+          - transfer_result_remote
+      - when: <% succeeded() and ctx(download_copy_method) = "local" %>
+        do:
+          - transfer_result_local
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_settings).get(ctx(workpackage)).get(ctx(analysis)).get("result_location") %>/<% ctx(run_year) %>'
+          - failed_step: 'create_year_folder  -- Could not create folder <% ctx(result_storage_folder) %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
           - update_processing_status_failed
 
 
-  transfer_result:
+  transfer_result_remote:
     action: core.local
     input:
       timeout: 86400
-      cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_download_key) %>'  <%  ctx(miarka_download_user) %>@<% ctx(miarka_download_host) %>:<% ctx(miarka_download_path_prefix) %>/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>/ <% ctx(result_storage_folder) %>/<% ctx(analysis_name_result) %>"
+      cmd:  "rsync -vcrL -e 'ssh -i <% ctx(download_key) %>'  <%  ctx(download_user) %>@<% ctx(download_host) %>:<% ctx(download_path_prefix) %>/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>/ <% ctx(result_storage_folder) %>/<% ctx(analysis_name_result) %>"
     retry:
       delay: 10
       count: 5
@@ -105,8 +111,34 @@ tasks:
           - create_qc_year_folder
       - when: <% failed() %>
         publish:
-          - stderr: "The transfer of result files from compute to hospital failed."
-          - failed_step: 'transfer_result  -- Could not fetch result from <% ctx(miarka_download_host) %>\:<% ctx(analysis_name) %>, <% result() %>'
+          - stderr: "The transfer of result files from <% ctx(process_location) %> to hospital failed."
+          - failed_step: 'transfer_result_remote  -- Could not fetch result for <% ctx(analysis_name) %> from <% ctx(download_host) %> (<% ctx(process_location) %>), <% result() %>'
+        do:
+          - bioinfo_error_notifier
+          - error_notifier
+          - update_processing_status_failed
+
+
+  transfer_result_local:
+    action: core.local
+    input:
+      timeout: 86400
+      cmd:  "rsync -vcrL <% ctx(download_path_prefix) %>/<% ctx(workpackage) %>_<% ctx(analysis) %>/<% ctx(analysis_name) %>/ <% ctx(result_storage_folder) %>/<% ctx(analysis_name_result) %>"
+    retry:
+      delay: 10
+      count: 5
+    next:
+      - when: <% succeeded() %>
+        do:
+          - update_processing_status_delivered
+          - result_retrieved
+      - when: <% succeeded() and ctx(result_settings).get(ctx(workpackage)).get(ctx(analysis)).get("move_qc")  %>
+        do:
+          - create_qc_year_folder
+      - when: <% failed() %>
+        publish:
+          - stderr: "The transfer of result files from <% ctx(process_location) %> to hospital failed."
+          - failed_step: 'transfer_result_local  -- Could not fetch result for <% ctx(analysis_name) %> from <% ctx(download_path_prefix) %> (<% ctx(process_location) %>), <% result() %>'
         do:
           - bioinfo_error_notifier
           - error_notifier
@@ -153,8 +185,8 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('lab').get(ctx(workpackage)) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(analysis) %>][ERROR] - Retrieve failure, <% ctx(analysis_name) %>"
-      body: "Something went wrong when retrieving result for <% ctx(analysis_name) %>. A Bioinformatician has been notified."
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(analysis) %>][ERROR] - Retrieve failure from <% ctx(process_location) %>, <% ctx(analysis_name) %>"
+      body: "Something went wrong when retrieving result for <% ctx(analysis_name) %> from <% ctx(process_location) %>. A Bioinformatician has been notified."
     next:
       - when: <% succeeded() %>
         do:
@@ -174,8 +206,8 @@ tasks:
     input:
       to: <% ctx(mail_settings).get('bioinfo') %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(analysis) %>][ERROR] - Retrieve, <% ctx(analysis_name) %>"
-      body: Something went wrong during the retrieval of <% ctx(analysis_name) %>, please investigate!!!\n Failure message -- <% failed_step  %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
+      subject: "[DUCTUS][<% ctx(workpackage) %>][<% ctx(analysis) %>][ERROR] - Retrieve from <% ctx(process_location) %>, <% ctx(analysis_name) %>"
+      body: Something went wrong during the retrieval of <% ctx(analysis_name) %> from <% ctx(process_location) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Hospital
     next:
       - when: <% succeeded() %>
         do:

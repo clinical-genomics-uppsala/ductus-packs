@@ -1,20 +1,22 @@
 version: "1.0" # Orquest version
 
-description: Will move necessary files for a requested analysis to the miarka processing cluster
+description: Will move necessary files for a requested analysis to the given processing cluster
 
 input:
   - analysis_name
+  - process_location
+  - upload_host
+  - upload_user
+  - upload_key
+  - upload_path_prefix
+  - upload_hospital_staging_path
+  - upload_copy_method
   - processing_api_access_key
   - processing_api_service_url
   - processing_api_analysis_fastq_files_url
   - processing_api_analysis_task_url
   - processing_api_analysis_samples_url
   - processing_api_analysis_update_status_url
-  - miarka_upload_host
-  - miarka_upload_key
-  - miarka_upload_user
-  - miarka_upload_path_prefix
-  - hospital_upload_staging_path
   - mail_bioinfo
   
 
@@ -64,7 +66,7 @@ tasks:
     join: all
     action: core.local
     input:
-      cmd: "mkdir -p  <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/fastq"
+      cmd: "mkdir -p  <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>/fastq"
     next:
       - when: <% succeeded() %>
         do:
@@ -73,14 +75,14 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "create_staging_folder  -- Could not create staging folder in <% ctx(hospital_upload_staging_path) %>"
+          - failed_step: "create_staging_folder  -- Could not create staging folder in <% ctx(upload_hospital_staging_path) %>"
         do:
          - bioinfo_error_notifier
 
   create_json_file_staging:
     action: core.local
     input:
-      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/samples_and_settings.json"
+      cmd: "curl -H 'Authorization: Api-Key <% ctx(processing_api_access_key) %>' <% ctx(processing_api_service_url) %><% ctx(processing_api_analysis_task_url) %>?analysis_name=<% ctx(analysis_name) %>  > <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>/samples_and_settings.json"
     next:
       - when: <% succeeded() %>
         do:
@@ -88,7 +90,7 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: "create_json_file -- Couldn't create json file in <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>"
+          - failed_step: "create_json_file -- Couldn't create json file in <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier
       
@@ -97,13 +99,12 @@ tasks:
       items: <% ctx(fastq_files) %>
     action: core.local
     input:
-   
-      cmd: "ln -s -t <% ctx(hospital_upload_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
+      cmd: "ln -s -t <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>/fastq <% item() %>"
     next:
       - when: <% failed() %>
         publish:
           - stderr: "The linking of fastq files from hospital to transfer staging failed."
-          - failed_step: "link_fastq_files_staging -- couldn't link fastq-file(s) to <% ctx(upload_path) %>/fastq/"
+          - failed_step: "link_fastq_files_staging -- couldn't link fastq-file(s) to <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>/fastq/"
         do:
           - bioinfo_error_notifier
       - when: <% succeeded() %>
@@ -120,30 +121,52 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: " update_processing_status_being_uploaded -- Unable to update analysis status to being uploaded (BU) %>"
+          - failed_step: " update_processing_status_being_uploaded -- Unable to update analysis status to being uploaded (BU) "
         do:
           - bioinfo_error_notifier
-      - when: <% succeeded() %>
+      - when: <% succeeded() and ctx(upload_copy_method) = "remote" %>
         do:
-          - transfer_staging_dir
+          - transfer_staging_dir_to_remote
+      - when: <% succeeded() and ctx(upload_copy_method) = "local" %>
+        do:
+          - transfer_staging_dir_to_local
 
 
-  transfer_staging_dir:
+  transfer_staging_dir_to_remote:
      action: core.local
      input:
-       cwd: <% ctx(hospital_upload_staging_path) %>
-       cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(miarka_upload_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(miarka_upload_user) %>@<% ctx(miarka_upload_host) %>:<% ctx(miarka_upload_path_prefix) %>"
+       cwd: <% ctx(upload_hospital_staging_path) %>
+       cmd:  "rsync -vcrRL -e 'ssh -i <% ctx(upload_key) %>'  ./.<% ctx(upload_path) %> <%  ctx(upload_user) %>@<% ctx(upload_host) %>:<% ctx(upload_path_prefix) %>"
        timeout: 86400
      next:
        - when: <% failed() %>
          publish:
-           - stderr: "The transfer of fastq files from hospital to miarka failed."
-           - failed_step: "transfer_staging_dir -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %>"
+           - stderr: "The transfer of fastq files from hospital to <% ctx(process_location) %> failed."
+           - failed_step: "transfer_staging_dir -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %> on <% ctx(process_location) %>"
          do:
            - bioinfo_error_notifier
        - when: <% succeeded() %>
          do:
            - update_processing_status_upload_completed
+
+
+  transfer_staging_dir_to_local:
+     action: core.local
+     input:
+       cwd: <% ctx(upload_hospital_staging_path) %>
+       cmd:  "rsync -vcrRL  ./.<% ctx(upload_path) %> <% ctx(upload_path_prefix) %>"
+       timeout: 86400
+     next:
+       - when: <% failed() %>
+         publish:
+           - stderr: "The transfer of fastq files from hospital to <% ctx(process_location) %> failed."
+           - failed_step: "transfer_staging_dir -- couldn't transfer fastq-file(s) to <% ctx(upload_path) %> on <% ctx(process_location) %>"
+         do:
+           - bioinfo_error_notifier
+       - when: <% succeeded() %>
+         do:
+           - update_processing_status_upload_completed
+
 
   update_processing_status_upload_completed:
     action: core.local
@@ -153,7 +176,22 @@ tasks:
       - when: <% failed() %>
         publish:
           - stderr: <% result() %>
-          - failed_step: " update_processing_status_upload_completed -- Unable to update analysis status to upload completed (UC) %>"
+          - failed_step: " update_processing_status_upload_completed -- Unable to update analysis status to upload completed (UC) "
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        do:
+          - remove_staging_directory
+
+  remove_staging_directory:
+    action: core.local
+    input:
+      cmd: rm -r <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: " remove_staging_directory -- Unable to remove staging directory <% ctx(upload_hospital_staging_path) %><% ctx(upload_path) %>"
         do:
           - bioinfo_error_notifier
 
@@ -163,8 +201,8 @@ tasks:
     input:
       to: <% ctx(mail_bioinfo) %>
       from: stanley@clinicalgenomics-as.se
-      subject: "[DUCTUS][WP][ERROR] - Pre-processing, <% ctx(analysis_name) %>"
-      body: Something went wrong during the pre-processing of <% ctx(analysis_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>  Workflow execution id - <% ctx().st2.action_execution_id %>  Host - Hospital
+      subject: "[DUCTUS][WP][ERROR] - Transfer to <% ctx(process_location) %>, <% ctx(analysis_name) %>"
+      body: Something went wrong during the pre-processing of <% ctx(analysis_name) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %>  Workflow execution id - <% ctx().st2.action_execution_id %>  Host - Hospital  Processing location - <% ctx(process_location) %>
     next:
       - when: <% succeeded() %>
         do:

@@ -1,10 +1,10 @@
 ---
-name: copy_data_to_miarka_for_processing
+name: transfer_data_to_cluster
 description: >
-  Will move necessary files for a requested analysis to the miarka processing cluster
+  Will move necessary files for a requested analysis to a processing cluster
 enabled: true
 runner_type: orquesta
-entry_point: workflows/copy_data_to_miarka_for_processing.yaml
+entry_point: workflows/transfer_data_to_cluster.yaml
 pack: ductus
 parameters:
   context:
@@ -12,10 +12,31 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.copy_data_to_miarka_for_processing
+    default: ductus.transfer_data_to_cluster
     immutable: true
     type: string
   analysis_name:
+    required: true
+    type: string
+  process_location:
+    required: true
+    type: string
+  upload_host:
+    required: true
+    type: string
+  upload_user:
+    required: true
+    type: string
+  upload_key:
+    required: true
+    type: string
+  upload_path_prefix:
+    required: true
+    type: string
+  upload_hospital_staging_path:
+    required: true
+    type: string
+  upload_copy_method:
     required: true
     type: string
   processing_api_access_key:
@@ -43,26 +64,6 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_update_status_url }}"
-  miarka_upload_host:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_upload_host }}"
-  miarka_upload_key:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_upload_key }}"
-  miarka_upload_user:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_upload_user }}"
-  miarka_upload_path_prefix:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_upload_path_prefix }}"
-  hospital_upload_staging_path:
-    required: true
-    type: string
-    default: "{{ config_context.hospital_upload_staging_path }}"
   mail_bioinfo:
     required: true
     type: string

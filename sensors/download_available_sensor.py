@@ -1,5 +1,6 @@
 from st2reactor.sensor.base import PollingSensor
 from processing_api_client import ProcessingApiClient
+from processing_location_config import ProcessingLocationConfig
 from datetime import datetime, timezone
 
 
@@ -22,6 +23,7 @@ class DownloadAvailableSensor(PollingSensor):
         api_key = self._config["processing_api_access_key"]
         self._client = ProcessingApiClient(client_url, api_key, self._logger)
         self._infolog("Created client: {0}".format(self._client))
+        self._location_config = ProcessingLocationConfig(self._config, self._logger)
         self._infolog("setup finished")
 
     def poll(self):
@@ -49,8 +51,14 @@ class DownloadAvailableSensor(PollingSensor):
         trigger = self._trigger
 
         analysis_data = result['response']
+        try:
+            process_location_params = self._location_config.get_download_transfer_settings(analysis_data['process_location'])
+        except ValueError as e:
+            self._logger.error("Could not dispatch {0}: {1}".format(analysis_data['analysis_name'], e))
+            raise
         payload = {
             **analysis_data,
+            **process_location_params,
             'event': 'download_available',
             'timestamp': datetime.now(timezone.utc).isoformat(),
         }

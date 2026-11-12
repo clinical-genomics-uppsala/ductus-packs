@@ -1,10 +1,10 @@
 ---
-name: run_analysis_miarka_action
+name: run_analysis_on_cluster
 description: >
   run a pipeline 
 enabled: true
 runner_type: orquesta
-entry_point: workflows/run_analysis_miarka.yaml
+entry_point: workflows/run_analysis_on_cluster.yaml
 pack: ductus
 parameters:
   context:
@@ -12,29 +12,12 @@ parameters:
     immutable: true
     type: object
   workflow:
-    default: ductus.run_analysis_miarka
+    default: ductus.run_analysis_on_cluster
     immutable: true
     type: string
-  process_host_proj_path:
+  process_location:
     required: true
     type: string
-    default: "{{ config_context.process_host_proj_path }}"
-  process_host_url:
-    required: true
-    type: string
-    default: "{{ config_context.process_host_url }}"
-  job_status_url:
-    required: true
-    type: string
-    default: "{{ config_context.job_status_url }}"
-  process_host_gateway_port:
-    required: true
-    type: string
-    default: "{{ config_context.process_host_gateway_port }}"
-  gateway_api_key:
-    required: true
-    type: string
-    default: "{{ config_context.miarka_api_key }}"
   analysis_name:
     required: true
     type: string
@@ -47,7 +30,7 @@ parameters:
   process_settings:
     required: true 
     type: object
-    default: "{{ config_context.process_settings_miarka }}"
+    default: "{{ config_context.process_settings_remote_cluster[process_location] }}"
   processing_api_access_key:
     required: true
     type: string
@@ -61,6 +44,15 @@ parameters:
     required: true
     type: string
     default: "{{ config_context.processing_api_analysis_update_status_url }}"
+  processing_api_analysis_task_url:
+    required: true
+    type: string
+    default: "{{ config_context.processing_api_analysis_task_url }}"
+  gateway_api_key:
+    required: true 
+    type: string
+    default: "{{ config_context.gateway_api_key_remote_cluster[process_location] }}"
+    secret: true
   mail_bioinfo:
     required: true
     type: string
