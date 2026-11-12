@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.2.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v4.1.0...v4.2.0) (2026-11-12)
+
+
+### Features
+
+* New ,cluster independent, analysis workflow. ([3e0107e](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/3e0107ed4c3051aacc5fcaed4f193843bb245fe4))
+* New host independent copy-action. ([34b72e8](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/34b72e85d6a1d0de0c827cb64a4205bffd288ee9))
+* New host independent copy-action. ([61aac0a](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/61aac0a339beaf81e0740a510e279c215ec12afd))
+* Specify clusters to activate rule. ([e02ead9](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/e02ead98d76690af5ec7cac82bddcb59b61d2be3))
+* Workflow to retrieve result from any remote. ([ea5a3ed](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/ea5a3ed7c607df60661f28cf71b43155bdeb9c60))
+
+
+### Bug Fixes
+
+* Generate statistics Miarka flow. ([453dee9](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/453dee9ed1822243855e95c9299e142fdc61f0a6))
+* Generate statistics Miarka flow. ([326dc2c](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/326dc2cd440494a60ddfa085bff95d8a3807d617))
+* Remove staging dir. after upload completed ([3118f6d](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/3118f6db4ed37f1e6091f4b870f85326b33dc6b2))
+* Remove staging dir. after upload completed ([d6a53fe](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/d6a53fe25123c10dc6192acafa7ecee0b20a4e58))
+
 ## [4.1.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v4.0.0...v4.1.0) (2026-08-18)
 
 
