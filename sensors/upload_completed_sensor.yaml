@@ -2,6 +2,7 @@
   class_name: "UploadCompletedSensor"
   entry_point: "upload_completed_sensor.py"
   description: "Sensor which queries processing api for analyses where upload is completed"
+  enabled: false
   poll_interval: 15 # Every 15 s
   trigger_types:
     -
