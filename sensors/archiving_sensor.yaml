@@ -2,6 +2,7 @@
   class_name: "ArchivingSensor"
   entry_point: "archiving_sensor.py"
   description: "Sensor which queries processing api for new analyses that should be archived"
+  enabled: false
   poll_interval: 15 # Every 15 s
   trigger_types:
     -

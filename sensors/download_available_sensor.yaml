@@ -2,6 +2,7 @@
   class_name: "DownloadAvailableSensor"
   entry_point: "download_available_sensor.py"
   description: "Sensor which queries processing api for analyses available for download"
+  enabled: false
   poll_interval: 15 # Every 15 s
   trigger_types:
     -
