@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.2.1](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v4.2.0...v4.2.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **sensors:** Disable to prevent untriggered rules. ([5718cdf](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/5718cdf5031d8e7c7b8641e8a3fd175506ab0e19))
+* **sensors:** Disable to prevent untriggered rules. ([cdc4487](https://github.com/clinical-genomics-uppsala/ductus-packs/commit/cdc44875e53e674de542cc802afa39b1e827b69e))
+
 ## [4.2.0](https://github.com/clinical-genomics-uppsala/ductus-packs/compare/v4.1.0...v4.2.0) (2026-11-12)
 
 
