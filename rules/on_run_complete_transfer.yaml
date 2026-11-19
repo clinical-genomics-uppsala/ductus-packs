@@ -1,0 +1,23 @@
+---
+name: on_run_complete_transfer
+pack: ductus
+description: >
+  Transfer a completed PacBio run's HiFi BAMs to the processing directory on
+  the default destination (transfer.default_destination). First half of the
+  SMRT Link -> transfer -> pipeline chain; the pipeline start will be chained
+  after ductus.transfer_bams_to_cluster, off its dest_path output.
+
+  Fires only on pacbio_run_complete. Runs routed to
+  pacbio_run_complete_native_demux are not transferred by this rule.
+enabled: true
+
+trigger:
+  type: ductus.pacbio_run_complete
+
+criteria: {}
+
+action:
+  ref: ductus.transfer_bams_to_cluster
+  parameters:
+    run_name: "{{ trigger.run_name }}"
+    source_paths: "{{ trigger.collection_paths }}"

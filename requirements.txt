@@ -1,2 +1,4 @@
-#-e git+git@bitbucket.org:clinsequu/ductus-core.git#egg=ductus-core
 jsonpickle
+# >=2.32.4: lib/smrt_client.py sends SMRT Link credentials through requests
+# (CVE-2024-47081, CVE-2024-35195, CVE-2023-32681 are credential-leak fixes).
+requests>=2.32.4

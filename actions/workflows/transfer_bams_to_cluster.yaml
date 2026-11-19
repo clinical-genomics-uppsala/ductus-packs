@@ -1,0 +1,113 @@
+version: "1.0" # Orquesta version
+
+description: >
+  Transfers a completed PacBio run's HiFi BAMs to a processing cluster and
+  waits until they are verifiably there.
+
+input:
+  - run_name
+  - source_paths
+  - destination
+  - dest_subdir
+  - file_patterns
+  - verify
+  - bwlimit
+  - transfer_timeout_sec
+  - poll_interval_sec
+  - mail_bioinfo
+
+vars:
+  - failed_step: null
+  - stderr: null
+  - dest_path: null
+  - skipped: false
+
+tasks:
+  # Starts the transfer and returns in seconds; the rsync keeps running,
+  # detached, after this task finishes. Success here means "started", so
+  # nothing downstream may be gated on it.
+  transfer:
+    action: ductus.transfer_bams
+    input:
+      run_name: <% ctx(run_name) %>
+      source_paths: <% ctx(source_paths) %>
+      destination: <% ctx(destination) %>
+      dest_subdir: <% ctx(dest_subdir) %>
+      file_patterns: <% ctx(file_patterns) %>
+      verify: <% ctx(verify) %>
+      bwlimit: <% ctx(bwlimit) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "transfer -- Could not start the BAM transfer of <% ctx(run_name) %> to <% ctx(destination) %>"
+        do:
+          - bioinfo_error_notifier
+      - when: <% succeeded() %>
+        publish:
+          # `result().result` and not `result()`: the st2 python runner wraps
+          # what an action returns in {stdout, stderr, exit_code, result}, and
+          # services/workflows.py hands that dict to the conductor verbatim.
+          # (Note for whoever touches reheader_pacbio_bams_miarka next: it
+          # reads `result().status_url` off ductus.submit_miarka_job, which by
+          # the same reasoning is one level short.)
+          - dest_path: <% result().result.dest_path %>
+          - skipped: <% result().result.skipped %>
+        do:
+          - wait_for_transfer
+
+  # The gate. Polls the destination for the .transfer_complete sentinel, which
+  # the transfer's own script writes only after the far-side sizes have been
+  # checked -- so success here, and only here, means every BAM is fully there.
+  #
+  # dest_path and log_path are deliberately NOT passed in: this action derives
+  # both from run_name/dest_subdir and pack config, exactly as transfer_bams
+  # did. The two tasks then agree through config rather than through this
+  # file, and the same call works when an operator runs it by hand against a
+  # run already in flight. The published dest_path above is for the output,
+  # where the full path genuinely has to come from the task that resolved it.
+  #
+  # A transfer that had already completed returns skipped: true from the task
+  # above and its sentinel is already on the destination, so this task
+  # succeeds on its first poll -- which is why "skipped" needs no branch.
+  #
+  # Long-lived on purpose rather than an Orquesta `retry`: one execution
+  # record carrying the elapsed time, the poll count and the log tail beats
+  # 480 records carrying none of it.
+  wait_for_transfer:
+    action: ductus.wait_for_transfer
+    input:
+      run_name: <% ctx(run_name) %>
+      dest_subdir: <% ctx(dest_subdir) %>
+      destination: <% ctx(destination) %>
+      timeout_sec: <% ctx(transfer_timeout_sec) %>
+      poll_interval_sec: <% ctx(poll_interval_sec) %>
+    next:
+      - when: <% failed() %>
+        publish:
+          - stderr: <% result() %>
+          - failed_step: "wait_for_transfer -- BAMs for <% ctx(run_name) %> did not arrive on <% ctx(destination) %>"
+        do:
+          - bioinfo_error_notifier
+
+  bioinfo_error_notifier:
+    action: core.sendmail
+    input:
+      to: <% ctx(mail_bioinfo) %>
+      from: stanley@clinicalgenomics-as.se
+      subject: "[DUCTUS][WP][ERROR] - PacBio BAM transfer of <% ctx(run_name) %> to <% ctx(destination) %>"
+      body: Something went wrong transferring the PacBio BAMs for run <% ctx(run_name) %> to <% ctx(destination) %>, please investigate!!!\n Failure message -- <% ctx(failed_step) %>, <% ctx(stderr) %> Workflow execution id - <% ctx().st2.action_execution_id %> Host - Compute
+    next:
+      - when: <% succeeded() %>
+        do:
+          - fail
+
+output:
+  # The directory the BAMs are in, for whatever runs next: the reheader step
+  # on the demux path (ductus.reheader_pacbio_bams_*) or
+  # ductus.build_longplex_inputs_marvin, whose dest_dir this is.
+  - dest_path: <% ctx(dest_path) %>
+  # True when the destination already held a complete, verified copy and
+  # nothing was transferred. Success either way -- the BAMs are there.
+  - skipped: <% ctx(skipped) %>
+  - stderr: <% ctx(stderr) %>

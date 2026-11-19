@@ -1,0 +1,68 @@
+---
+# Example pack config for the SMRT Link -> BAM transfer chain:
+#   sensors/smrtlink_sensor.py -> ductus.pacbio_run_complete
+#   -> rules/on_run_complete_transfer.yaml -> ductus.transfer_bams_to_cluster
+#
+# Merge these keys into the pack's real config
+# (/opt/stackstorm/configs/ductus.yaml), fill in the values, then
+# `st2ctl reload --register-configs`.
+#
+# This file is an example only: it is not read by st2 and must never hold a
+# real key, password or token. SMRT Link credentials go in the datastore:
+#   st2 key set smrtlink.username <user> --encrypt
+#   st2 key set smrtlink.password <pass> --encrypt
+# The SSH key is referenced by PATH; a passphrase-protected key needs
+# ssh-agent on the st2 host, because the actions run ssh with BatchMode=yes
+# and will fail rather than prompt.
+
+# SMRT Link. For the mock (tests/mock_smrtlink_server.py) this is plain http.
+base_url: "http://127.0.0.1:9999"
+ssl_verify: true
+
+transfer:
+  # "local" for an end-to-end test against the mock; "marvin"/"miarka" for real.
+  default_destination: "local"
+
+  # On the st2 host. Holds one directory per transfer (manifest, expected
+  # sizes, generated script, log, pid) plus the lock files. Must be writable
+  # by the user st2 runs actions as, and must survive for the life of a
+  # transfer.
+  staging_dir: "/var/lib/st2/ductus/transfers"
+
+  # BAMs only. The first matches an undemultiplexed collection, the second the
+  # per-pool children SMRT Link's own demux writes (*.hifi_reads.bcM####.bam).
+  file_patterns:
+    - "*.hifi_reads.bam"
+    - "*.hifi_reads.*.bam"
+
+  destinations:
+    # End-to-end test destination: the st2 host itself, over ssh. The st2
+    # action user needs a key in its own authorized_keys that works with
+    # BatchMode=yes (no passphrase prompt). dest_root is the "processing
+    # directory"; each run lands in <dest_root>/<run_name>/.
+    local:
+      host: "localhost"
+      user: "REPLACE_ME"
+      ssh_key_path: "/home/REPLACE_ME/.ssh/id_ductus_transfer"
+      dest_root: "/tmp/smrtlink-mock/processing"
+      bwlimit: "0"
+
+    # Local cluster.
+    marvin:
+      host: "marvin.example.internal"
+      user: "REPLACE_ME"
+      ssh_key_path: "/home/REPLACE_ME/.ssh/id_ductus_transfer"
+      dest_root: "/scratch/pacbio/runs"
+      bwlimit: "200M"
+
+    # UPPMAX-hosted. user must be a service account exempt from interactive
+    # 2FA; dest_root project-scoped under nobackup; host a dedicated transfer
+    # host rather than a login node.
+    miarka:
+      host: "miarka-transfer.uppmax.uu.se"
+      user: "REPLACE_ME"
+      ssh_key_path: "/home/REPLACE_ME/.ssh/id_ductus_miarka"
+      dest_root: "/proj/REPLACE_ME/nobackup/pacbio/runs"
+      bwlimit: "100M"
+      # ssh_extra_opts: ["-o", "IPQoS=throughput"]
+      # rsync_extra: []
